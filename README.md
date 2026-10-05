@@ -554,15 +554,6 @@ python tools/build_installer.py | build_mac.py | build_linux.py   # installers, 
 python tools/make_icon.py                                   # redraws the window icon
 ```
 
-## Roadmap
-
-Done so far is in the [CHANGELOG](CHANGELOG.md). Open items:
-
-* **Wonderland**, if a dump ever turns up (`--keep-wonderland`).
-* **Kingdom Hearts Re:Cast, HD**: upscaled assets as an optional second mode.
-* **Signed installers**: a code-signing certificate (Windows) and an Apple developer
-  account (macOS) so the installers open without a security warning.
-* **A real-Mac test** of the macOS builds.
 
 ## Credits and licence
 
