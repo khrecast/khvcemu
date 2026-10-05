@@ -1,0 +1,5 @@
+unicorn>=2.0.1
+pygame-ce>=2.5          # same "import pygame"; has wheels for new Python versions (plain pygame works too, but not the dark screen option)
+numpy>=1.22
+# optional, only for tools/disasm.py and tools/xrefs.py
+# capstone>=5.0

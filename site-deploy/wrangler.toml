@@ -1,0 +1,27 @@
+# The project website (site/), served by Cloudflare as static files, behind a temporary
+# password splash page (gate.js). Deploy from THIS folder (never from server/, which holds the
+# leaderboard's config):
+#
+#   cd site-deploy && npx --prefix ../server wrangler deploy --config wrangler.toml
+#
+# The password is the Worker secret SITE_PASSWORD (see gate.js for the command; set it first).
+# While GATE = "on" a missing secret closes the site (503) instead of opening it.
+#
+# TO MAKE THE SITE PUBLIC AGAIN: remove the `main` line, the vars block, and `binding` and
+# `run_worker_first` under the assets block, then deploy. Deleting the secret would close the
+# site, not open it.
+name = "khrecast-site"
+main = "gate.js"
+compatibility_date = "2025-09-01"
+routes = [
+  { pattern = "khrecast.com", custom_domain = true },
+  { pattern = "www.khrecast.com", custom_domain = true },
+]
+
+[vars]
+GATE = "on"
+
+[assets]
+directory = "../site"
+binding = "ASSETS"
+run_worker_first = true

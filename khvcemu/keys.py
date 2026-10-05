@@ -1,0 +1,9 @@
+"""BREW virtual key codes (AEEVCodes.h) and the default keyboard mapping."""
+
+AVK = {
+    "0": 0xE021, "1": 0xE022, "2": 0xE023, "3": 0xE024, "4": 0xE025, "5": 0xE026,
+    "6": 0xE027, "7": 0xE028, "8": 0xE029, "9": 0xE02A, "STAR": 0xE02B, "POUND": 0xE02C,
+    "POWER": 0xE02D, "END": 0xE02E, "SEND": 0xE02F, "CLR": 0xE030, "UP": 0xE031,
+    "DOWN": 0xE032, "LEFT": 0xE033, "RIGHT": 0xE034, "SELECT": 0xE035, "SOFT1": 0xE036,
+    "SOFT2": 0xE037,
+}

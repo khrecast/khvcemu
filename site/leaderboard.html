@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaderboard - Kingdom Hearts Re:Cast</title>
+<meta name="description" content="The top 100 scores for each world of the 2005 Verizon V CAST Kingdom Hearts game, with the Munny, EXP and time behind them. Anonymous.">
+<meta name="theme-color" content="#0b1626">
+<link rel="icon" type="image/png" href="assets/recast_icon.png">
+<style>
+  :root {
+    --bg: #0b1626; --panel: #13253c; --field: #0f1d31; --line: #1d3a5c;
+    --text: #e9f0fa; --muted: #8ea4bf; --dim: #5d7391;
+    --blue: #2f80ed; --blue-hi: #4693ff; --green: #58c46b;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--text); background: var(--bg);
+    font: 16px/1.6 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, #ffffff55 50%, transparent 52%),
+      radial-gradient(1px 1px at 34% 64%, #ffffff44 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 58% 12%, #9fd0ff66 50%, transparent 52%),
+      radial-gradient(1px 1px at 81% 40%, #ffffff44 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 92% 78%, #9fd0ff55 50%, transparent 52%),
+      radial-gradient(1px 1px at 22% 88%, #ffffff33 50%, transparent 52%),
+      radial-gradient(900px 500px at 50% -120px, #12396b66, transparent 70%);
+    background-size: 460px 460px, 380px 380px, 520px 520px, 420px 420px, 600px 600px, 340px 340px, 100% 100%;
+  }
+  a { color: var(--blue-hi); }
+  a:hover { color: #fff; }
+  :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  .bar { height: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); }
+
+  header.site { border-bottom: 1px solid var(--line); background: #0b1626cc; backdrop-filter: blur(6px); position: sticky; top: 0; z-index: 5; }
+  header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 10px; padding-bottom: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text); text-decoration: none; font-size: 14px; }
+  .brand img { width: 28px; height: 28px; }
+  nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: #fff; }
+
+  .hero { text-align: center; padding: 56px 0 40px; }
+  .hero .logo { max-width: min(696px, 92%); height: auto; image-rendering: pixelated; filter: drop-shadow(0 8px 30px #2f80ed55); }
+  .hero p.tag { font-size: clamp(20px, 3.2vw, 30px); font-weight: 700; line-height: 1.25; margin: 18px auto 8px; max-width: 700px; }
+  .hero p.tag .first { color: var(--green); }
+  .hero p.sub { color: var(--muted); margin: 0 auto 26px; max-width: 600px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 10px;
+    font-weight: 700; text-decoration: none; border: 1px solid var(--line); color: var(--text);
+    background: #1d3a5c; cursor: pointer; font-size: 16px; justify-content: center; text-align: center;
+  }
+  .btn:hover { background: #27507e; color: #fff; }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-size: 18px; padding: 14px 28px; }
+  .btn.primary:hover { background: var(--blue-hi); }
+  .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .btn[aria-disabled="true"]:hover { background: #1d3a5c; }
+  .btn.primary[aria-disabled="true"]:hover { background: var(--blue); }
+  .small { font-size: 13px; color: var(--muted); }
+
+  section { padding: 44px 0; }
+  h2 { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  h3.big { font-size: clamp(24px, 3.4vw, 32px); margin: 0 0 14px; line-height: 1.2; }
+  p { margin: 0 0 14px; }
+  .lead { color: #c9d7ea; max-width: 760px; }
+
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); margin-top: 18px; }
+  .grid.two { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+  @media (max-width: 480px) { .grid.two { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card h4 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: #c0cfe3; font-size: 15px; }
+  .card .ico { font-size: 22px; margin-bottom: 6px; }
+
+  figure { margin: 22px 0 0; }
+  figure img { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); background: #000; image-rendering: pixelated; }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+  .dl { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); margin-top: 18px; }
+  .dl .card { display: flex; flex-direction: column; gap: 8px; }
+  .dl .card.recommended { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 10px 40px #2f80ed26; }
+  .dl .os { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .dl .name { font-size: 20px; font-weight: 700; }
+  .dl .meta { color: var(--muted); font-size: 14px; flex: 1; }
+  .badge { display: block; width: fit-content; margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: #2f80ed33; color: #9cc4ff; }
+  .badge.warn { background: #f2c94c22; color: #f2c94c; }
+
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0 18px; margin-top: 10px; }
+  summary { cursor: pointer; padding: 14px 0; font-weight: 600; }
+  details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  details p, details ol, details ul { color: #c0cfe3; font-size: 15px; }
+  code, kbd { background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font: 13px ui-monospace, Consolas, monospace; color: #cfe3ff; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+  .tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 10px 10px; margin-top: 18px; }
+
+  .topnote { background: #2b2410; color: #f2c94c; text-align: center; font-size: 13px; padding: 8px 16px; border-bottom: 1px solid #4a3d12; }
+  .topnote a { color: #ffe08a; font-weight: 600; }
+  .notice { scroll-margin-top: 80px; max-width: 760px; margin: 30px auto 0; text-align: left; background: var(--panel); border: 1px solid var(--line); border-left: 5px solid #f2c94c; border-radius: var(--radius); padding: 14px 18px; }
+  .notice strong { display: block; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #f2c94c; margin-bottom: 4px; }
+  .notice p { margin: 0; color: #c9d7ea; font-size: 15px; }
+  .highlight { background: linear-gradient(135deg, #10304f, #13253c); border: 1px solid var(--blue); box-shadow: 0 10px 40px #2f80ed26; border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; }
+  .highlight .pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--green); color: #07210f; }
+  .highlight .hl-title { font-size: clamp(20px, 3vw, 26px); font-weight: 700; margin: 10px 0 8px; line-height: 1.25; }
+  .highlight p:last-child { margin: 0; color: #c9d7ea; }
+  .subhead { font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--green); margin: 30px 0 0; }
+  .grid.credits { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .grid.credits .card p { font-size: 14px; }
+  .links { margin-top: 8px !important; }
+  .links a { font-weight: 600; font-size: 14px; }
+  .qa { margin: 22px 0 6px; }
+  .qa dt { color: var(--muted); font-size: 15px; margin-top: 22px; padding-left: 14px; border-left: 3px solid var(--line); }
+  .qa dt::before { content: "Q  "; color: var(--green); font-weight: 700; letter-spacing: .08em; }
+  .qa dd { margin: 8px 0 0; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; color: #dce7f6; font-size: 16px; }
+  .callout { background: linear-gradient(135deg, #13253c, #10304f); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 18px; }
+  footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 30px 0 50px; color: var(--muted); font-size: 14px; }
+  footer .cols { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero .logo { animation: float 6s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-6px); } }
+  }
+  @media (max-width: 560px) { .hero { padding-top: 36px; } }
+
+  .lb-tabs { display: flex; gap: 6px; margin: 18px 0 0; flex-wrap: wrap; }
+  .lb-tabs button { font: inherit; cursor: pointer; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 14px; }
+  .lb-tabs button:hover { color: var(--text); border-color: var(--blue); }
+  .lb-tabs button[aria-selected="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .lbwrap { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .scroller { max-height: 460px; overflow: auto; scrollbar-width: thin; scrollbar-color: #2f4a6f var(--panel); }
+  .scroller::-webkit-scrollbar { width: 10px; height: 10px; }
+  .scroller::-webkit-scrollbar-track { background: var(--panel); }
+  .scroller::-webkit-scrollbar-thumb { background: #2f4a6f; border-radius: 6px; border: 2px solid var(--panel); }
+  .scroller::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+  table.lb { margin: 0; min-width: 440px; border-collapse: separate; border-spacing: 0; }
+  .lb th { position: sticky; top: 0; background: #16294a; z-index: 1; }
+  .lb th, .lb td { padding: 8px 14px; border-bottom: 1px solid var(--line); }
+  .lb th.n, .lb td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .lb td.g { font-weight: 600; }
+  .lb tbody tr:nth-child(-n+3) td.g { color: var(--green); }
+  .lb td.mu, .lb td.xp, .lb td.lv, .lb td.t { color: var(--muted); }
+  .lb td.rk { color: var(--dim); width: 3em; }
+  .lb tbody tr:nth-child(10) td { border-bottom: 2px solid #2f4a6f; }
+  .lb-empty { padding: 26px 14px; color: var(--muted); text-align: center; }
+  .lb-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 14px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); background: #13253c; }
+
+  .menu-btn { display: none; background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .menu-btn:hover { border-color: var(--blue); }
+  @media (max-width: 1000px) {
+    .menu-btn { display: inline-flex; align-items: center; gap: 8px; }
+    header.site .wrap { position: relative; }
+    nav { display: none; position: absolute; top: calc(100% + 1px); right: 16px; z-index: 6; flex-direction: column; flex-wrap: nowrap; gap: 0; min-width: 210px; background: #0f1d31; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px #0008; padding: 6px 0; font-size: 16px; }
+    nav.open { display: flex; }
+    nav a { padding: 11px 18px; }
+    nav a:hover { background: var(--panel); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topnote" role="note">Unofficial, non-profit fan preservation project. Not affiliated with Disney, Square Enix, Superscape, Verizon or any rights holder. <a href="index.html#disclaimer">Read the full notice</a></div>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/recast_icon.png" alt="">Re:Cast</a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">&#9776; Menu</button>
+    <nav aria-label="Sections" id="site-nav">
+      <a href="index.html">Home</a><a href="index.html#download">Download</a><a href="index.html#help">Help</a><a href="index.html#credits">Credits</a>
+    </nav>
+  </div>
+  <div class="bar"></div>
+</header>
+
+<main id="top">
+  <section><div class="wrap">
+    <h2>Leaderboard</h2>
+    <p class="lead">The original ranking server shut down long ago, so Re:Cast runs a replacement. Scores are anonymous: there are no names, only how the run went. Players who share their scores from the launcher show up here. In the game, the score is your Munny plus 100&times; your EXP.</p>
+    <div class="lb-tabs" id="tabs" role="tablist" aria-label="World"></div>
+    <div class="lbwrap">
+      <div class="scroller" id="scroller" tabindex="0" role="region" aria-label="Scores, scrollable" aria-live="polite">
+        <table class="lb">
+          <thead><tr><th scope="col">#</th><th scope="col" class="n">Score</th><th scope="col" class="n">Munny</th><th scope="col" class="n">EXP</th><th scope="col" class="n">Level</th><th scope="col" class="n">Time</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="lb-empty" id="empty">Loading scores&hellip;</div>
+      </div>
+      <div class="lb-foot"><span id="count"></span><span id="updated"></span></div>
+    </div>
+    <p class="small">Equal scores are ranked by the faster time. Scores and times come from players&rsquo; own computers and can&rsquo;t be verified, so treat this as friendly fun rather than a competition.</p>
+  </div></section>
+</main>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <strong style="color:var(--text)">Kingdom Hearts Re:Cast</strong><br>
+      Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.<br><br>
+      <a href="index.html">Back to the main page</a> &middot; <a href="mailto:khrecast@gmail.com">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  var SCORES_URL = "https://scores.khrecast.com/top";
+  var WORLDS = [["island", "Swashbuckler\u2019s Island"], ["agrabah", "Agrabah"], ["castle", "Maleficent\u2019s Castle"]];
+  var data = null, current = "island";
+
+  function fmtTime(s) {
+    if (s === null || s === undefined) return "\u2013";
+    var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+    return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (r < 10 ? "0" : "") + r;
+  }
+  function num(v) { return v === null || v === undefined ? "\u2013" : Number(v).toLocaleString("en-US"); }
+  function cell(tr, cls, text) {
+    var td = document.createElement("td"); td.className = cls; td.textContent = text; tr.appendChild(td);
+  }
+
+  function show(key) {
+    current = key;
+    document.querySelectorAll("#tabs button").forEach(function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-k") === key ? "true" : "false");
+    });
+    var tbody = document.getElementById("rows"), empty = document.getElementById("empty");
+    tbody.textContent = "";
+    document.getElementById("scroller").scrollTop = 0;
+    if (!data) return;
+    var w = (data.worlds || {})[key] || { scores: [], total: 0 };
+    w.scores.forEach(function (r, i) {
+      var tr = document.createElement("tr");
+      cell(tr, "rk", String(i + 1));
+      cell(tr, "n g", num(r.score));
+      cell(tr, "n mu", num(r.munny));
+      cell(tr, "n xp", num(r.exp));
+      cell(tr, "n lv", num(r.level));
+      cell(tr, "n t", fmtTime(r.secs));
+      tbody.appendChild(tr);
+    });
+    empty.hidden = w.scores.length > 0;
+    empty.textContent = "No scores yet. Be the first!";
+    document.getElementById("count").textContent = w.total
+      ? "Showing the top " + w.scores.length + " of " + w.total + " score" + (w.total === 1 ? "" : "s") : "";
+  }
+
+  (function () {
+    var tabs = document.getElementById("tabs");
+    WORLDS.forEach(function (w) {
+      var b = document.createElement("button");
+      b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("data-k", w[0]); b.textContent = w[1];
+      b.addEventListener("click", function () { show(w[0]); history.replaceState(null, "", "#" + w[0]); });
+      tabs.appendChild(b);
+    });
+    var want = location.hash.replace("#", "");
+    show(WORLDS.some(function (w) { return w[0] === want; }) ? want : "island");
+    fetch(SCORES_URL).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function (d) {
+      data = d;
+      show(current);
+      var mins = Object.keys(d.minSeconds || {}).map(function (k) { return d.minSeconds[k]; });
+      if (mins.length) {
+        var lo = Math.min.apply(null, mins), el = document.getElementById("board-min");
+        if (el) el.textContent = lo % 60 ? lo + " seconds" : (lo / 60) + (lo === 60 ? " minute" : " minutes");
+      }
+      document.getElementById("updated").textContent = "Updated " + new Date(d.updated * 1000).toLocaleString();
+    }).catch(function () {
+      document.getElementById("empty").textContent = "The leaderboard can\u2019t be reached right now. Try again later.";
+      document.getElementById("empty").hidden = false;
+    });
+  })();
+</script>
+
+<script>
+  // the menu button opens the links as a drop-down on narrow screens
+  (function () {
+    var btn = document.getElementById("menu-btn"), nav = document.getElementById("site-nav");
+    if (!btn || !nav) return;
+    function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+    nav.addEventListener("click", function (e) { if (e.target.tagName === "A") set(false); });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+  })();
+</script>
+</body>
+</html>

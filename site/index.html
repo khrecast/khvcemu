@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kingdom Hearts Re:Cast</title>
+<meta name="description" content="The lost 2005 Verizon V CAST Kingdom Hearts game, playable on PC with full sound for the first time. Windows, Mac and Linux. One download, everything included.">
+<meta name="theme-color" content="#0b1626">
+<link rel="icon" type="image/png" href="assets/recast_icon.png">
+<style>
+  :root {
+    --bg: #0b1626; --panel: #13253c; --field: #0f1d31; --line: #1d3a5c;
+    --text: #e9f0fa; --muted: #8ea4bf; --dim: #5d7391;
+    --blue: #2f80ed; --blue-hi: #4693ff; --green: #58c46b;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--text); background: var(--bg);
+    font: 16px/1.6 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, #ffffff55 50%, transparent 52%),
+      radial-gradient(1px 1px at 34% 64%, #ffffff44 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 58% 12%, #9fd0ff66 50%, transparent 52%),
+      radial-gradient(1px 1px at 81% 40%, #ffffff44 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 92% 78%, #9fd0ff55 50%, transparent 52%),
+      radial-gradient(1px 1px at 22% 88%, #ffffff33 50%, transparent 52%),
+      radial-gradient(900px 500px at 50% -120px, #12396b66, transparent 70%);
+    background-size: 460px 460px, 380px 380px, 520px 520px, 420px 420px, 600px 600px, 340px 340px, 100% 100%;
+  }
+  a { color: var(--blue-hi); }
+  a:hover { color: #fff; }
+  :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  .bar { height: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); }
+
+  header.site { border-bottom: 1px solid var(--line); background: #0b1626cc; backdrop-filter: blur(6px); position: sticky; top: 0; z-index: 5; }
+  header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 10px; padding-bottom: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text); text-decoration: none; font-size: 14px; }
+  .brand img { width: 28px; height: 28px; }
+  nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: #fff; }
+
+  .hero { text-align: center; padding: 56px 0 40px; }
+  .hero .logo { max-width: min(696px, 92%); height: auto; image-rendering: pixelated; filter: drop-shadow(0 8px 30px #2f80ed55); }
+  .hero p.tag { font-size: clamp(20px, 3.2vw, 30px); font-weight: 700; line-height: 1.25; margin: 18px auto 8px; max-width: 700px; }
+  .hero p.tag .first { color: var(--green); }
+  .hero p.sub { color: var(--muted); margin: 0 auto 26px; max-width: 600px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 10px;
+    font-weight: 700; text-decoration: none; border: 1px solid var(--line); color: var(--text);
+    background: #1d3a5c; cursor: pointer; font-size: 16px; justify-content: center; text-align: center;
+  }
+  .btn:hover { background: #27507e; color: #fff; }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-size: 18px; padding: 14px 28px; }
+  .btn.primary:hover { background: var(--blue-hi); }
+  .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .btn[aria-disabled="true"]:hover { background: #1d3a5c; }
+  .btn.primary[aria-disabled="true"]:hover { background: var(--blue); }
+  .small { font-size: 13px; color: var(--muted); }
+
+  section { padding: 44px 0; }
+  h2 { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  h3.big { font-size: clamp(24px, 3.4vw, 32px); margin: 0 0 14px; line-height: 1.2; }
+  p { margin: 0 0 14px; }
+  .lead { color: #c9d7ea; max-width: 760px; }
+
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); margin-top: 18px; }
+  .grid.two { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+  @media (max-width: 480px) { .grid.two { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card h4 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: #c0cfe3; font-size: 15px; }
+  .card .ico { font-size: 22px; margin-bottom: 6px; }
+
+  figure { margin: 22px 0 0; }
+  figure img { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); background: #000; image-rendering: pixelated; }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .shots { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); }
+  .shots figure img { image-rendering: auto; background: var(--bg); }   /* screenshots of a window, not pixel art */
+
+  .dl { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); margin-top: 18px; }
+  .dl .card { display: flex; flex-direction: column; gap: 8px; }
+  .dl .card.recommended { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue), 0 10px 40px #2f80ed26; }
+  .dl .os { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .dl .name { font-size: 20px; font-weight: 700; }
+  .dl .meta { color: var(--muted); font-size: 14px; flex: 1; }
+  .badge { display: block; width: fit-content; margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: #2f80ed33; color: #9cc4ff; }
+  .badge.warn { background: #f2c94c22; color: #f2c94c; }
+
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0 18px; margin-top: 10px; }
+  summary { cursor: pointer; padding: 14px 0; font-weight: 600; }
+  details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  details p, details ol, details ul { color: #c0cfe3; font-size: 15px; }
+  code, kbd { background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font: 13px ui-monospace, Consolas, monospace; color: #cfe3ff; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+  .tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 10px 10px; margin-top: 18px; }
+
+  .topnote { background: #2b2410; color: #f2c94c; text-align: center; font-size: 13px; padding: 8px 16px; border-bottom: 1px solid #4a3d12; }
+  .topnote a { color: #ffe08a; font-weight: 600; }
+  .notice { scroll-margin-top: 80px; max-width: 760px; margin: 30px auto 0; text-align: left; background: var(--panel); border: 1px solid var(--line); border-left: 5px solid #f2c94c; border-radius: var(--radius); padding: 14px 18px; }
+  .notice strong { display: block; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #f2c94c; margin-bottom: 4px; }
+  .notice p { margin: 0; color: #c9d7ea; font-size: 15px; }
+  .highlight { background: linear-gradient(135deg, #10304f, #13253c); border: 1px solid var(--blue); box-shadow: 0 10px 40px #2f80ed26; border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; }
+  .highlight .pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--green); color: #07210f; }
+  .highlight .hl-title { font-size: clamp(20px, 3vw, 26px); font-weight: 700; margin: 10px 0 8px; line-height: 1.25; }
+  .highlight p:last-child { margin: 0; color: #c9d7ea; }
+  .subhead { font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--green); margin: 30px 0 0; }
+  .grid.credits { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }   /* a lone card keeps its width */
+  .grid.credits .card p { font-size: 14px; }
+  .links { margin-top: 8px !important; }
+  .links a { font-weight: 600; font-size: 14px; }
+  .qa { margin: 22px 0 6px; }
+  .qa dt { color: var(--muted); font-size: 15px; margin-top: 22px; padding-left: 14px; border-left: 3px solid var(--line); }
+  .qa dt::before { content: "Q  "; color: var(--green); font-weight: 700; letter-spacing: .08em; }
+  .qa dd { margin: 8px 0 0; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; color: #dce7f6; font-size: 16px; }
+  .callout { background: linear-gradient(135deg, #13253c, #10304f); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 18px; }
+  footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 30px 0 50px; color: var(--muted); font-size: 14px; }
+  footer .cols { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero .logo { animation: float 6s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-6px); } }
+  }
+  @media (max-width: 560px) { .hero { padding-top: 36px; } }
+
+  .menu-btn { display: none; background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .menu-btn:hover { border-color: var(--blue); }
+  @media (max-width: 1000px) {
+    .menu-btn { display: inline-flex; align-items: center; gap: 8px; }
+    header.site .wrap { position: relative; }
+    nav { display: none; position: absolute; top: calc(100% + 1px); right: 16px; z-index: 6; flex-direction: column; flex-wrap: nowrap; gap: 0; min-width: 210px; background: #0f1d31; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px #0008; padding: 6px 0; font-size: 16px; }
+    nav.open { display: flex; }
+    nav a { padding: 11px 18px; }
+    nav a:hover { background: var(--panel); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topnote" role="note">Unofficial, non-profit fan preservation project. Not affiliated with Disney, Square Enix, Superscape, Verizon or any rights holder. <a href="#disclaimer">Read the full notice</a></div>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/recast_icon.png" alt="">Re:Cast</a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">&#9776; Menu</button>
+    <nav aria-label="Sections" id="site-nav">
+      <a href="#about">About</a><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#launcher">Launcher</a><a href="#composer">Music</a><a href="leaderboard.html">Leaderboard</a>
+      <a href="#download">Download</a><a href="#help">Help</a><a href="#credits">Credits</a><a data-link="repo" href="#">Source</a>
+    </nav>
+  </div>
+  <div class="bar"></div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <img class="logo" src="assets/recast_logo_lowres_hardpixels.png" width="696" height="486" alt="Kingdom Hearts Re:Cast">
+    <p class="tag">Playable on PC, with full sound, <span class="first">for the first time.</span></p>
+    <p class="sub">A lost piece of Kingdom Hearts history: the 2005 Verizon V CAST game, on Windows, Mac or Linux. One download, nothing else to install.</p>
+    <div class="cta">
+      <a class="btn primary" id="hero-dl" href="#download" data-os-button>Download</a>
+      <a class="btn" href="#about">What is this?</a>
+    </div>
+    <p class="small" id="hero-note" style="margin-top:12px">Free and open source</p>
+    <aside class="notice" id="disclaimer" role="note" aria-label="Disclaimer">
+      <strong>Please read</strong>
+      <p>Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.</p>
+    </aside>
+  </div>
+
+  <div class="bar" aria-hidden="true"></div>
+
+  <section id="about"><div class="wrap">
+    <h2>About</h2>
+    <p class="lead">In 2005, Superscape and Disney Mobile made a full 3D <em>Kingdom Hearts</em> for Verizon's V&nbsp;CAST phones: Sora, the Keyblade, Maleficent's Castle, all on a phone with a 176&times;220 screen. The phones, the service and the store are long gone.</p>
+    <p class="lead">Re:Cast runs the game's own code, unchanged, on an emulated phone processor and recreates the phone features it relies on. It draws the real 3D, plays the music and sound effects, and carries you from world to world through the game's own chapter flow.</p>
+    <div class="highlight">
+      <p class="hl-title">Playable on a PC, with full sound, for the first time.</p>
+      <p>Until now this game ran only on its original phones, on a collector's modified Zeebo console, or without any audio in an Android emulator. As far as we know, Re:Cast is the first emulator to play it with its music and sound effects in context: the game's real soundtrack and effects, in step with the action.</p>
+    </div>
+    <div class="callout">
+      <strong>A missing chapter.</strong> The second episode, <em>Wonderland</em>, has never been recovered. Re:Cast bridges it: after the Island you get the game's surviving Wonderland pages, then carry on to Agrabah. <a href="#wonderland">Help find it.</a>
+    </div>
+  </div></section>
+
+  <section id="features"><div class="wrap">
+    <h2>Features</h2>
+
+    <h4 class="subhead">Authentic</h4>
+    <div class="grid two">
+      <div class="card"><div class="ico">&#9881;&#65039;</div><h4>The game's own code</h4><p>Re:Cast runs the real game program and Superscape's 3D engine, unchanged, on an emulated phone processor. It is the game itself, not a remake.</p></div>
+      <div class="card"><div class="ico">&#127925;</div><h4>The original music and sound</h4><p>The real soundtrack and sound effects, in step with the action, including the phone's compressed voice-codec effects, decoded properly. A first on PC.</p></div>
+      <div class="card"><div class="ico">&#128190;</div><h4>Its own saves and scores</h4><p>Load Game, the save points and the &ldquo;post your score&rdquo; screen all behave the way they did on the phone.</p></div>
+      <div class="card"><div class="ico">&#128220;</div><h4>Play all 4 found chapters</h4><p>Obstacle Course, the Island, Agrabah and Maleficent's Castle, played through start to finish.</p></div>
+    </div>
+
+    <h4 class="subhead">Quality of life</h4>
+    <div class="grid">
+      <div class="card"><div class="ico">&#128190;</div><h4>Save states</h4><p>Snapshot anywhere with F5 and load with F9: nine slots, automatic autosaves, and backups of the game's own saves.</p></div>
+      <div class="card"><div class="ico">&#9654;&#65039;</div><h4>A launcher that remembers</h4><p>A Continue button with a preview of where you left off, one-click setup, and your settings kept.</p></div>
+      <div class="card"><div class="ico">&#127912;</div><h4>Picture filters</h4><p>Crisp pixels, smooth, sharp pixels or Scale2x. Press F11 to compare them live.</p></div>
+      <div class="card"><div class="ico">&#128288;</div><h4>Smooth hi-res text</h4><p>The game's tiny 176&times;220 text is redrawn sharply at your window's resolution, so menus and dialogue stay crisp at any size.</p></div>
+      <div class="card"><div class="ico">&#127942;</div><h4>A shared leaderboard</h4><p>The original ranking server is long gone, so Re:Cast brings it back. Scores are shared anonymously (only the world, score, Munny, EXP and time, never who you are) so you can see how you rank. You can switch sharing off.</p></div>
+      <div class="card"><div class="ico">&#128230;</div><h4>Everything included</h4><p>One installer for Windows, Mac or Linux, with its own Python, ffmpeg and game files. No setup, no extra downloads.</p></div>
+    </div>
+  </div></section>
+
+  <section id="screens"><div class="wrap">
+    <h2>Screenshots</h2>
+    <figure><img src="assets/island_castle.png" alt="Sora on the Island and in Maleficent's Castle, plus menu screens" loading="lazy"><figcaption>The title screen, the Island and Maleficent's Castle.</figcaption></figure>
+    <figure><img src="assets/boot_sequence.png" alt="The Disney Mobile and Superscape logos, then the title screen" loading="lazy"><figcaption>The boot sequence: Disney Mobile, Superscape, then the Kingdom Hearts title.</figcaption></figure>
+    <figure><img src="assets/wonderland_reroute.png" alt="The bridge over the lost Wonderland chapter" loading="lazy"><figcaption>The bridge over the lost Wonderland chapter, using the game's own surviving screens.</figcaption></figure>
+  </div></section>
+
+  <section id="launcher"><div class="wrap">
+    <h2>The launcher</h2>
+    <p class="lead">Re:Cast opens with a launcher that picks up where you left off, keeps your save states, and lets you set up the picture and the music before you play. It finds the game files itself the first time.</p>
+    <div class="shots">
+      <figure><img src="assets/launcher_play.png" width="640" height="663" alt="The launcher's Play tab: a Continue card showing the newest save, its world and a preview" loading="lazy"><figcaption><strong>Play</strong>: continue from your newest save, with a preview of where you left off, or start from the title screen.</figcaption></figure>
+      <figure><img src="assets/launcher_saves.png" width="640" height="663" alt="The Saves tab: a list of save-state slots with dates and a preview picture" loading="lazy"><figcaption><strong>Saves</strong>: every save state with its date and a preview. Double-click one to jump back in, or start at any world.</figcaption></figure>
+      <figure><img src="assets/launcher_options.png" width="640" height="663" alt="The Options tab: window size, picture filter, autosave, pausing, dark screen, screenshot folder and score sharing" loading="lazy"><figcaption><strong>Options</strong>: window and text size, picture filter, autosave, pausing when you click away, a dark screen behind the window, where screenshots go, and sharing your scores with the online leaderboard.</figcaption></figure>
+      <figure><img src="assets/launcher_sound.png" width="640" height="663" alt="The Sound tab: volume and character sliders for the music, mixes, and a recording to compare with" loading="lazy"><figcaption><strong>Sound</strong>: shape the music with sliders and ready-made or saved mixes, compare with a recording, or even play your own recording in the game.</figcaption></figure>
+    </div>
+  </div></section>
+
+  <section id="composer"><div class="wrap">
+    <h2>The music</h2>
+    <p class="lead">The game&rsquo;s music was written by composer Ian Livingstone in 2004, for a game he never played. Years later the YouTuber <a href="https://www.youtube.com/@13thVessel" target="_blank" rel="noopener">13th Vessel</a> got in touch with him, and posted the complete original soundtrack: <a href="https://www.youtube.com/watch?v=__ZbGHQslmw" target="_blank" rel="noopener">&ldquo;KINGDOM HEARTS V-Cast [Complete Original Soundtrack]&rdquo;</a>.</p>
+    <p>The video&rsquo;s description holds an interview with the composer, in which he answers questions about the music. It is an interesting read if you like this soundtrack.</p>
+    <div class="callout">
+      <h4 style="margin:0 0 6px">Download the soundtrack</h4>
+      <p style="margin:0 0 10px">The game&rsquo;s music is available as audio files from KHInsider: <a href="https://downloads.khinsider.com/game-soundtracks/album/kingdom-hearts-v-cast-mobile-gamerip-2005" target="_blank" rel="noopener">Kingdom Hearts V CAST (Mobile) (gamerip) (2005)</a>.</p>
+      <p style="margin:0">If you prefer those recordings to Re:Cast&rsquo;s built-in synthesizer, the game can play them instead, tune by tune. In the launcher&rsquo;s <strong>Sound</strong> tab, pick the tune, <strong>Choose...</strong> the matching file, press <strong>Match</strong> to even out the volume, then tick <strong>Use the recording in the game</strong>. Re:Cast fits each recording to the game&rsquo;s own length for that tune, so the game plays exactly as before; untick it to go back to the built-in music.</p>
+    </div>
+  </div></section>
+
+  <section id="download"><div class="wrap">
+    <h2>Download</h2>
+    <p class="lead">Each file is a complete package: download it, run it, play. Saves and settings live in your user folder, so uninstalling never deletes them.</p>
+    <div class="dl">
+      <div class="card" data-os="win64">
+        <div class="os">Windows</div><div class="name">64-bit</div>
+        <div class="meta">Windows 10 or 11. This is the one most PCs need. About 56&nbsp;MB.</div>
+        <a class="btn primary" data-link="win64" href="#">Download for Windows</a>
+      </div>
+      <div class="card" data-os="win32">
+        <div class="os">Windows</div><div class="name">32-bit</div>
+        <div class="meta">For older 32-bit versions of Windows. About 43&nbsp;MB.</div>
+        <a class="btn" data-link="win32" href="#">Download 32-bit</a>
+      </div>
+      <div class="card" data-os="macArm">
+        <div class="os">macOS</div><div class="name">Apple Silicon</div>
+        <div class="meta">Macs with an M1 chip or later. macOS 11 or newer. About 81&nbsp;MB. <span class="badge warn">New &mdash; tell us if it breaks</span></div>
+        <a class="btn" data-link="macArm" href="#">Download for Apple Silicon</a>
+      </div>
+      <div class="card" data-os="macIntel">
+        <div class="os">macOS</div><div class="name">Intel</div>
+        <div class="meta">Macs with an Intel chip. macOS 10.15 or newer. About 86&nbsp;MB. <span class="badge warn">New &mdash; tell us if it breaks</span></div>
+        <a class="btn" data-link="macIntel" href="#">Download for Intel</a>
+      </div>
+      <div class="card" data-os="linux64">
+        <div class="os">Linux</div><div class="name">x86-64</div>
+        <div class="meta">Most Linux PCs and laptops. Ubuntu 20.04, Debian 10, Fedora 29 or newer. About 105&nbsp;MB.</div>
+        <a class="btn" data-link="linux64" href="#">Download for Linux</a>
+      </div>
+      <div class="card" data-os="linuxArm">
+        <div class="os">Linux</div><div class="name">ARM64</div>
+        <div class="meta">Raspberry Pi 4 and 5 and other 64-bit ARM machines. About 93&nbsp;MB. <span class="badge warn">New &mdash; lightly tested</span></div>
+        <a class="btn" data-link="linuxArm" href="#">Download for ARM64</a>
+      </div>
+    </div>
+    <p class="small" style="margin-top:14px">Not sure which Mac you have? Apple menu &rarr; About This Mac: &ldquo;Chip: Apple M&hellip;&rdquo; means Apple Silicon, &ldquo;Processor: Intel&rdquo; means Intel.</p>
+  </div></section>
+
+  <section id="help"><div class="wrap">
+    <h2>Help</h2>
+    <details>
+      <summary>Windows says &ldquo;Windows protected your PC&rdquo;</summary>
+      <p>The installer isn't code-signed, so Windows' SmartScreen is cautious about it. Click <strong>More info</strong>, then <strong>Run anyway</strong>. It installs only for your user account and never asks for administrator rights. To remove it later, use Settings &rarr; Apps.</p>
+    </details>
+    <details>
+      <summary>Mac says the app can't be opened</summary>
+      <ol>
+        <li>Unzip the download and drag <strong>Kingdom Hearts Re-Cast</strong> into Applications.</li>
+        <li>Right-click (or Control-click) the app, choose <strong>Open</strong>, then <strong>Open</strong> again. You only do this once.</li>
+        <li>If it says the app is &ldquo;damaged&rdquo;, open Terminal and run:<br><code>xattr -dr com.apple.quarantine "/Applications/Kingdom Hearts Re-Cast.app"</code></li>
+      </ol>
+    </details>
+    <details>
+      <summary>Installing on Linux</summary>
+      <p>Download the <code>.run</code> file for your computer, then in a terminal:</p>
+      <p><code>sh KH-ReCast-Linux-x86_64.run</code></p>
+      <p>It installs for your user only (no <code>sudo</code>) and adds <strong>Kingdom Hearts Re:Cast</strong> to your applications menu. To remove it: <code>sh KH-ReCast-Linux-x86_64.run --uninstall</code>. It needs a desktop Linux using glibc 2.28 or newer (not Alpine). On a 64-bit ARM machine, use the <code>aarch64</code> file instead.</p>
+    </details>
+    <details>
+      <summary>Where are my saves?</summary>
+      <p>In a folder called <code>.khvcemu</code> in your home folder, kept safe across updates and uninstalls. Save states also appear in the launcher with a preview picture.</p>
+    </details>
+    <details>
+      <summary>Controls</summary>
+      <div class="tablewrap"><table>
+        <tr><th>Keys</th><th>In the game</th></tr>
+        <tr><td><kbd>WASD</kbd> / arrows / <kbd>NumPad</kbd></td><td>Move (up is forward)</td></tr>
+        <tr><td><kbd>Enter</kbd> / <kbd>Space</kbd> / <kbd>5</kbd></td><td>Action, attack (also select and jump)</td></tr>
+        <tr><td><kbd>F</kbd> / <kbd>[</kbd> / <kbd>*</kbd></td><td>Magic (the * is on the number pad)</td></tr>
+        <tr><td><kbd>Z</kbd> / <kbd>0</kbd></td><td>Status + items</td></tr>
+        <tr><td><kbd>Q</kbd> / <kbd>F1</kbd></td><td>Pause, Continue (the left softkey)</td></tr>
+        <tr><td><kbd>E</kbd> / <kbd>F2</kbd></td><td>Back, Options (the right softkey)</td></tr>
+        <tr><th>Keys</th><th>Re:Cast</th></tr>
+        <tr><td><kbd>F5</kbd> / <kbd>F9</kbd></td><td>Save / load a save state</td></tr>
+        <tr><td><kbd>F6</kbd> / <kbd>F7</kbd></td><td>Change slot (Shift+1 to 9 picks one, Shift+0 the autosave)</td></tr>
+        <tr><td><kbd>F8</kbd></td><td>Autosave on / off (every 5 minutes of play)</td></tr>
+        <tr><td><kbd>F10</kbd> / <kbd>F12</kbd></td><td>Mute / screenshot</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Quit (it asks first)</td></tr>
+        <tr><td><kbd>F11</kbd></td><td>Picture filter</td></tr>
+      </table></div>
+    </details>
+    <details>
+      <summary>It runs slowly on my computer</summary>
+      <p>Re:Cast is emulating a whole phone, and the 3D engine is demanding. Busy 3D scenes run at about real-time speed on a normal PC; older machines will drop frames rather than slow the game down.</p>
+    </details>
+  </div></section>
+
+  <section id="wonderland"><div class="wrap">
+    <h2>Lost media</h2>
+    <h3 class="big">Do you still have the phone?</h3>
+    <div class="callout">
+      <p>If you own a <strong>Verizon phone from 2005&ndash;2007 with <em>Kingdom Hearts</em> installed</strong>, and the Wonderland chapter is still on it, <strong>please don't reset the phone</strong> &mdash; and get in touch with game preservationists and send me an email! It could bring a missing chapter back for everyone.</p>
+      <a class="btn" data-link="email" href="mailto:khrecast@gmail.com">Email khrecast@gmail.com</a>
+    </div>
+  </div></section>
+  <section id="credits"><div class="wrap">
+    <h2>Credits</h2>
+    <h3 class="big">Thank you</h3>
+    <p class="lead">Re:Cast only exists because of people who found, dumped, restored, recorded and wrote about this game, often years before the emulator. These are the people and projects behind it. Re:Cast is not affiliated with any of them. If you are listed below and would like information modified or removed, please <a href="mailto:khrecast@gmail.com">send an email</a>.</p>
+    <h4 class="subhead">Recovering the game</h4>
+    <div class="grid credits">
+      <div class="card"><h4>&ldquo;Wedge&rdquo;</h4><p>Found and shared the first chapter (Obstacle Course and Island), July 2016.</p><p class="links"><a href="https://www.kh13.com/news/kingdom-hearts-v-cast-code-released-including-various-screenshots-audio-files-more/" target="_blank" rel="noopener">KH13 report</a></p></div>
+      <div class="card"><h4>rsznik</h4><p>Preserved that first chapter on the Internet Archive, 2018.</p><p class="links"><a href="https://archive.org/details/KingdomHeartsVCastChapter1" target="_blank" rel="noopener">Internet Archive</a></p></div>
+      <div class="card"><h4>&ldquo;Cbajd5&rdquo;</h4><p>Dumped and uploaded Agrabah, October 2018.</p><p class="links"><a href="https://www.khwiki.com/Kingdom_Hearts_V_CAST" target="_blank" rel="noopener">KHwiki</a> &middot; <a href="https://lostmediawiki.com/Kingdom_Hearts:_V_Cast_(partially_lost_mobile_game;_2005)" target="_blank" rel="noopener">Lost Media Wiki</a></p></div>
+      <div class="card"><h4>&ldquo;Eriyu&rdquo; &amp; &ldquo;kraze1984&rdquo;</h4><p>Dumped and uploaded Maleficent's Castle, 2022.</p><p class="links"><a href="https://www.khwiki.com/Kingdom_Hearts_V_CAST" target="_blank" rel="noopener">KHwiki</a> &middot; <a href="https://lostmediawiki.com/Kingdom_Hearts:_V_Cast_(partially_lost_mobile_game;_2005)" target="_blank" rel="noopener">Lost Media Wiki</a></p></div>
+    </div>
+    <h4 class="subhead">The music</h4>
+    <div class="grid credits">
+      <div class="card"><h4>Ian Livingstone</h4><p>Composed the music and sound (credited as &ldquo;MTS &ndash; Mediathemes &amp; Sound&rdquo;).</p><p class="links"><a href="https://en.wikipedia.org/wiki/Ian_Livingstone_(composer)" target="_blank" rel="noopener">Wikipedia</a> &middot; <a href="https://www.khdatabase.com/Forum:Note_05:_Game_Credits_(KH_VCast)" target="_blank" rel="noopener">Game credits</a></p></div>
+      <div class="card"><h4>13th Vessel</h4><p>Posted the complete original soundtrack and made the game's 3D models viewable.</p><p class="links"><a href="https://www.youtube.com/@13thVessel" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/watch?v=__ZbGHQslmw" target="_blank" rel="noopener">Soundtrack</a></p></div>
+      <div class="card"><h4>Aid1043</h4><p>Made the 2025 &ldquo;Authentic Restoration&rdquo; soundtrack.</p><p class="links"><a href="https://www.youtube.com/@Aid1043" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/watch?v=Kmpcy8NgJ6c" target="_blank" rel="noopener">Listen</a></p></div>
+      <div class="card"><h4>Spoofer's Domain</h4><p>Recorded the soundtrack on a Roland Sound Canvas SC-55.</p><p class="links"><a href="https://www.youtube.com/@spoofersdomain9185" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/watch?v=K23slpIjn-U" target="_blank" rel="noopener">Listen</a></p></div>
+      <div class="card"><h4>cantbehelped</h4><p>Uploaded the soundtrack track by track.</p><p class="links"><a href="https://www.youtube.com/@cantbehelped" target="_blank" rel="noopener">YouTube channel</a></p></div>
+    </div>
+    <h4 class="subhead">Playing and recording it</h4>
+    <div class="grid credits">
+      <div class="card"><h4>KrZ One</h4><p>Runs the phone game on real Zeebo hardware and published footage.</p><p class="links"><a href="https://www.youtube.com/@krzbrew" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/playlist?list=PLKG4UqWK6IgOH80vfAlqvXOhOUJbx8pEf" target="_blank" rel="noopener">Playlist</a></p></div>
+      <div class="card"><h4>Negative Space</h4><p>Recorded the final chapter on a real phone.</p><p class="links"><a href="https://www.youtube.com/@negativespace7868" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/watch?v=M1Ya55LRTd0" target="_blank" rel="noopener">Video</a></p></div>
+      <div class="card"><h4>Zero-Up</h4><p>Keeps a playlist of Kingdom Hearts V-Cast videos.</p><p class="links"><a href="https://www.youtube.com/@michaelkindt3288" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/playlist?list=PLRBCukFwWzHsJK_nBBu9d4lgU2Z4hVi5I" target="_blank" rel="noopener">Playlist</a></p></div>
+      <div class="card"><h4>TheGamersJoint</h4><p>Made a video about the game.</p><p class="links"><a href="https://www.youtube.com/@TheGamersJoint" target="_blank" rel="noopener">YouTube channel</a> &middot; <a href="https://www.youtube.com/watch?v=f2d6WExP93o" target="_blank" rel="noopener">Video</a></p></div>
+    </div>
+    <h4 class="subhead">Font</h4>
+    <div class="grid credits">
+      <div class="card"><h4>Televo</h4><p>Recreated the Kingdom Hearts menu font (KHMenu) for the free &ldquo;Kingdom Hearts Re:Collection&rdquo; set. The Re:Cast title and the launcher&rsquo;s tab names are drawn in it (modified to a lower resolution).</p><p class="links"><a href="https://github.com/Televo/kingdom-hearts-recollection" target="_blank" rel="noopener">Kingdom Hearts Re:Collection on GitHub</a></p></div>
+    </div>
+    <h4 class="subhead">Emulation and research</h4>
+    <div class="grid credits">
+      <div class="card"><h4>zeebulator</h4><p>An open-source (GPL-3.0) Zeebo/BREW emulator by requeijaum and contributors. Re:Cast's BREW interface research builds on it.</p><p class="links"><a href="https://github.com/requeijaum/zeebulator" target="_blank" rel="noopener">GitHub</a></p></div>
+      <div class="card"><h4>Melange</h4><p>A BREW emulator for Android by UsernameAK that can run the game without audio.</p><p class="links"><a href="https://gitlab.com/usernameak/brewemulator" target="_blank" rel="noopener">GitLab</a> &middot; <a href="https://archive.org/details/app-release_20211031" target="_blank" rel="noopener">Download</a></p></div>
+      <div class="card"><h4>Dagu</h4><p>Announced the game running on Melange, February 2023.</p><p class="links"><a href="https://x.com/TheDaguar/status/1620886267088220160" target="_blank" rel="noopener">Post on X</a></p></div>
+    </div>
+    <p class="small" style="margin-top:18px">Also: the editors of the <a href="https://lostmediawiki.com/Kingdom_Hearts:_V_Cast_(partially_lost_mobile_game;_2005)" target="_blank" rel="noopener">Lost Media Wiki</a>, <a href="https://www.khwiki.com/Kingdom_Hearts_V_CAST" target="_blank" rel="noopener">KHwiki</a> and <a href="https://www.khdatabase.com/Forum:Note_05:_Game_Credits_(KH_VCast)" target="_blank" rel="noopener">Kingdom Hearts Database</a>, <a href="https://www.kh13.com/news/kingdom-hearts-v-cast-code-released-including-various-screenshots-audio-files-more/" target="_blank" rel="noopener">KH13</a>, KHInsider and its forum, and the <a href="https://archive.org/details/kh-v-cast-collection" target="_blank" rel="noopener">Internet Archive</a>, who documented this game's history. If you are listed and want a link changed or removed, <a href="mailto:khrecast@gmail.com">email us</a>.</p>
+  </div></section>
+</main>
+
+<div class="bar" aria-hidden="true"></div>
+<footer>
+  <div class="wrap cols">
+    <div>
+      <strong style="color:var(--text)">Kingdom Hearts Re:Cast</strong><br>
+      Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.<br><br>
+      <a data-link="repo" href="#">Source code</a> &middot; <a data-link="issues" href="#">Report a problem</a> &middot; <a data-link="email" href="mailto:khrecast@gmail.com">Contact</a>
+    </div>
+    <div>
+      <strong style="color:var(--text)">Thanks</strong><br>
+      To everyone who found, dumped, restored, recorded and wrote about this game, and to the zeebulator project this builds on. <a href="#credits">See the full credits</a>. Re:Cast is not affiliated with any of them. If you are listed and want information modified or removed, please <a href="mailto:khrecast@gmail.com">email us</a>.
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // FILL THESE IN. Paste the download URLs (for example your GitHub release
+  // links). A button whose link is empty shows "link coming soon" and cannot be
+  // clicked, so nothing on the page is ever a dead link.
+  const LINKS = {
+    win64:    "",   // KH-ReCast-Windows-x64.exe
+    win32:    "",   // KH-ReCast-Windows-x86.exe
+    macArm:   "",   // KH-ReCast-macOS-arm64.zip
+    macIntel: "",   // KH-ReCast-macOS-x86_64.zip
+    linux64:  "",   // KH-ReCast-Linux-x86_64.run
+    linuxArm: "",   // KH-ReCast-Linux-aarch64.run
+    repo:     "",   // https://github.com/khrecast/khvcemu  (put back once the repo is pushed)
+    issues:   "",   // https://github.com/khrecast/khvcemu/issues
+  };
+  // ---------------------------------------------------------------------------
+
+  document.querySelectorAll("[data-link]").forEach(function (a) {
+    var url = LINKS[a.dataset.link];
+    if (a.dataset.link === "email") return;            // the mailto: in the HTML stays
+    if (url) { a.href = url; return; }
+    a.setAttribute("aria-disabled", "true");
+    a.removeAttribute("href");
+    a.title = "This link isn't available yet";
+    if (a.classList.contains("btn")) a.dataset.label = a.textContent, a.textContent = "Link coming soon";
+  });
+
+  // Highlight the download that fits this computer and point the big button at it.
+  (function () {
+    var ua = navigator.userAgent || "";
+    var os = null;
+    if (/Windows/i.test(ua)) os = /Win64|x64|WOW64|ARM64/i.test(ua) ? "win64" : "win32";
+    else if (/Macintosh|Mac OS X/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua)) os = "mac";
+    else if (/Linux|X11/i.test(ua) && !/Android|CrOS/i.test(ua)) os = /aarch64|arm/i.test(ua) ? "linuxArm" : "linux64";
+    var hero = document.getElementById("hero-dl"), note = document.getElementById("hero-note");
+    if (os === "mac") {
+      document.querySelectorAll('[data-os^="mac"]').forEach(function (c) { c.classList.add("recommended"); });
+      hero.textContent = "Download for Mac"; hero.href = "#download";
+      note.textContent = "Free and open source. Pick Apple Silicon or Intel below.";
+    } else if (os) {
+      var card = document.querySelector('[data-os="' + os + '"]');
+      card.classList.add("recommended");
+      var linux = os.indexOf("linux") === 0;
+      hero.textContent = linux ? "Download for Linux" : "Download for Windows";
+      var url = LINKS[os];
+      if (url) hero.href = url; else { hero.href = "#download"; }
+      note.textContent = linux ? "Free and open source. Needs a glibc 2.28+ desktop Linux." : "Free and open source. Windows 10 or 11.";
+    } else {
+      hero.textContent = "See downloads";
+    }
+  })();
+</script>
+
+<script>
+  // the menu button opens the links as a drop-down on narrow screens
+  (function () {
+    var btn = document.getElementById("menu-btn"), nav = document.getElementById("site-nav");
+    if (!btn || !nav) return;
+    function set(open) { nav.classList.toggle("open", open); btn.setAttribute("aria-expanded", open ? "true" : "false"); }
+    btn.addEventListener("click", function (e) { e.stopPropagation(); set(!nav.classList.contains("open")); });
+    nav.addEventListener("click", function (e) { if (e.target.tagName === "A") set(false); });
+    document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+  })();
+</script>
+</body>
+</html>

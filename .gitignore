@@ -1,0 +1,50 @@
+# --- Game data: copyrighted, never commit it ---------------------------------
+# khvcemu needs the game's files to run, but this repository must not contain
+# them. Keep your dump in a folder outside the repo, or leave it here: these
+# rules keep it out of git.
+/mif/
+/mod/
+/saves/
+/savegame*.dat
+/wonderland/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# --- Per-user / generated ----------------------------------------------------
+*.khs
+*.bak
+launcher.json
+/khvcemu_*.png
+probe_last_frame.png
+
+# --- Shared leaderboard (server/) ---------------------------------------------
+/server/parity.txt
+/server/node_modules/
+/server/.wrangler/
+
+# --- Local working files -----------------------------------------------------
+/previews/
+/reports/
+/research_notes/
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store
+
+# Local notes
+/TODO.md
+/CLAUDE.local.md
+khvcemu/assets/02. Swashbuckler's Island.flac
+
+# --- Reference recordings (copyrighted; never commit or package) ---
+/reference/
+.wrangler/

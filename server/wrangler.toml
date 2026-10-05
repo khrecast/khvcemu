@@ -1,0 +1,17 @@
+name = "khvcemu-leaderboard"
+main = "worker.js"
+routes = [
+  { pattern = "scores.khrecast.com", custom_domain = true }
+]
+
+compatibility_date = "2024-09-23"
+
+# Created with:  wrangler d1 create khvcemu-leaderboard
+# Paste the id it prints into database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "khvcemu-leaderboard"
+database_id = "3ab18948-6279-46e2-8ece-ea6362b926c4"
+
+# Optional: a random string, so the rate-limit hashes are not guessable.
+#   wrangler secret put IP_SALT
