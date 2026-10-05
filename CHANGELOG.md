@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### New
+- **The Stop buttons say so.** On the Sound tab, Stop now shows "Music stopped." (or "Nothing is playing.")
+  in the line at the bottom of the launcher, and the Wonderland theme's Stop shows "Wonderland theme
+  stopped."; before, the line kept saying "Playing...".
 - **Anonymous website counters.** The website now counts, per day, how often its pages are opened and
   which buttons are clicked (the downloads per platform, the source and issue links, the soundtrack
   link), so the author can tell whether anyone uses it. No cookies, no addresses, nothing about the

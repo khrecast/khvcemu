@@ -826,7 +826,7 @@ class Launcher:
         self.ours_btn.pack(side="left", padx=(8, 0))
         self.tooltip(self.ours_btn, "Plays the tune with the built-in synth and these sliders "
                                     "(even when a SoundFont is chosen in Advanced...)")
-        ttk.Button(top, text="Stop", command=self.stop_music, style="Small.TButton").pack(side="left", padx=(4, 0))
+        ttk.Button(top, text="Stop", command=self.stop_clicked, style="Small.TButton").pack(side="left", padx=(4, 0))
         self.adv_btn = ttk.Button(top, text="Advanced...", command=self.open_advanced, style="Small.TButton")
         self.adv_btn.pack(side="right", padx=6)
         self.tooltip(self.adv_btn, "Play the music through a SoundFont instead of the built-in synth")
@@ -1317,7 +1317,14 @@ class Launcher:
             self.root.after_cancel(self._music_check)
         self._music_check = self.root.after(50, check)
 
-    def stop_music(self):
+    def stop_clicked(self):
+        """The Sound tab's Stop button: stop, and say so at the bottom of the window."""
+        was = self.pending or self.playing
+        self.stop_music("Music stopped." if was else "Nothing is playing.")
+
+    def stop_music(self, say: str = None):
+        """Stop whatever the launcher is playing. `say` is shown in the status line at the bottom (the
+        launcher's own stops, such as starting the game, say nothing)."""
         self.preview_gen += 1
         self.playing = self.pending = None
         for name in ("_music_timer", "_music_check"):
@@ -1331,6 +1338,8 @@ class Launcher:
         if getattr(self, "preview", None) is not None:
             self.preview.stop()
         self.show_playing()
+        if say:
+            self.status.config(text=say)
 
     # ---------------------------------------------------------------- Wonderland theme (Setup tab)
     def build_wonderland(self, body):
@@ -1382,7 +1391,7 @@ class Launcher:
 
     def toggle_wonderland(self):
         if (self.pending or self.playing) == "wonderland":
-            self.stop_music()
+            self.stop_music("Wonderland theme stopped.")
         else:
             self.play_wonderland()
 
