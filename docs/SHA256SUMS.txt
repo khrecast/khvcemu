@@ -1,0 +1,6 @@
+8c9070cec1d63c9aebf675f5b3a7a87a65079d385d81b50eb31f1bb81bb2bb69  KH-ReCast-Linux-aarch64.run
+37642a13ada258bbd79e88140708811237ec645e08bb9ccbeca55d1016bb2df1  KH-ReCast-Linux-x86_64.run
+dfb1501990c2f0edff04dd6eb7b83573c4e163eddacc29d8a794b880f73cbf20  KH-ReCast-Windows-x64.exe
+aee45299eabd175ff5fc61a5a872bdb9ffc65fd8997ba9219c6405e484e5ee3e  KH-ReCast-Windows-x86.exe
+4875c7567a5fd736405a2d8e883e70be9359e6c796138361e1cf26b58ccf708b  KH-ReCast-macOS-arm64.zip
+28b46cacc0c8767a73aeec429ba35c65a09e7f07798c705f52f19c80a4ab69fd  KH-ReCast-macOS-x86_64.zip

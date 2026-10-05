@@ -115,7 +115,7 @@ under a virtual display, game boot, sound decoding, upgrade, uninstall); the ARM
 only run under emulation.
 
 **Checking a download.** The installers are not code-signed, so compare the file's SHA-256
-with the published `SHA256SUMS.txt`: `sha256sum -c SHA256SUMS.txt` on Linux (`shasum -a 256 -c`
+with the published `SHA256SUMS.txt` (also kept in this repository as `docs/SHA256SUMS.txt`, apart from the downloads): `sha256sum -c SHA256SUMS.txt` on Linux (`shasum -a 256 -c`
 on macOS), or `Get-FileHash <file>` in PowerShell on Windows. `python tools/checksums.py`
 writes that file after a build.
 

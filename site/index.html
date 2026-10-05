@@ -280,6 +280,21 @@
   <section id="help"><div class="wrap">
     <h2>Help</h2>
     <details>
+      <summary>Checking that your download is genuine (SHA-256)</summary>
+      <p>The installers are not code-signed, so compare the file's SHA-256 hash with these, which are also in
+      <a href="SHA256SUMS.txt">SHA256SUMS.txt</a> and <a href="https://github.com/khrecast/khvcemu/blob/main/docs/SHA256SUMS.txt" target="_blank" rel="noopener">on GitHub</a>.
+      If they differ, don't run it: download it again, from the other place if you can.</p>
+      <p>Windows (PowerShell): <code>Get-FileHash .\KH-ReCast-Windows-x64.exe</code> &middot; macOS: <code>shasum -a 256 KH-ReCast-macOS-arm64.zip</code> &middot; Linux: <code>sha256sum KH-ReCast-Linux-x86_64.run</code></p>
+      <ul>
+        <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">8c9070cec1d63c9aebf675f5b3a7a87a65079d385d81b50eb31f1bb81bb2bb69</code></li>
+        <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">37642a13ada258bbd79e88140708811237ec645e08bb9ccbeca55d1016bb2df1</code></li>
+        <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">dfb1501990c2f0edff04dd6eb7b83573c4e163eddacc29d8a794b880f73cbf20</code></li>
+        <li><code>KH-ReCast-Windows-x86.exe</code><br><code style="word-break:break-all">aee45299eabd175ff5fc61a5a872bdb9ffc65fd8997ba9219c6405e484e5ee3e</code></li>
+        <li><code>KH-ReCast-macOS-arm64.zip</code><br><code style="word-break:break-all">4875c7567a5fd736405a2d8e883e70be9359e6c796138361e1cf26b58ccf708b</code></li>
+        <li><code>KH-ReCast-macOS-x86_64.zip</code><br><code style="word-break:break-all">28b46cacc0c8767a73aeec429ba35c65a09e7f07798c705f52f19c80a4ab69fd</code></li>
+      </ul>
+    </details>
+    <details>
       <summary>Windows says &ldquo;Windows protected your PC&rdquo;</summary>
       <p>The installer isn't code-signed, so Windows' SmartScreen is cautious about it. Click <strong>More info</strong>, then <strong>Run anyway</strong>. It installs only for your user account and never asks for administrator rights. To remove it later, use Settings &rarr; Apps.</p>
     </details>
