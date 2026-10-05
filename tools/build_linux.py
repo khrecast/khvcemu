@@ -103,7 +103,7 @@ fi
 if [ "$YES" = 0 ] && [ -t 0 ]; then
     printf "Install %s into %s? [Y/n] " "$NAME" "$DEST"
     read -r ans
-    case "$ans" in n|N|no|No) echo "Cancelled."; exit 0 ;; esac
+    case "$ans" in n|N|no|No) echo "Canceled."; exit 0 ;; esac
 fi
 
 if [ -e "$DEST" ] && [ -n "$(ls -A "$DEST" 2>/dev/null)" ]; then

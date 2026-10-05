@@ -37,7 +37,7 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 | --- | --- | --- |
 | **KrZ One** (YouTube) | Runs the phone game on real Zeebo hardware (with modifications) and published footage. | [Channel](https://www.youtube.com/@krzbrew), [Kingdom Hearts V CAST playlist](https://www.youtube.com/playlist?list=PLKG4UqWK6IgOH80vfAlqvXOhOUJbx8pEf) |
 | **Negative Space** (YouTube) | Recorded the final chapter on a real phone. | [Channel](https://www.youtube.com/@negativespace7868), [Maleficent's Castle (last stage)](https://www.youtube.com/watch?v=M1Ya55LRTd0) |
-| **Zero-Up** (YouTube) | Keeps a playlist of Kingdom Hearts V-Cast videos. | [Channel](https://www.youtube.com/@michaelkindt3288), ["Kingdom Hearts V-cast Stuff" playlist](https://www.youtube.com/playlist?list=PLRBCukFwWzHsJK_nBBu9d4lgU2Z4hVi5I) |
+| **Zero-Up** (YouTube) | Keeps a playlist of Kingdom Hearts V CAST videos. | [Channel](https://www.youtube.com/@michaelkindt3288), ["Kingdom Hearts V-cast Stuff" playlist](https://www.youtube.com/playlist?list=PLRBCukFwWzHsJK_nBBu9d4lgU2Z4hVi5I) |
 | **TheGamersJoint** (YouTube) | Made a video about the game. | [Channel](https://www.youtube.com/@TheGamersJoint), ["Kingdom Hearts V-Cast is a Very Real Kingdom Hearts Game..."](https://www.youtube.com/watch?v=f2d6WExP93o) |
 
 ## Look and feel
@@ -46,7 +46,7 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 | --- | --- | --- |
 | **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo and the launcher's tab names are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
 
-The Re:Collection set has no formal licence. Its README says: "If you decide to use these assets
+The Re:Collection set has no formal license. Its README says: "If you decide to use these assets
 and fonts publicly, giving credit is much appreciated although not necessary." This repository
 does not contain the font file, only small pictures of the tab names rendered from it
 (`khvcemu/assets/tabs/`, made by `tools/make_tab_labels.py`).

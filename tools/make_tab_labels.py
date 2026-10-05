@@ -3,7 +3,7 @@
     python tools/make_tab_labels.py [path/to/KHMenu.otf]
 
 The font is KHMenu, recreated by Televo for "Kingdom Hearts Re:Collection"
-(https://github.com/Televo/kingdom-hearts-recollection). That set has no formal licence; its
+(https://github.com/Televo/kingdom-hearts-recollection). That set has no formal license; its
 README says credit is much appreciated although not necessary, and Televo is credited in the
 README, docs/CREDITS.md and on the website. The font file itself is not part of this repository
 (keep it in the gitignored reference/ folder); only the small pictures made from it are, in

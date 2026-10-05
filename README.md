@@ -165,7 +165,7 @@ The launcher needs Python's tkinter: `brew install python-tk` on macOS with
 Homebrew Python, `sudo apt install python3-tk` on Debian/Ubuntu (the installers
 include everything). The launcher:
 
-* is organised in tabs so the window stays short: **Play**, **Saves**, **Options**,
+* is organized in tabs so the window stays short: **Play**, **Saves**, **Options**,
   **Sound**, **Setup** and **Controls**. It reopens on the tab you used last, and goes straight to
   **Setup** (marked "Setup (!)") when the game folder or a requirement is missing;
 * **Play** shows a **Continue** card with a preview of your newest save, the world it is
@@ -198,7 +198,7 @@ include everything). The launcher:
   the sound as tuned (the **As tuned** mix, or double-click a percentage to reset one slider).
   **Mix** switches between ready-made mixes (As tuned, More bass, Bright and crisp, Big brass,
   Soft and warm, Quiet background) and your own: **Save as...** keeps the current sliders under a
-  name, the star marks a favourite (favourites are listed first), **Delete** removes one of
+  name, the star marks a favorite (favorites are listed first), **Delete** removes one of
   yours. **Choose...** a recording of the same tune (your own file, for example a
   restoration) to compare it with **Play recording**; **Its volume** sets how loud it plays and
   **Match** sets it to the built-in synth's level, or to a standard level if the tune renders
@@ -213,7 +213,7 @@ include everything). The launcher:
   the built-in synth, with an explanation of how to use one; it needs the free `fluidsynth`
   program, which the installers do not include. A SoundFont and a recording used in the game
   each replace the built-in synth, so while one is in use the sliders and mixes that no longer
-  apply are greyed out (Music volume always applies, and a recording only greys them out for
+  apply are grayed out (Music volume always applies, and a recording only grays them out for
   its own tune);
 * shows the project's disclaimer at the top and a dark theme in the game's blues
   and greens.
@@ -276,7 +276,7 @@ pausing, switching to another window, closing the window or loading a save state
 Summary screen ends the run. Every world you finish, and every score the game posts, is appended to
 `~/.khvcemu/<dump folder name>/clear_times.csv` with the time measured, and totals are kept
 in `playtime.json` beside it. The measured time is also sent with a shared score, and
-the shared leaderboard turns away runs under a minimum per world (Island 6 minutes, Agrabah 10,
+the shared leaderboard turns away runs under a minimum for the world (Island 6 minutes, Agrabah 10,
 Castle 8).
 
 **The shared leaderboard.** Scores can also be ranked against other people's.
@@ -294,6 +294,12 @@ columns. The server uses a salted, shortened hash of the sender's address solely
 to allow one score per address every ten minutes and deletes it after ten minutes (details in
 [`server/README.md`](server/README.md)). Scores come from the player's machine,
 so treat a shared rank as a rough comparison rather than a competitive ranking.
+
+**Website counters.** The project website counts, anonymously and per day, how often its pages are
+opened and which buttons are clicked (downloads per platform, source and issue links). No cookies, and the project's
+server keeps no address or other detail about the visitor, only a day, a name and a number; browsers that send
+Do Not Track or Global Privacy Control are not counted ([details](server/README.md#website-counters)). Cloudflare,
+which hosts the site, keeps its usual server logs. The emulator itself sends nothing to the website.
 
 Other options:
 
@@ -561,7 +567,7 @@ python tools/make_icon.py                                   # redraws the window
 ```
 
 
-## Credits and licence
+## Credits and license
 
 * **zeebulator (GPL-3.0).** The BREW interface layouts (IShell, IDisplay,
   IBitmap, IFile/IFileMgr, IMedia, the AEEHelperFuncs table) and the
@@ -608,10 +614,10 @@ recorded and wrote about the game. The full list, with links, is in
   [Melange](https://gitlab.com/usernameak/brewemulator) by UsernameAK, the Android BREW
   emulator that can run the game without audio.
 
-## Licence
+## License
 
 khvcemu is free software under the **GNU General Public License v3.0**; see
 [LICENSE](LICENSE). The game files it runs are not part of this project and are
-not covered by that licence.
+not covered by that license.
 
 Contact: **khrecast@gmail.com**

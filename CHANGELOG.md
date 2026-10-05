@@ -3,12 +3,19 @@
 ## Unreleased
 
 ### New
+- **Anonymous website counters.** The website now counts, per day, how often its pages are opened and
+  which buttons are clicked (the downloads per platform, the source and issue links, the soundtrack
+  link), so the author can tell whether anyone uses it. No cookies, no addresses, nothing about the
+  visitor is kept by the project's server, browsers that send Do Not Track or Global Privacy Control are not
+  counted, each count has a daily ceiling, and the footer says what is and is not kept (Cloudflare, which hosts
+  the site, still keeps its usual logs).
+  `python tools/site_stats.py` shows the totals. Needs one new table on the server
+  (`server/migrate_002_site_stats.sql`) and a server and website deploy.
 - **Leaderboard score ceiling raised from 250,000 to 1,000,000**, to see how far people get when
   they farm enemy waves for EXP before deciding on lower limits. Needs the server deployed.
-- **Leaderboard minimum run times are now set per world** from real first clears: Obstacle Course 1
-  minute, Island 6, Agrabah 10, Castle 8 (all were 3 minutes; the Obstacle Course clear took 2:45, so
-  it could never post). Runs under the minimum are still turned away silently. Needs the server
-  deployed (`cd server && npx wrangler deploy`).
+- **Leaderboard minimum run times are now set per world** from real first clears: Island 6 minutes,
+  Agrabah 10, Castle 8 (all were 3 minutes). Runs under the minimum are still turned away silently.
+  Needs the server deployed (`cd server && npx wrangler deploy`).
 - **Needs pygame-ce 2.5 or newer** (the dark screen option uses its multi-window support); the
   requirements and package metadata now say so. Without it everything else still works.
 - **Autosaves show a small floppy disc** in the bottom-left corner instead of an "Autosaved" message
@@ -61,9 +68,9 @@
   - **Ready-made mixes** to switch between: As tuned (every slider at 100%), More bass, Bright
     and crisp, Big brass, Soft and warm, Quiet background.
   - **Your own mixes:** Save as... keeps the current sliders under a name; a star marks
-    favourites, which are listed first; Delete removes one. Moving a slider shows "Custom
+    favorites, which are listed first; Delete removes one. Moving a slider shows "Custom
     (unsaved)".
-  - **Greyed-out sliders look off:** a slider that does not apply (a SoundFont or an in-game
+  - **Grayed-out sliders look off:** a slider that does not apply (a SoundFont or an in-game
     recording is in use) is dark, a live one is light.
   - **The comparison recording** gets its own volume, and Match sets it to the built-in synth's
     level (done automatically when you choose one; the recordings are often mixed much quieter).
@@ -104,7 +111,7 @@
   reads them off that screen as the game draws it, and sends them with the score (`mn`, `ex`,
   `lv`) only if they add up to exactly the score that is being posted. The shared server stores
   them, silently drops a post whose numbers do not add up (a free extra check on top of the
-  score ceiling, the three-minute minimum and the rate limit), and `/top` now returns the best
+  score ceiling, the minimum run time for each world and the rate limit), and `/top` now returns the best
   100 per world, each with its time, Munny, EXP and Level (older scores show dashes). A new
   page, `site/leaderboard.html`, shows it as one table per world: a scrolling top 100 with a
   fixed header. The database needs `server/migrate_001_stats.sql` run once, and the worker
@@ -123,11 +130,11 @@
   SoundFont) are left alone.
 - **The SoundFont moved to an Advanced... window on the Sound tab.** The window explains what
   a SoundFont is and how to use one: it only does anything when the free `fluidsynth` program
-  is installed, which none of the installers include, so its box is greyed out with a note when
+  is installed, which none of the installers include, so its box is grayed out with a note when
   fluidsynth is missing (it used to be accepted and silently ignored).
-- **What does not apply is greyed out.** A SoundFont, or a recording used in the game, replaces
+- **What does not apply is grayed out.** A SoundFont, or a recording used in the game, replaces
   the built-in synth, so while one is in use the instrument and character sliders and the
-  mixes are greyed out (Music volume always applies; a recording only for its own tune), and
+  mixes are grayed out (Music volume always applies; a recording only for its own tune), and
   the note under the sliders says why.
 - **A Sound tab in the launcher for tuning the music.** Sliders for the volume of each
   family of instruments (piano, strings, brass, harp and guitar, bells, flutes, pads, bass,
@@ -192,7 +199,7 @@
 - **Clear times.** The emulator now times each world (`khvcemu/playtime.py`): the game's clock
   while the world is on screen, unaffected by pausing or save states, ended by the Summary
   screen. Scores posted are logged with their time in `clear_times.csv`, and the measured time
-  is sent to the shared leaderboard, which turns away runs under three minutes, ranks equal
+  is sent to the shared leaderboard, which turns away runs under a minimum time for the world (Island 6 minutes, Agrabah 10, Castle 8), ranks equal
   scores by the faster time and shows each time on the web page.
 - **A public leaderboard on the web page.** The shared leaderboard server gains `GET /top`
   (the best ten scores per world, anonymous), and the page shows them in a Leaderboard
@@ -247,7 +254,7 @@
 - **Smooth hi-res text (`--hires-text`) left ghosts behind.** A string the game
   had stopped drawing ("Loading.....", a dismissed dialog) could stay on screen,
   usually as a blocky low-res outline. It happened when the next screen was the
-  text's own colour where the glyphs had been: they still "matched", so the old
+  text's own color where the glyphs had been: they still "matched", so the old
   background was pasted back in glyph shape. A second form showed in the shop:
   after buying a potion, "restores your" from the item description stayed drawn
   over the list's black selection bar. A string is now kept only if its whole box

@@ -1,7 +1,7 @@
 """Small General-MIDI software synth (no SoundFont needed).
 
 Phone MIDI of this era is short, simple ring-tone style sequencing, so a
-handful of additive/subtractive voices per GM family gets recognisably
+handful of additive/subtractive voices per GM family gets recognizably
 close. If the `fluidsynth` CLI and a SoundFont are available, audio.py
 uses those instead for much better sound.
 """
@@ -146,7 +146,7 @@ def _timbre(program: int) -> str:
 PIANO_PURE = 0.3          # above 500 Hz the upper partials fade (x (500/f)^PIANO_PURE per partial): a purer tone
 PIANO_STRIKE_FMAX = 2500  # the hammer tick has no partials above this many Hz
 PIANO_STRIKE_REG = 1.0    # and is quieter above 500 Hz (x (500/f)^PIANO_STRIKE_REG)
-PIANO_MID = 1.4           # a boost, centred on 880 Hz and fading over about an octave each way, for the melody
+PIANO_MID = 1.4           # a boost, centerd on 880 Hz and fading over about an octave each way, for the melody
 
 # Brass and timpani: the Island tune's horn stabs, fitted to a SoundFont render of it. In the
 # recording the stabs have about 5 dB more low thump (the timpani under every stab) and 6 dB more

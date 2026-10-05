@@ -70,7 +70,7 @@ class ParityTests(unittest.TestCase):
         for path, worker_body in _parity_lines():
             with self.subTest(path=path):
                 got = self.lb.handle("http://swervenet.superscape.com" + path)
-                self.assertIsNotNone(got, "the offline table must recognise this URL")
+                self.assertIsNotNone(got, "the offline table must recognize this URL")
                 body = got[1].decode()
                 if any(w in path for w in worker_only_rejects):
                     self.assertTrue(body.startswith("*r|"), body)

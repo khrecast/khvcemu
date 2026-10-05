@@ -12,7 +12,7 @@ research on the original game are all welcome.
   describe the problem and include the terminal log instead.
 - Keep your own dump in a folder outside your checkout if you can.
 - By contributing you agree your work is released under the project's
-  [GPL-3.0 licence](LICENSE).
+  [GPL-3.0 license](LICENSE).
 
 ## Getting set up
 

@@ -61,7 +61,7 @@ class HiresTextTests(unittest.TestCase):
         self.assertEqual(len(items), 1)
         self.assertTrue((clean == self.bg).all())
 
-    def test_next_screen_in_the_text_colour_is_not_mistaken_for_the_text(self):
+    def test_next_screen_in_the_text_color_is_not_mistaken_for_the_text(self):
         # white "Loading" on a dark screen, then a white page: every glyph pixel
         # is still "white", but the string is gone. Keeping it pasted the old
         # dark background back in glyph shape, a low-res ghost of the text.
@@ -73,7 +73,7 @@ class HiresTextTests(unittest.TestCase):
         self.assertEqual(self.d.text_items, [])
 
     def test_a_selection_bar_over_old_text_is_not_mistaken_for_the_text(self):
-        # the shop: a description line ("restores your") was drawn black on light grey,
+        # the shop: a description line ("restores your") was drawn black on light gray,
         # then the item list came back with a black selection bar across where most of
         # its glyphs were. The glyph pixels are now black (97% "match") and the
         # untouched part of the box still matches the old background (54%), so a test
@@ -161,7 +161,7 @@ class PictureFilterTests(unittest.TestCase):
     def test_smooth_blends_edges(self):
         out = self.arr(self.scale("smooth", (528, 660)))
         self.assertGreater(len(np.unique(out.reshape(-1, 3), axis=0)),
-                           len(np.unique(self.rgb.reshape(-1, 3), axis=0)), "new in-between colours")
+                           len(np.unique(self.rgb.reshape(-1, 3), axis=0)), "new in-between colors")
 
     def test_scale2x_at_double_size_is_plain_scale2x(self):
         out = self.arr(self.scale("scale2x", (352, 440)))

@@ -200,7 +200,8 @@
     <div>
       <strong style="color:var(--text)">Kingdom Hearts Re:Cast</strong><br>
       Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.<br><br>
-      <a href="index.html">Back to the main page</a> &middot; <a href="mailto:khrecast@gmail.com">Contact</a>
+      <a href="index.html">Back to the main page</a> &middot; <a href="mailto:khrecast@gmail.com">Contact</a><br>
+      <span class="small">This site keeps no record of you: it only adds one to a daily count of visits and downloads, with no cookies, and counts nothing for browsers that send Do Not Track or Global Privacy Control. (Cloudflare, which hosts the site, keeps its usual server logs.)</span>
     </div>
   </div>
 </footer>
@@ -285,6 +286,30 @@
     nav.addEventListener("click", function (e) { if (e.target.tagName === "A") set(false); });
     document.addEventListener("click", function (e) { if (!nav.contains(e.target)) set(false); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") set(false); });
+  })();
+</script>
+<script>
+  // Anonymous counters: how often a page is opened and which buttons are clicked, so the author can tell whether
+  // anyone uses this. No cookie, and the server stores only a day, a name and a count (server/worker.js).
+  // Nothing is sent if the browser says Do Not Track.
+  (function () {
+    if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return;
+    var URL_ = "https://scores.khrecast.com/hit?e=";
+    function hit(name) {
+      try { fetch(URL_ + encodeURIComponent(name), { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
+    }
+    hit("view:leaderboard");
+    document.addEventListener("click", function (ev) {
+      var a = ev.target && ev.target.closest ? ev.target.closest("a") : null;
+      if (!a || !a.getAttribute("href") || a.getAttribute("aria-disabled") === "true") return;
+      var key = a.getAttribute("data-link") || "", href = a.getAttribute("href"), links = window.KH_LINKS || {}, dl = "";
+      for (var k in links) if (/^(win64|win32|macArm|macIntel|linux64|linuxArm)$/.test(k) && links[k] && links[k] === href) dl = k;     // any button that goes to an installer, the big Download one too
+      if (dl) hit("dl:" + dl);
+      else if (/^(win64|win32|macArm|macIntel|linux64|linuxArm)$/.test(key)) hit("dl:" + key);
+      else if (/^(repo|issues|email)$/.test(key)) hit("click:" + key);
+      else if (/SHA256SUMS\.txt$/.test(href)) hit("dl:sums");
+      else if (href.indexOf("khinsider.com") >= 0) hit("click:soundtrack");
+    });
   })();
 </script>
 </body>

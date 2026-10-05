@@ -349,7 +349,7 @@ class SoundTabTests(unittest.TestCase):
             self.assertAlmostEqual(app.preview.renders[-1][1]["piano"], 0.3)
             app.close()
 
-    def test_the_soundfont_lives_in_the_advanced_window_and_greys_out_the_synth(self):
+    def test_the_soundfont_lives_in_the_advanced_window_and_grays_out_the_synth(self):
         import tkinter as tk
         from khvcemu import launcher as L
         with tempfile.TemporaryDirectory() as d:
@@ -360,8 +360,8 @@ class SoundTabTests(unittest.TestCase):
             self.addCleanup(setattr, L, "fluidsynth_found", real)
             root, app = self.make_app(d, {})
             synth_only = [k for k in ms.ALL if k != "master"]
-            greyed = lambda: [k for k in ms.ALL if "disabled" in app.music_scales[k].state()]   # noqa: E731
-            self.assertEqual(greyed(), [], "the built-in synth: every slider works")
+            grayed = lambda: [k for k in ms.ALL if "disabled" in app.music_scales[k].state()]   # noqa: E731
+            self.assertEqual(grayed(), [], "the built-in synth: every slider works")
             L.fluidsynth_found = lambda: False
             app.open_advanced()
             self.assertIsNotNone(app.adv_win)
@@ -369,27 +369,27 @@ class SoundTabTests(unittest.TestCase):
             self.assertIn("not found", app.adv_status.cget("text"))
             app.soundfont.set(sf)
             self.assertIn("fluidsynth is not installed", app.music_note.cget("text"))
-            self.assertEqual(greyed(), [], "without fluidsynth the synth still plays, so nothing is greyed")
+            self.assertEqual(grayed(), [], "without fluidsynth the synth still plays, so nothing is grayed")
             L.fluidsynth_found = lambda: True
             app.show_music_note()
             self.assertEqual(str(app.sf_entry.cget("state")), "normal")
             self.assertIn("In use", app.adv_status.cget("text"))
             self.assertIn("only Music volume applies", app.music_note.cget("text"))
-            self.assertEqual(sorted(greyed()), sorted(synth_only), "a SoundFont: only Music volume is left")
+            self.assertEqual(sorted(grayed()), sorted(synth_only), "a SoundFont: only Music volume is left")
             self.assertEqual(str(app.mix_box.cget("state")), "disabled", "and the mixes do nothing")
             self.assertEqual(str(app.del_btn.cget("state")), "disabled")
             self.assertNotIn("disabled", app.music_scales["master"].state(), "Music volume always applies")
             app.music_vars["master"].set(0.8)
             app.music_changed()                                # letting go of Music volume...
-            self.assertEqual(str(app.music_labels["piano"].cget("foreground")), L.DIM, "...keeps the others grey")
+            self.assertEqual(str(app.music_labels["piano"].cget("foreground")), L.DIM, "...keeps the others gray")
             app.music_vars["piano"].set(0.5)
-            app.reset_music("piano")                           # a double-click on a greyed-out value
+            app.reset_music("piano")                           # a double-click on a grayed-out value
             self.assertAlmostEqual(app.music_vars["piano"].get(), 0.5, msg="does nothing")
             app.open_advanced()                                # opening it again just brings it forward
             self.assertEqual(len([w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]), 1)
             app.soundfont.set(os.path.join(d, "missing.sf2"))
             self.assertIn("not found", app.music_note.cget("text"))
-            self.assertEqual(greyed(), [])
+            self.assertEqual(grayed(), [])
             app.soundfont.set(sf)
             app.sf_clear.invoke()                              # the Clear button
             self.assertEqual(app.soundfont.get(), "")
@@ -403,28 +403,28 @@ class SoundTabTests(unittest.TestCase):
             self.assertIsNone(app.adv_win)
             app.close()
 
-    def test_a_recording_in_the_game_greys_out_the_synth_for_that_tune(self):
+    def test_a_recording_in_the_game_grays_out_the_synth_for_that_tune(self):
         with tempfile.TemporaryDirectory() as d:
             self.game_folder(d)
             rec = os.path.join(d, "title.flac")
             open(rec, "wb").close()
             root, app = self.make_app(d, {"music_refs": {"training.mid": {"path": rec, "in_game": True}}})
-            greyed = lambda: [k for k in ms.ALL if "disabled" in app.music_scales[k].state()]   # noqa: E731
-            self.assertEqual(sorted(greyed()), sorted(k for k in ms.ALL if k != "master"))
+            grayed = lambda: [k for k in ms.ALL if "disabled" in app.music_scales[k].state()]   # noqa: E731
+            self.assertEqual(sorted(grayed()), sorted(k for k in ms.ALL if k != "master"))
             self.assertEqual(str(app.fav_btn.cget("state")), "disabled")
             self.assertEqual(str(app.in_game_check.cget("state")), "normal", "the recording's own controls stay")
             app.tune.set("Swashbuckler's Island")             # another tune, no recording: all back
             root.update()
-            self.assertEqual(greyed(), [])
+            self.assertEqual(grayed(), [])
             app.tune.set("Title menu and Obstacle Course")
             root.update()
             app.rec_in_game.set(False)
             app.rec_in_game_changed()
-            self.assertEqual(greyed(), [])
+            self.assertEqual(grayed(), [])
             os.remove(rec)
             app.rec_in_game.set(True)
             app.rec_in_game_changed()                          # ticked, but the file is gone: the MIDI plays
-            self.assertEqual(greyed(), [])
+            self.assertEqual(grayed(), [])
             self.assertIn("missing", app.music_note.cget("text"))
             from khvcemu import launcher as L
             real = L.fluidsynth_found
@@ -434,7 +434,7 @@ class SoundTabTests(unittest.TestCase):
             open(sf, "wb").close()
             app.soundfont.set(sf)                              # missing recording + a SoundFont
             self.assertIn("the SoundFont plays", app.music_note.cget("text"))
-            self.assertEqual(sorted(greyed()), sorted(k for k in ms.ALL if k != "master"))
+            self.assertEqual(sorted(grayed()), sorted(k for k in ms.ALL if k != "master"))
             app.close()
 
     def test_restore_default_settings_puts_the_options_back(self):

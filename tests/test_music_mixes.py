@@ -1,4 +1,4 @@
-"""Sound tab mixes and recordings: ready-made mixes, saved mixes and favourites, the comparison
+"""Sound tab mixes and recordings: ready-made mixes, saved mixes and favorites, the comparison
 recording's volume, and playing a recording in the game instead of the game's MIDI (no game
 files needed; nothing is played out loud)."""
 import os
@@ -351,7 +351,17 @@ class SoundTabMixTests(unittest.TestCase):
         app.mix_chosen()
         self.assertEqual(app.opts()["music"], "", "the As tuned mix puts every slider back")
 
-    def test_save_favourite_and_delete_your_own_mix(self):
+    def test_favorites_saved_under_the_old_spelling_are_still_read(self):
+        root, app = self.make_app({"music_profiles": {"big bass": "bass=1.5"}, "music_favourites": ["big bass"]})
+        self.assertEqual(app.mix_favorites(), ["big bass"], "a launcher.json from an earlier build keeps its stars")
+        app.mix.set("big bass")
+        app.mix_chosen()                                       # the sliders take the mix, so it is the current one
+        app.toggle_favorite()                                  # un-star it: the new key is written, the old one dropped
+        self.assertEqual(app.cfg["music_favorites"], [])
+        self.assertNotIn("music_favourites", app.cfg)
+        app.close()
+
+    def test_save_favorite_and_delete_your_own_mix(self):
         root, app = self.make_app({})
         L = self.L
         app.music_vars["piano"].set(0.6)
@@ -367,9 +377,9 @@ class SoundTabMixTests(unittest.TestCase):
         self.assertEqual(app.cfg["music_profiles"], {"big bass": "drums=1.4,piano=0.6"})
         self.assertEqual(app.mix.get(), "big bass")
         self.assertEqual(str(app.del_btn.cget("state")), "normal")
-        app.toggle_favourite()
-        self.assertEqual(app.cfg["music_favourites"], ["big bass"])
-        self.assertEqual(app.mix_names()[0], "big bass", "favourites are listed first")
+        app.toggle_favorite()
+        self.assertEqual(app.cfg["music_favorites"], ["big bass"])
+        self.assertEqual(app.mix_names()[0], "big bass", "favorites are listed first")
         self.assertEqual(app.mix.get(), "\u2605 big bass")
         app.mix.set("As tuned")
         app.mix_chosen()
@@ -381,22 +391,22 @@ class SoundTabMixTests(unittest.TestCase):
         self.assertNotIn("as TUNED", app.cfg["music_profiles"])
         app.delete_mix()
         self.assertEqual(app.cfg["music_profiles"], {})
-        self.assertEqual(app.cfg["music_favourites"], [])
+        self.assertEqual(app.cfg["music_favorites"], [])
         self.assertAlmostEqual(app.music_values()["piano"], 0.6, msg="deleting keeps the sliders")
         self.assertEqual(app.mix.get(), app.CUSTOM_MIX)
         app.close()
 
-    def test_a_ready_made_mix_can_be_a_favourite(self):
+    def test_a_ready_made_mix_can_be_a_favorite(self):
         root, app = self.make_app({})
         app.mix.set("Big brass")
         app.mix_chosen()
-        app.toggle_favourite()
+        app.toggle_favorite()
         self.assertEqual(app.mix_names()[0], "Big brass")
         app.close()
 
     def test_hand_edited_mix_settings_do_not_break_it(self):
         root, app = self.make_app({"music_profiles": {"ok": "piano=0.5", 3: "x", "bad": 7},
-                                   "music_favourites": "nope", "music_mix": ["?"]})
+                                   "music_favorites": "nope", "music_mix": ["?"]})
         self.assertIn("ok", app.mix_names())
         self.assertNotIn("bad", app.mix_names())
         app.close()
@@ -445,11 +455,11 @@ class SoundTabMixTests(unittest.TestCase):
 
     def test_review_gaps_in_the_tab(self):
         root, app = self.make_app({"music_profiles": {"odd": "piano=0.52"},
-                                   "music_favourites": ["odd", "odd"],
+                                   "music_favorites": ["odd", "odd"],
                                    "music_refs": {"training.mid": {"path": "a.flac", "gain": float("nan"),
                                                                    "in_game": "false"}}})
         L = self.L
-        self.assertEqual(app.mix_names().count("odd"), 1, "a favourite listed twice shows once")
+        self.assertEqual(app.mix_names().count("odd"), 1, "a favorite listed twice shows once")
         app.mix.set("★ odd")
         app.mix_chosen()
         self.assertEqual(app.mix.get(), "★ odd", "a value off the 5% grid still counts as that mix")
@@ -460,7 +470,7 @@ class SoundTabMixTests(unittest.TestCase):
         app.mix_chosen()
         app.reset_music("bass")
         self.assertEqual(app.mix.get(), app.CUSTOM_MIX)
-        # a name starting with the favourite star is refused
+        # a name starting with the favorite star is refused
         real = (L.simpledialog.askstring, L.messagebox.showinfo)
         self.addCleanup(lambda: (setattr(L.simpledialog, "askstring", real[0]), setattr(L.messagebox, "showinfo", real[1])))
         told = []

@@ -1,4 +1,4 @@
-"""Draw the Re:Cast window icon: a hollow blue heart in the logo's colours.
+"""Draw the Re:Cast window icon: a hollow blue heart in the logo's colors.
 
     python tools/make_icon.py
 
@@ -25,7 +25,7 @@ def _heart_points(cx, cy, scale, n=400):
 
 
 def heart_icon(size: int = 1024) -> pygame.Surface:
-    """A hollow blue heart in the logo's colours (light cyan top-left to deep blue),
+    """A hollow blue heart in the logo's colors (light cyan top-left to deep blue),
     drawn big and then shrunk for smooth edges."""
     s = pygame.Surface((size, size), pygame.SRCALPHA)
     k = size / 40.0

@@ -73,8 +73,8 @@ minute.
 
 **Play time.** The game's own time value is a running clock, so it is ignored. The emulator
 measures how long the world took and sends it as `pt` (seconds). A score with no `pt`, or a
-`pt` under the minimum for that world (`MIN_SECONDS` in `worker.js`: Obstacle Course 1 minute,
-Island 6, Agrabah 10, Castle 8, about a quarter of a careful first clear), is answered like any other score but not stored, so the player sees no
+`pt` under the minimum for that world (`MIN_SECONDS` in `worker.js`: Island 6 minutes, Agrabah 10,
+Castle 8, about a quarter of a careful first clear), is answered like any other score but not stored, so the player sees no
 error. Equal scores are ranked by the faster time; the same score with the same time is stored
 once. Older scores that have no time still show, after timed ones. The minimums come from real first clears
 (Island 26:30, Agrabah 54:00, Castle 42:30); the emulator logs times in `clear_times.csv`.
@@ -114,6 +114,32 @@ It only adds empty columns, so no score is changed. The worker works with or wit
 `npx wrangler deploy` is done first. A new database made from `schema.sql` has them already.
 Errors are written to the Worker's log (`npx wrangler tail`), nothing identifying.
 
+### Website counters
+
+The project website counts, anonymously, how often its two pages are opened and which buttons are
+clicked (the six downloads, the checksums file, the source and issue links, the soundtrack link,
+the contact link). The page asks `GET /hit?e=<name>` and the worker adds one to today's count for that
+name in the `site_stats` table: a UTC day, a name and a number, nothing else. This project's server
+reads and stores no address, cookie or browser detail (Cloudflare, which hosts it, keeps its usual request
+logs, as it does for every site). Only the names in `SITE_EVENTS` (`worker.js`) count; anything else, a
+`HEAD` request, or a request that says it came from another website, is answered `204` and ignored (a
+request with no `Referer` is accepted, because some browsers send none), so the table cannot be filled
+with junk. Each name also stops counting at a daily ceiling (`SITE_EVENTS`: 15,000 for the main page, 5,000
+for the leaderboard, 2,000 for each button), which bounds the database writes the counters can cause to
+about 42,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop
+scores being saved; it can still inflate a day's counts or stop them there, so these are rough counts, not
+proof. For real protection add a Cloudflare rate-limiting rule for `/hit` in the dashboard. A browser that sends Do Not Track (or Global Privacy Control) never
+asks. A missing table never breaks the page: the worker answers anyway.
+
+The database needs the table, once, from this folder:
+
+```sh
+npx wrangler d1 execute khvcemu-leaderboard --remote --file migrate_002_site_stats.sql
+```
+
+Read the totals with `python tools/site_stats.py` (a read-only query through wrangler). A download
+click only opens the mirror; it is not a finished download.
+
 ## Running the tests
 
 ```sh
@@ -123,7 +149,7 @@ node test.js
 This runs the worker against a real SQLite database wearing a D1 interface, so
 the SQL is exercised rather than mocked. It also writes `parity.txt`, which
 `tests/test_leaderboard_parity.py` uses to check that this server and khvcemu's
-offline table answer the game identically — the game's parser accepts exactly
+offline table answer the game identically: the game's parser accepts exactly
 one shape of reply, so the two must not drift apart.
 
 ## Files
@@ -131,6 +157,7 @@ one shape of reply, so the two must not drift apart.
 | File | |
 | --- | --- |
 | `worker.js` | the whole server |
-| `schema.sql` | the two tables |
+| `schema.sql` | the tables (scores, the rate limit, the website counters) |
+| `migrate_001_stats.sql`, `migrate_002_site_stats.sql` | one-time additions for a database made before them |
 | `wrangler.toml` | deployment config; paste your database id here |
 | `test.js` | tests, and generates `parity.txt` |

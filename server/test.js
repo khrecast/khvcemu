@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import assert from "node:assert";
-import worker, { reply, validLevel, validScore, validStats, MAX_SCORE } from "./worker.js";
+import worker, { reply, validLevel, validScore, validStats, MAX_SCORE, SITE_EVENTS } from "./worker.js";
 
 // the database as it was before the Munny/EXP/level columns (what the live one is until migrated)
 const OLD_SCHEMA = `
@@ -265,6 +265,71 @@ await check("a database without the new columns still works, in either deploy or
   for (const col of ["munny", "exp", "level"]) e.DB.prepare(`ALTER TABLE scores ADD COLUMN ${col} INTEGER`).run();
   await get(e, rankStats("island", 2880, 1480, 14, 3, 700));
   assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [row(2880, 700, 1480, 14, 3), row(1531, 600)]);
+});
+
+// the website's anonymous counters
+async function hit(e, name, headers = {}, method = "GET") {
+  const res = await worker.fetch(new Request("https://scores.khrecast.com/hit?e=" + encodeURIComponent(name),
+    { method, headers: { "cf-connecting-ip": "10.9.9.9", ...headers } }), e);
+  return res;
+}
+const counts = (e) => Object.fromEntries(e.DB.prepare("SELECT day, name, n FROM site_stats ORDER BY name").all().results
+  .map((r) => [r.day + " " + r.name, r.n]));
+
+await check("page views and button clicks are counted per day, per name", async () => {
+  const e = env();
+  const day = new Date().toISOString().slice(0, 10);
+  for (let i = 0; i < 3; i++) assert.strictEqual((await hit(e, "view:home")).status, 204);
+  await hit(e, "dl:win64");
+  assert.deepStrictEqual(counts(e), { [day + " dl:win64"]: 1, [day + " view:home"]: 3 });
+  const res = await hit(e, "view:home");
+  assert.strictEqual(res.headers.get("cache-control"), "no-store");
+  assert.strictEqual(res.headers.get("set-cookie"), null, "no cookie");
+  assert.strictEqual(await res.text(), "");
+});
+
+await check("only the known names are counted, so the table cannot be filled", async () => {
+  const e = env();
+  for (const bad of ["", "view:other", "dl:../../x", "<script>", "x".repeat(500), "dl:win64 ", "VIEW:HOME"]) {
+    assert.strictEqual((await hit(e, bad)).status, 204, "the page is never told off");
+  }
+  assert.deepStrictEqual(counts(e), {});
+  assert.ok(Object.keys(SITE_EVENTS).length < 30);
+});
+
+await check("a probe, a wrong method or another site does not count; one of ours, or no referrer, does", async () => {
+  const e = env();
+  await hit(e, "view:home", {}, "HEAD");
+  assert.strictEqual((await hit(e, "view:home", {}, "POST")).status, 405);
+  await hit(e, "view:home", { referer: "https://evil.example/page" });
+  await hit(e, "view:home", { referer: "not a url" });
+  assert.deepStrictEqual(counts(e), {});
+  await hit(e, "view:home", { referer: "https://khrecast.com/" });
+  await hit(e, "view:leaderboard", { referer: "https://www.khrecast.com/leaderboard" });
+  await hit(e, "dl:sums");                                  // fetch with no referrer (privacy settings)
+  assert.strictEqual(Object.values(counts(e)).reduce((a, b) => a + b, 0), 3);
+});
+
+await check("a name stops counting at its daily ceiling, so the counters cannot use up the database's writes", async () => {
+  const e = env();
+  const day = new Date().toISOString().slice(0, 10);
+  const cap = SITE_EVENTS["dl:sums"];
+  assert.strictEqual(cap, 2000);
+  for (let i = 0; i < cap + 25; i++) await hit(e, "dl:sums");
+  assert.strictEqual(counts(e)[day + " dl:sums"], cap, "it stops at the ceiling");
+  await hit(e, "view:home");
+  assert.strictEqual(counts(e)[day + " view:home"], 1, "the other names are not affected");
+  const total = Object.values(SITE_EVENTS).reduce((a, b) => a + b, 0);
+  assert.ok(total < 50000, "all the ceilings together stay well under the free plan's daily writes: " + total);
+});
+
+await check("no identity is stored with the counters, and a database without the table still answers", async () => {
+  const e = env();
+  await hit(e, "view:home", { "user-agent": "Mozilla/5.0 secret", cookie: "a=b" });
+  const cols = e.DB.prepare("SELECT * FROM site_stats").all().results[0];
+  assert.deepStrictEqual(Object.keys(cols).sort(), ["day", "n", "name"]);
+  const old = env(OLD_SCHEMA);                              // the live database until migrate_002 is run
+  assert.strictEqual((await hit(old, "view:home")).status, 204, "the page is not hurt by a missing table");
 });
 
 await check("helpers", () => {

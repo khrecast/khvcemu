@@ -441,10 +441,10 @@ class Display(HleObject):
     #
     # "Still on screen" is decided by rebuilding what the string's box looked
     # like right after it was drawn (the background it was drawn on, with the
-    # glyph pixels in the text colour) and comparing the whole box against the
+    # glyph pixels in the text color) and comparing the whole box against the
     # frame. Looking only at the glyph pixels is not enough, nor is looking at
     # glyphs and surroundings as two separate fractions: a later screen can
-    # repaint the glyph pixels the same colour (a black selection bar under black
+    # repaint the glyph pixels the same color (a black selection bar under black
     # text, a white page under white "Loading") and leave part of the old
     # surroundings alone, and each half then passes on its own. The old
     # background would be pasted back in glyph shape: a ghost of text the game

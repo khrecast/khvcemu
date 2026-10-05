@@ -223,6 +223,42 @@ async function handleTop(db, now, q = new URLSearchParams()) {
   });
 }
 
+// Anonymous website counters. The page (site/index.html, leaderboard.html) asks `GET /hit?e=<name>`
+// when it is opened or a button is clicked; the worker adds one to today's count for that name.
+// Only these names count (anything else is ignored), so nobody can fill the table, and nothing about
+// the visitor is read or stored: no address, no cookie, no browser details. A browser that sends
+// Do Not Track never asks. Read the totals with tools/site_stats.py.
+// Each name also has a daily ceiling. It bounds the database writes the counters can cause (about
+// 42,000 a day at most, against the free plan's daily allowance, which the scores share), so
+// someone calling the address in a loop cannot use them up and stop scores being saved: past the
+// ceiling a call changes nothing. Generous for a real day of visitors.
+export const SITE_EVENTS = {
+  "view:home": 15000, "view:leaderboard": 5000,
+  "dl:win64": 2000, "dl:win32": 2000, "dl:macArm": 2000, "dl:macIntel": 2000, "dl:linux64": 2000, "dl:linuxArm": 2000,
+  "dl:sums": 2000, "click:repo": 2000, "click:issues": 2000, "click:soundtrack": 2000, "click:email": 2000,
+};
+const SITE_HOSTS = new Set(["khrecast.com", "www.khrecast.com"]);
+
+export async function handleHit(db, params, request, now) {
+  const done = new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
+  const name = params.get("e") || "";
+  // a count only for the real thing: a GET (not a HEAD probe), a known name, and, when the browser says
+  // which page it came from, one of ours
+  if (request.method !== "GET" || !Object.hasOwn(SITE_EVENTS, name)) return done;
+  const from = request.headers.get("referer");
+  if (from) {
+    try { if (!SITE_HOSTS.has(new URL(from).hostname)) return done; } catch { return done; }
+  }
+  try {
+    const day = new Date(now * 1000).toISOString().slice(0, 10);
+    await db.prepare("INSERT INTO site_stats (day, name, n) VALUES (?, ?, 1) " +
+                     "ON CONFLICT (day, name) DO UPDATE SET n = n + 1 WHERE n < ?").bind(day, name, SITE_EVENTS[name]).run();
+  } catch (err) {
+    console.error("site stats error:", err && err.message);   // e.g. the table is not there yet: never hurt the page
+  }
+  return done;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -237,13 +273,14 @@ export default {
       if (script === "rank.php") return await handleRank(env.DB, url.searchParams, ip, salt, now);
       if (script === "rankex.php") return await handleRankex(env.DB, url.searchParams);
       if (script === "top") return await handleTop(env.DB, now, url.searchParams);
+      if (script === "hit") return await handleHit(env.DB, url.searchParams, request, now);
     } catch (err) {
       console.error("leaderboard error:", err && err.message);   // shows in `wrangler tail`; nothing identifying
       // never hand the game a 500 it cannot parse: khvcemu falls back to its
       // own offline table when the reply is not a usable one
       return new Response("server error", { status: 503 });
     }
-    return new Response("khvcemu leaderboard: /disney/rank.php, /disney/rankex.php and /top\n",
+    return new Response("khvcemu leaderboard: /disney/rank.php, /disney/rankex.php, /top and /hit\n",
                         { status: 404, headers: { "content-type": "text/plain" } });
   },
 };

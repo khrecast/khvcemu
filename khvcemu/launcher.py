@@ -243,7 +243,7 @@ def load_logo(path: str = LOGO_FILE, shrink: int = 4):
 def apply_theme(root: tk.Tk):
     st = ttk.Style()
     try:
-        st.theme_use("clam")                 # the only built-in theme that takes custom colours
+        st.theme_use("clam")                 # the only built-in theme that takes custom colors
     except tk.TclError:
         pass
     root.configure(bg=BG)
@@ -282,7 +282,7 @@ def apply_theme(root: tk.Tk):
     st.configure("TNotebook.Tab", background=PANEL, foreground=MUTED, padding=(14, 6), bordercolor=PANEL)
     st.map("TNotebook.Tab", background=[("selected", BLUE), ("active", "#1b3555")],
            foreground=[("selected", "white"), ("active", TEXT)])
-    # a greyed-out slider must look off: dark thumb and trough, not the light thumb of a live one
+    # a grayed-out slider must look off: dark thumb and trough, not the light thumb of a live one
     st.configure("Horizontal.TScale", background="#cfdcee", lightcolor="#5d7391", darkcolor="#5d7391")
     st.map("Horizontal.TScale", background=[("disabled", "#1a2b42")], troughcolor=[("disabled", BG)],
            bordercolor=[("disabled", BG)], lightcolor=[("disabled", "#1a2b42")],
@@ -317,7 +317,7 @@ class Launcher:
         self.logo = load_logo()
         if self.logo:
             ttk.Label(head, image=self.logo).pack(side="left")
-            ttk.Label(head, text="The Unofficial 2005 Kingdom Hearts Verizon V Cast Game Emulator", foreground=MUTED,
+            ttk.Label(head, text="The Unofficial 2005 Kingdom Hearts Verizon V CAST Game Emulator", foreground=MUTED,
                       justify="left").pack(side="left", padx=(14, 0))
         else:
             ttk.Label(head, text="KINGDOM HEARTS", font=("Segoe UI", 20, "bold")).pack(anchor="w")
@@ -472,11 +472,11 @@ class Launcher:
         # controls: a two-column key table
         body = tab("controls", "Controls")
         for r, (act, keys, emu_act, emu_keys) in enumerate(CONTROLS):
-            for col, (text, grey) in enumerate(((act, False), (keys, True),
+            for col, (text, gray) in enumerate(((act, False), (keys, True),
                                                 (emu_act, False), (emu_keys, True))):
                 if not text:
                     continue
-                ttk.Label(body, text=text, foreground=MUTED if grey else TEXT).grid(
+                ttk.Label(body, text=text, foreground=MUTED if gray else TEXT).grid(
                     row=r, column=col, sticky="w", padx=(16 if col == 2 else 6, 6))
 
         root.protocol("WM_DELETE_WINDOW", self.close)
@@ -502,7 +502,7 @@ class Launcher:
             self.tabs.tab(self.tab_frames[tab], image=(imgs[0], "selected", imgs[1]), compound="image")
 
     def draw_bar(self, c: tk.Canvas):
-        """A thin blue-to-green line, the colours of the game's HUD ring."""
+        """A thin blue-to-green line, the colors of the game's HUD ring."""
         c.delete("all")
         w = max(c.winfo_width(), 2)
         a, b = (0x2f, 0x80, 0xed), (0x58, 0xc4, 0x6b)
@@ -575,7 +575,7 @@ class Launcher:
                         "Resuming " + newest[1] + "...")
 
     def sync_share(self):
-        """The address can be edited while sharing is on; it is greyed out when sharing is off."""
+        """The address can be edited while sharing is on; it is grayed out when sharing is off."""
         self.share_entry.config(state="normal" if self.share.get() else "disabled")
 
     def leaderboard_url(self) -> str:
@@ -811,7 +811,7 @@ class Launcher:
         values = music_settings.clean(music_settings.parse(self.cfg.get("music", ""), strict=False))
         self.music_vars: dict = {}
         self.music_labels: dict = {}
-        self.music_scales: dict = {}         # the sliders and their names, to grey out what does not apply
+        self.music_scales: dict = {}         # the sliders and their names, to gray out what does not apply
         self.music_names: dict = {}
         self.tunes = TUNES
         names = [n for _f, n in TUNES]
@@ -832,7 +832,7 @@ class Launcher:
         self.tooltip(self.adv_btn, "Play the music through a SoundFont instead of the built-in synth")
         self.adv_win = None                  # the Advanced window, while it is open
 
-        # ready-made mixes and the player's own, favourites first
+        # ready-made mixes and the player's own, favorites first
         mixrow = ttk.Frame(parent)
         mixrow.pack(fill="x", pady=(0, 2))
         ttk.Label(mixrow, text="Mix:").pack(side="left", padx=(6, 4))
@@ -840,9 +840,9 @@ class Launcher:
         self.mix_box = ttk.Combobox(mixrow, textvariable=self.mix, width=28, state="readonly")
         self.mix_box.pack(side="left")
         self.mix_box.bind("<<ComboboxSelected>>", lambda e: self.mix_chosen())
-        self.fav_btn = ttk.Button(mixrow, text="\u2606", width=3, command=self.toggle_favourite, style="Small.TButton")
+        self.fav_btn = ttk.Button(mixrow, text="\u2606", width=3, command=self.toggle_favorite, style="Small.TButton")
         self.fav_btn.pack(side="left", padx=(8, 0))
-        self.tooltip(self.fav_btn, "Favourite: favourites are listed first")
+        self.tooltip(self.fav_btn, "Favorite: favorites are listed first")
         self.save_btn = ttk.Button(mixrow, text="Save as...", command=self.save_mix, style="Small.TButton")
         self.save_btn.pack(side="left", padx=(4, 0))
         self.del_btn = ttk.Button(mixrow, text="Delete", command=self.delete_mix, style="Small.TButton")
@@ -967,7 +967,7 @@ class Launcher:
         return os.path.isfile(self.rec_entry(self.current_tune())["path"])
 
     def show_music_note(self):
-        """Say what the game will play for the selected tune, and grey out what does not apply."""
+        """Say what the game will play for the selected tune, and gray out what does not apply."""
         sf = self.soundfont.get().strip()
         ticked = getattr(self, "rec_in_game", None) is not None and self.rec_in_game.get()
         if self.recording_in_game():
@@ -991,7 +991,7 @@ class Launcher:
 
     def update_sound_states(self):
         """A SoundFont, or your recording in the game, replaces the built-in synth, so its sliders
-        and the mixes do nothing then: grey them out. Music volume always applies."""
+        and the mixes do nothing then: gray them out. Music volume always applies."""
         off = self.recording_in_game() or self.soundfont_active()
         for key in self.music_vars:
             if key == "master":
@@ -1040,7 +1040,7 @@ class Launcher:
             "  2. Get a General MIDI SoundFont (.sf2 file) and choose it below.\n"
             "  3. Start the game: every tune is played through it.\n\n"
             "While a SoundFont is in use, the Sound tab's instrument and character sliders and the "
-            "mixes do nothing (they are settings of the built-in synth), so they are greyed out; Music "
+            "mixes do nothing (they are settings of the built-in synth), so they are grayed out; Music "
             "volume still applies. A recording you chose to use in the game still plays instead of its "
             "tune. The Sound tab's Play button always plays the built-in synth. Leave the box empty to "
             "use the built-in synth.")).pack(anchor="w", pady=(6, 10))
@@ -1110,7 +1110,7 @@ class Launcher:
 
     def reset_music(self, key: str = None):
         if key is not None and key in self.music_scales and "disabled" in self.music_scales[key].state():
-            return                           # greyed out: it does nothing now, so it is left alone
+            return                           # grayed out: it does nothing now, so it is left alone
         for k, var in self.music_vars.items():
             if key in (None, k):
                 var.set(music_settings.DEFAULTS[k])
@@ -1426,8 +1426,10 @@ class Launcher:
             p = self.cfg["music_profiles"] = {}
         return {k: v for k, v in p.items() if isinstance(k, str) and isinstance(v, str)}
 
-    def mix_favourites(self) -> list:
-        f = self.cfg.get("music_favourites")
+    def mix_favorites(self) -> list:
+        f = self.cfg.get("music_favorites")
+        if f is None:
+            f = self.cfg.get("music_favourites")       # the key as an earlier launcher spelled it
         return list(dict.fromkeys(x for x in f if isinstance(x, str))) if isinstance(f, list) else []
 
     def mix_settings(self, name: str):
@@ -1440,15 +1442,15 @@ class Launcher:
         return {k: round(v / 0.05) * 0.05 for k, v in got.items()}       # what the sliders can show
 
     def mix_names(self) -> list:
-        """Favourites first, then the ready-made mixes, then the player's own."""
-        favs = [n for n in self.mix_favourites() if self.mix_settings(n) is not None]
+        """Favorites first, then the ready-made mixes, then the player's own."""
+        favs = [n for n in self.mix_favorites() if self.mix_settings(n) is not None]
         rest = [n for n in music_settings.PRESETS if n not in favs]
         rest += sorted((n for n in self.mix_profiles() if n not in favs and n not in music_settings.PRESETS),
                        key=str.lower)
         return favs + rest
 
     def mix_label(self, name: str) -> str:
-        return ("\u2605 " if name in self.mix_favourites() else "") + name
+        return ("\u2605 " if name in self.mix_favorites() else "") + name
 
     def current_mix(self):
         """The mix the sliders are set to (the last one picked, if it still matches), or None."""
@@ -1464,7 +1466,7 @@ class Launcher:
         name = self.current_mix()
         self.mix_box.config(values=[self.mix_label(n) for n in self.mix_names()])
         self.mix.set(self.mix_label(name) if name else self.CUSTOM_MIX)
-        self.fav_btn.config(text="\u2605" if name in self.mix_favourites() else "\u2606",
+        self.fav_btn.config(text="\u2605" if name in self.mix_favorites() else "\u2606",
                             state="normal" if name else "disabled")
         self.del_btn.config(state="normal" if name and name not in music_settings.PRESETS else "disabled")
         if self.recording_in_game() or self.soundfont_active():      # the mixes do nothing then
@@ -1492,7 +1494,7 @@ class Launcher:
             messagebox.showinfo("Save mix", f"\"{name}\" is a ready-made mix. Pick another name.")
             return
         if name.startswith("\u2605"):
-            messagebox.showinfo("Save mix", "The star marks favourites, so a name cannot start with it.")
+            messagebox.showinfo("Save mix", "The star marks favorites, so a name cannot start with it.")
             return
         profiles = self.mix_profiles()
         if name in profiles and not messagebox.askyesno("Save mix", f"Replace your mix \"{name}\"?"):
@@ -1504,13 +1506,14 @@ class Launcher:
         self.remember()
         self.status.config(text=f"Saved the mix \"{name}\".")
 
-    def toggle_favourite(self):
+    def toggle_favorite(self):
         name = self.current_mix()
         if not name:
             return
-        favs = self.mix_favourites()
+        favs = self.mix_favorites()
         favs = [n for n in favs if n != name] if name in favs else favs + [name]
-        self.cfg["music_favourites"] = favs
+        self.cfg["music_favorites"] = favs
+        self.cfg.pop("music_favourites", None)
         self.cfg["music_mix"] = name
         self.sync_mix()
         self.remember()
@@ -1524,7 +1527,8 @@ class Launcher:
         profiles = self.mix_profiles()
         profiles.pop(name, None)
         self.cfg["music_profiles"] = profiles
-        self.cfg["music_favourites"] = [n for n in self.mix_favourites() if n != name]
+        self.cfg["music_favorites"] = [n for n in self.mix_favorites() if n != name]
+        self.cfg.pop("music_favourites", None)
         self.cfg.pop("music_mix", None)
         self.sync_mix()
         self.remember()

@@ -221,7 +221,7 @@ class Graphics(HleObject):
         Inferred from the HUD calls: the magic ring is five 45-degree wedges at
         r=19 and the health gauge a 270-degree wedge at r=13. Angles run
         counter-clockwise from 3 o'clock (negative sweep = clockwise). Drawn as a
-        pie wedge: filled with the fill colour when fill mode is on, then outlined."""
+        pie wedge: filled with the fill color when fill mode is on, then outlined."""
         cx, cy, r, start, sweep = struct.unpack("<5h", self.cpu.read(c.arg(1), 10))
         if r <= 0 or sweep == 0:
             return SUCCESS
