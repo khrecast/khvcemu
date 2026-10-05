@@ -351,6 +351,29 @@ class SoundTabMixTests(unittest.TestCase):
         app.mix_chosen()
         self.assertEqual(app.opts()["music"], "", "the As tuned mix puts every slider back")
 
+    def test_the_stop_buttons_say_that_the_music_stopped(self):
+        root, app = self.make_app({})
+        app.preview = FakePreview()
+        app.stop_clicked()
+        self.assertEqual(app.status.cget("text"), "Nothing is playing.", "no music: it says so, not silence")
+        rec = os.path.join(self.tmp.name, "r.wav")
+        write_wav(rec, 1.0)
+        app.set_rec_entry(app.current_tune(), path=rec)
+        app.play_recording()
+        self.pump(root, lambda: app.playing == "recording")
+        self.assertIn("Playing the recording", app.status.cget("text"))
+        app.stop_clicked()
+        self.assertEqual(app.status.cget("text"), "Music stopped.")
+        self.assertIsNone(app.playing)
+        self.assertEqual(str(app.rec_btn.cget("style")), "Small.TButton", "and no button is lit")
+        # the launcher's own stops (starting the game, closing) stay quiet
+        app.play_recording()
+        self.pump(root, lambda: app.playing == "recording")
+        app.status.config(text="something else")
+        app.stop_music()
+        self.assertEqual(app.status.cget("text"), "something else")
+        app.close()
+
     def test_favorites_saved_under_the_old_spelling_are_still_read(self):
         root, app = self.make_app({"music_profiles": {"big bass": "bass=1.5"}, "music_favourites": ["big bass"]})
         self.assertEqual(app.mix_favorites(), ["big bass"], "a launcher.json from an earlier build keeps its stars")
@@ -597,6 +620,7 @@ class WonderlandVolumeTests(unittest.TestCase):
         self.assertEqual(cmd[cmd.index("--wonderland-volume") + 1], "0.7")
         app.toggle_wonderland()
         self.assertEqual(app.wl_btn.cget("text"), "Play")
+        self.assertEqual(app.status.cget("text"), "Wonderland theme stopped.")
         self.assertIsNone(app.playing)
         os.remove(wl)
         app.refresh()

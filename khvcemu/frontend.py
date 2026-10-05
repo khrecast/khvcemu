@@ -181,7 +181,7 @@ def draw_frame(pygame, emu, screen, w: int, h: int, override=None, filt: str = "
 
 
 def draw_quit_prompt(pygame, screen, font_cache: dict):
-    """Dim the picture and draw the 'Are you sure?' box centerd on the window."""
+    """Dim the picture and draw the 'Are you sure?' box centered on the window."""
     sw, sh = screen.get_size()
     dim = pygame.Surface((sw, sh), pygame.SRCALPHA)
     dim.fill((0, 0, 0, 150))
@@ -235,7 +235,7 @@ def draw_mute_icon(pygame, screen, muted: bool):
         pygame.draw.line(box, red, (6.6 * u, cy + 2.0 * u), (8.8 * u, cy - 2.0 * u), t)
     else:
         t = max(2, size // 16)
-        for r in (1.9 * u, 3.1 * u):                  # two arcs of sound, centerd on the speaker's mouth
+        for r in (1.9 * u, 3.1 * u):                  # two arcs of sound, centered on the speaker's mouth
             pygame.draw.arc(box, white, (5.6 * u - r, cy - r, 2 * r, 2 * r), -0.9, 0.9, t)
     screen.blit(box, (sw - size - pad, pad))
 
