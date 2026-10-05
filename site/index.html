@@ -404,11 +404,13 @@
   </div>
 </footer>
 
+<script src="links.js"></script>   <!-- optional, NOT in git: the download links (see links.js, .gitignore) -->
 <script>
   // ---------------------------------------------------------------------------
-  // FILL THESE IN. Paste the download URLs (for example your GitHub release
-  // links). A button whose link is empty shows "link coming soon" and cannot be
-  // clicked, so nothing on the page is ever a dead link.
+  // The download URLs are NOT written here: the public repository must not carry direct
+  // links to the installers. They live in site/links.js, which is kept out of git and
+  // deployed with the site; it sets window.KH_LINKS. A button whose link is empty shows
+  // "link coming soon" and cannot be clicked, so nothing on the page is ever a dead link.
   const LINKS = {
     win64:    "",   // KH-ReCast-Windows-x64.exe
     win32:    "",   // KH-ReCast-Windows-x86.exe
@@ -419,6 +421,7 @@
     repo:     "https://github.com/khrecast/khvcemu",
     issues:   "https://github.com/khrecast/khvcemu/issues",
   };
+  Object.assign(LINKS, window.KH_LINKS || {});
   // ---------------------------------------------------------------------------
 
   document.querySelectorAll("[data-link]").forEach(function (a) {

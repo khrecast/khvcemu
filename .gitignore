@@ -29,6 +29,8 @@ probe_last_frame.png
 /server/parity.txt
 /server/node_modules/
 /server/.wrangler/
+# the website's download links (direct installer links stay out of the public repository)
+/site/links.js
 
 # --- Local working files -----------------------------------------------------
 /previews/
