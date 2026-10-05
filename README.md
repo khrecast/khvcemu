@@ -494,7 +494,7 @@ Continue press after the second page.
 the dump folder as `wonderland/Wonderland.flac` (or `wonderland.mid`, `.ogg`,
 `.wav`, `.mp3`; a MIDI file is closest to the phone, FLAC is the best of the
 audio formats because it loops without a gap). It then plays on the Wonderland
-splash screen. The installers include it; a copy of this repository does not, and the
+splash screen. The installers include it (Aid1043's rendering of the Wonderland track, from their [KHInsider album](https://downloads.khinsider.com/game-soundtracks/album/kingdom-hearts-v-cast-mobile-gamerip-2005)); a copy of this repository does not, and the
 launcher's **Setup** tab says whether it was found.
 
 **Do you have a phone from this era?** The phones held one chapter at a time,

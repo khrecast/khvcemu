@@ -63,7 +63,9 @@ The game's data has nine MIDI files, one loop per world plus short stingers:
 | `keyblade`, `good`, `bad`, `magic_alert` `.mid` | Stingers under 5 s | Game events |
 
 A Wonderland theme existed (`wonderland.mid`) but is not in any dump; two
-further unused alternates (Island and Castle "v03") never shipped.
+further unused alternates (Island and Castle "v03") never shipped. The Wonderland theme the
+Re:Cast installers play on the Wonderland screen is Aid1043's rendering of that track, from
+their [KHInsider album](https://downloads.khinsider.com/game-soundtracks/album/kingdom-hearts-v-cast-mobile-gamerip-2005).
 [Aid1043's 2025 "Authentic Restoration" soundtrack][ost] renders the original
 MIDIs through a Qualcomm CMX 4.1 soundfont, which is a faithful reconstruction
 rather than a phone recording.
