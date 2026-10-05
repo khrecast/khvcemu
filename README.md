@@ -22,6 +22,12 @@ emulator to play it with its music and sound effects in context.
 
 > **Please read.** Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.
 
+> **How this was made.** Re:Cast was written with the assistance of AI coding tools. The project exists because its
+> author wanted to play this game, with its sound, on a PC, and building an emulator with AI help was the only way they
+> found to do it. It has been tested by playing the game and by an automated test suite, and all the code is open
+> (GPL-3.0) for anyone to read. Some people object to AI use of any type, and that is a fair position: this note is here
+> so you can decide with the facts.
+
 ![Boot sequence](docs/boot_sequence.png)
 ![Island and Maleficent's Castle](docs/island_castle.png)
 
