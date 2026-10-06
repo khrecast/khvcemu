@@ -142,6 +142,22 @@
     nav a { padding: 11px 18px; }
     nav a:hover { background: var(--panel); }
   }
+
+  .kicker { letter-spacing: .18em; text-transform: uppercase; font-size: 13px; color: #f2c94c; font-weight: 700; margin: 0 0 6px; }
+  .btn.amber { background: #f2c94c; border-color: #f2c94c; color: #1b1500; font-size: 18px; padding: 14px 28px; }
+  .btn.amber:hover { background: #ffd966; color: #1b1500; }
+  .search .two { display: grid; grid-template-columns: 1.1fr 1fr; gap: 26px; align-items: start; margin-top: 8px; }
+  @media (max-width: 800px) { .search .two { grid-template-columns: 1fr; } }
+  .checklist { list-style: none; padding: 0; margin: 14px 0 18px; }
+  .checklist li { padding-left: 30px; position: relative; margin: 10px 0; }
+  .checklist li::before { content: ""; position: absolute; left: 0; top: 5px; width: 15px; height: 15px; border-radius: 4px; border: 2px solid #f2c94c; }
+  .checklist li.no::before { border-color: #e5645b; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .shots img { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); image-rendering: pixelated; }
+  .shots figcaption, .shotcap { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .banner { background: linear-gradient(90deg, #3b2e05, #4a3a08); border-bottom: 1px solid #f2c94c66; color: #ffe9a6; text-align: center; padding: 12px 16px; font-size: 16px; }
+  .banner a { color: #fff; font-weight: 700; text-decoration: underline; }
+  nav a.hot { color: #f2c94c; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -152,13 +168,14 @@
     <a class="brand" href="#top"><img src="assets/recast_icon.png" alt="">Re:Cast</a>
     <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">&#9776; Menu</button>
     <nav aria-label="Sections" id="site-nav">
-      <a href="#about">About</a><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#launcher">Launcher</a><a href="#composer">Music</a><a href="leaderboard.html">Leaderboard</a>
+      <a class="hot" href="#wonderland">Find Wonderland</a><a href="#about">About</a><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#launcher">Launcher</a><a href="#composer">Music</a><a href="leaderboard.html">Leaderboard</a>
       <a href="#download">Download</a><a href="#help">Help</a><a href="#credits">Credits</a><a data-link="repo" href="#">Source</a>
     </nav>
   </div>
   <div class="bar"></div>
 </header>
 
+<div class="banner">Chapter 2 of this game is <strong>lost media</strong>. Do you still have the phone? <a href="#wonderland">Help us find Wonderland &rarr;</a></div>
 <main id="top">
   <div class="wrap hero">
     <img class="logo" src="assets/recast_logo_lowres_hardpixels.png" width="696" height="486" alt="Kingdom Hearts Re:Cast">
@@ -180,6 +197,31 @@
   </div>
 
   <div class="bar" aria-hidden="true"></div>
+
+  <section id="wonderland" class="search"><div class="wrap">
+    <h2>The search for chapter 2</h2>
+    <h3 class="big">Do you still have the phone?</h3>
+    <div class="two">
+      <div>
+        <p class="lead">The phones held one chapter at a time, and starting the next chapter deleted the old one. If someone stopped playing while <em>Alice in Wonderland</em> was installed, that phone may still hold the only copy.</p>
+        <ul class="checklist">
+          <li><strong>Any Verizon phone from the V CAST years</strong> (2005 to 2012) is a candidate</li>
+          <li>The game launched on the <strong>LG VX8000, Samsung SCH-a890 and UTStarcom CDM8940</strong>; the <strong>LG VX8100 and VX8300</strong> have the same 176&times;220 screen. The model number is printed under the battery</li>
+          <li><strong>Kingdom Hearts</strong> (the V CAST game) is installed on it</li>
+          <li class="no">Please <strong>don't reset it</strong>, delete the game or download another chapter</li>
+        </ul>
+        <p><a class="btn amber" data-link="email" href="mailto:khrecast@gmail.com">Email khrecast@gmail.com</a></p>
+        <p class="shotcap">Not sure it is the right phone? Email anyway.</p>
+      </div>
+      <figure style="margin:0">
+        <div class="shots">
+          <img src="assets/wonderland_caterpillar.webp" alt="Wonderland: Sora and the Caterpillar" loading="lazy">
+          <img src="assets/wonderland_pond.webp" alt="Wonderland: the pond" loading="lazy">
+        </div>
+        <figcaption>All that is known to survive of chapter 2: two screenshots from the time, its splash art, Jiminy's journal entry and a rendering of its theme.</figcaption>
+      </figure>
+    </div>
+  </div></section>
 
   <section id="about"><div class="wrap">
     <h2>About</h2>
@@ -347,14 +389,6 @@
     </details>
   </div></section>
 
-  <section id="wonderland"><div class="wrap">
-    <h2>Lost media</h2>
-    <h3 class="big">Do you still have the phone?</h3>
-    <div class="callout">
-      <p>If you own a <strong>Verizon phone from 2005&ndash;2007 with <em>Kingdom Hearts</em> installed</strong>, and the Wonderland chapter is still on it, <strong>please don't reset the phone</strong>; get in touch with game preservationists and send me an email! It could bring a missing chapter back for everyone.</p>
-      <a class="btn" data-link="email" href="mailto:khrecast@gmail.com">Email khrecast@gmail.com</a>
-    </div>
-  </div></section>
   <section id="credits"><div class="wrap">
     <h2>Credits</h2>
     <h3 class="big">Thank you</h3>

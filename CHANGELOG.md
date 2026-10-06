@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### New
+- **Website: the search for Wonderland is now the top goal.** A gold banner above the hero, a "Find Wonderland"
+  item first in the menu, and a new section right after the hero ("Do you still have the phone?") with a
+  checklist, the phone models and two screenshots; the old section at the bottom is gone. The phone date range is
+  now "the V CAST years (2005 to 2012)" on the website and in the README, and the splash screen in the game no
+  longer says "since 2007". Needs the website deployed (and an installer rebuild for the splash wording).
 - **A stats dashboard button, and more detail in the website counters.** `tools/show_site_stats.bat` opens a page in your browser with the visits per day, time of day, where visitors came from, countries,
   kinds of computer, how far down the page people got, and clicks. The counters now also tally, as separate counts
   kept apart and never stored per visit (on a very quiet day they could still be matched up by eye), each main-page opening's hour, country (Cloudflare's coarse location, no address kept),

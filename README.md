@@ -153,7 +153,7 @@ Questions, bug reports and preservation leads are welcome: open an
 [issue](https://github.com/khrecast/khvcemu/issues) or email
 **[khrecast@gmail.com](mailto:khrecast@gmail.com)**.
 
-**Do you have a Verizon phone from 2005-2007 with *Kingdom Hearts* on it?** If
+**Do you have a Verizon phone from the V CAST years (2005 to 2012) with *Kingdom Hearts* on it?** If
 the Wonderland chapter is still installed, please don't reset it and email us:
 see [Wonderland (lost media)](#wonderland-lost-media).
 
@@ -520,10 +520,12 @@ launcher's **Setup** tab says whether it was found.
 **Do you have a phone from this era?** The phones held one chapter at a time,
 and starting a new chapter deleted the old one. If someone stopped playing
 while the Wonderland chapter was installed, that phone may still hold the only
-copy of it. If you have, or know of, a Verizon phone from 2005–2007 with
+copy of it. If you have, or know of, a Verizon phone from the V CAST years (2005 to 2012) with
 *Kingdom Hearts* on it, please don't reset it: contact a game preservation
 group (for example the Lost Media Wiki or a BREW preservation community) so
-the files can be dumped safely.
+the files can be dumped safely. The game launched on the LG VX8000, Samsung SCH-a890
+and UTStarcom CDM8940, and the LG VX8100 and VX8300 have the same 176x220 screen, so
+look for those first; any Verizon phone of the time is a candidate.
 
 ## How it works
 
