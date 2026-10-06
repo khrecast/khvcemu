@@ -370,6 +370,10 @@ saves, which only happen at save points.
   `auto1`–`auto3`; **Shift+0** then **F9** loads the newest.
 * **At startup:** `python -m khvcemu <dump> --load-state 3` (or `auto`,
   `auto2`, `auto3`) resumes straight into a state.
+* **Rendered music:** the built-in synth's renderings of the game's tunes are made in the background as the game
+  starts and kept in `~/.khvcemu/<dump folder name>/audio_cache/` (about 3.5 MB), so a tune does not have to be
+  built, and the game does not pause, the first time it plays. It rebuilds itself when a tune, the Sound tab
+  settings or the synth change; you can delete the folder at any time.
 * States are stored in `~/.khvcemu/<dump folder name>/states/` as
   `slotN.khs` / `autoN.khs` (under 1 MB each) with a `.png` thumbnail.
 * Loading a state never touches the game's own save files on disk.

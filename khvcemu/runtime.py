@@ -113,6 +113,8 @@ class Emulator:
         from .audio import AudioEngine
         self.audio = AudioEngine(self, enabled=audio, soundfont=soundfont, music=music, music_files=music_files,
                                   wonderland_volume=wonderland_volume)
+        if audio:                          # render the tunes now, not at the moment the game first asks for each
+            self.audio.start_prewarm(self.game_root)
         self._register_builtin_classes()
 
     # ---------------------------------------------------------------- logging

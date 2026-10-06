@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### New
+- **Faster loading: the music is rendered ahead of time.** The built-in synth used to build each tune the
+  first time the game played it, which froze the game for about a second or two at the title screen and at
+  each world's start (the title tune took 1.9 s). Now all the tunes are rendered in the background as the
+  game starts, and kept in an `audio_cache` folder (about 3.5 MB) next to your saves, so from the second
+  launch on the title tune is ready in a few milliseconds. The cache is rebuilt by itself when a tune, the
+  Sound tab settings or the synth change, and it is safe to delete. The rest of loading is the game's own
+  code and is unchanged.
 - **The Stop buttons say so.** On the Sound tab, Stop now shows "Music stopped." (or "Nothing is playing.")
   in the line at the bottom of the launcher, and the Wonderland theme's Stop shows "Wonderland theme
   stopped."; before, the line kept saying "Playing...".

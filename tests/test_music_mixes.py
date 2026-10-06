@@ -719,5 +719,152 @@ class FocusPauseOptionTests(unittest.TestCase):
         self.assertEqual(default_screenshot_dir(home), os.path.join(home, "Pictures", "khvcemu"))
 
 
+class RenderCacheTests(unittest.TestCase):
+    """The built-in synth's renderings are made ahead of time and kept on disk between runs."""
+
+    class E:
+        def __init__(self, data_dir):
+            self.data_dir = data_dir
+            self.logs = []
+
+        def log(self, s):
+            self.logs.append(s)
+        logv = log
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.mid = tune(480 * 4)
+        self.real = midi_synth.render_midi
+        self.addCleanup(setattr, midi_synth, "render_midi", self.real)
+
+    def engine(self, music=None):
+        from khvcemu.audio import AudioEngine
+        return AudioEngine(self.E(self.tmp.name), enabled=False, music=music)
+
+    def count_renders(self):
+        calls = []
+        midi_synth.render_midi = lambda data, settings=None: calls.append(1) or self.real(data, settings)
+        return calls
+
+    def test_a_second_run_loads_the_render_from_disk(self):
+        calls = self.count_renders()
+        first = self.engine().decode(self.mid, "training.mid")
+        self.assertEqual(len(calls), 1)
+        files = os.listdir(os.path.join(self.tmp.name, "audio_cache"))
+        self.assertEqual(len(files), 1)
+        again = self.engine().decode(self.mid, "training.mid")          # a new run: empty memory, same folder
+        self.assertEqual(len(calls), 1, "not rendered again")
+        self.assertTrue(np.array_equal(first, again))
+        self.assertEqual(again.dtype, np.int16)
+
+    def test_another_setting_or_other_synth_code_is_another_render(self):
+        calls = self.count_renders()
+        self.engine().decode(self.mid, "a.mid")
+        self.engine({"bass": 1.5}).decode(self.mid, "a.mid")
+        self.assertEqual(len(calls), 2, "the Sound tab settings are part of the key")
+        import khvcemu.audio as audio
+        real = audio.SYNTH_VERSION
+        audio.SYNTH_VERSION = "changed"
+        self.addCleanup(setattr, audio, "SYNTH_VERSION", real)
+        self.engine().decode(self.mid, "a.mid")
+        self.assertEqual(len(calls), 3, "a changed synth makes the old renders stale")
+
+    def test_a_damaged_cache_file_is_rendered_again(self):
+        calls = self.count_renders()
+        self.engine().decode(self.mid, "a.mid")
+        folder = os.path.join(self.tmp.name, "audio_cache")
+        path = os.path.join(folder, os.listdir(folder)[0])
+        with open(path, "wb") as f:
+            f.write(b"not an array")
+        pcm = self.engine().decode(self.mid, "a.mid")
+        self.assertEqual(len(calls), 2)
+        self.assertGreater(len(pcm), 1000)
+        for junk in (b"", b"\x93NUMPY", b"\x93NUMPY\x01\x00\x10\x00{'descr': '<i2'"):     # empty, header only, cut short
+            with open(path, "wb") as f:
+                f.write(junk)
+            self.assertGreater(len(self.engine().decode(self.mid, "a.mid")), 1000, repr(junk))
+        self.assertEqual(len(calls), 5, "each damaged file was rendered again, not turned into silence")
+
+    def test_a_failed_save_leaves_no_temporary_file_behind(self):
+        eng = self.engine()
+        real_save = np.save
+
+        def broken(*a, **k):
+            raise OSError("disk full")
+        np.save = broken
+        self.addCleanup(setattr, np, "save", real_save)
+        self.assertGreater(len(eng.decode(self.mid, "a.mid")), 1000, "the game still gets its sound")
+        folder = os.path.join(self.tmp.name, "audio_cache")
+        self.assertEqual([n for n in os.listdir(folder)] if os.path.isdir(folder) else [], [])
+
+    def test_the_cache_is_kept_small(self):
+        import khvcemu.audio as audio
+        real = audio.CACHE_KEEP
+        audio.CACHE_KEEP = 3
+        self.addCleanup(setattr, audio, "CACHE_KEEP", real)
+        eng = self.engine()
+        for i in range(6):
+            eng.decode(tune(480 * (2 + i)), "t.mid")
+        self.assertEqual(len(os.listdir(os.path.join(self.tmp.name, "audio_cache"))), 3)
+
+    def test_no_data_folder_means_no_disk_cache(self):
+        from khvcemu.audio import AudioEngine
+
+        class Bare:
+            logs = []
+            def log(self, s): pass
+            logv = log
+        eng = AudioEngine(Bare(), enabled=False)
+        self.assertIsNone(eng.cache_dir)
+        self.assertGreater(len(eng.decode(self.mid, "a.mid")), 1000)
+
+    def test_the_background_renderer_has_every_tune_ready_before_the_game_asks(self):
+        root = os.path.join(self.tmp.name, "game")
+        os.makedirs(os.path.join(root, "mod", "123"))
+        for name in ("castle.mid", "training.mid", "death.mid", "Island.MID"):
+            with open(os.path.join(root, "mod", "123", name), "wb") as f:
+                f.write(tune(480 * 4 + len(name) * 480))
+        with open(os.path.join(root, "mod", "123", "broken.mid"), "wb") as f:
+            f.write(b"MThd not really")
+        with open(os.path.join(root, "mod", "123", "readme.txt"), "w") as f:
+            f.write("not a tune")
+        eng = self.engine()
+        order = [n for n, _ in eng._game_tunes(root)]
+        self.assertEqual(order[:2], ["training.mid", "island.mid"], "the likeliest tunes first")
+        self.assertEqual(sorted(order), ["broken.mid", "castle.mid", "death.mid", "island.mid", "training.mid"])
+        calls = self.count_renders()
+        th = eng.start_prewarm(root)
+        th.join(30)
+        self.assertFalse(th.is_alive(), "it finishes, and a broken tune does not stop it")
+        done = len(calls)
+        self.assertGreaterEqual(done, 4)
+        midi_synth.render_midi = lambda *a, **k: self.fail("rendered again after the background pass")
+        with open(os.path.join(root, "mod", "123", "training.mid"), "rb") as f:
+            self.assertGreater(len(eng.decode(f.read(), "training.mid")), 1000)
+        self.assertIsNone(self.engine().start_prewarm(os.path.join(self.tmp.name, "nothing here")))
+
+    def test_the_game_and_the_background_renderer_never_render_the_same_tune_twice(self):
+        import time
+        calls = []
+
+        def slow(data, settings=None):
+            calls.append(1)
+            time.sleep(0.4)
+            return self.real(data, settings)
+        midi_synth.render_midi = slow
+        eng = self.engine()
+        root = os.path.join(self.tmp.name, "game")
+        os.makedirs(os.path.join(root, "mod", "1"))
+        with open(os.path.join(root, "mod", "1", "training.mid"), "wb") as f:
+            f.write(self.mid)
+        th = eng.start_prewarm(root)
+        time.sleep(0.1)                                    # the background pass is part-way through
+        pcm = eng.decode(self.mid, "training.mid")         # the game asks now: it waits, it does not render again
+        th.join(10)
+        self.assertEqual(len(calls), 1)
+        self.assertGreater(len(pcm), 1000)
+
+
 if __name__ == "__main__":
     unittest.main()
