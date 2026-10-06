@@ -201,7 +201,7 @@
       <strong style="color:var(--text)">Kingdom Hearts Re:Cast</strong><br>
       Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.<br><br>
       <a href="index.html">Back to the main page</a> &middot; <a href="mailto:khrecast@gmail.com">Contact</a><br>
-      <span class="small">This site keeps no record of you: it only adds one to a daily count of visits and downloads, with no cookies, and counts nothing for browsers that send Do Not Track or Global Privacy Control. (Cloudflare, which hosts the site, keeps its usual server logs.)</span>
+      <span class="small">This site keeps no record of you: it only adds to daily counts of visits and downloads, with no cookies. The counts are by hour, country (as Cloudflare works it out), kind of computer (Windows, Mac, Linux, phone) and the site that linked here (its name only), each kept on its own, and nothing is counted for browsers that send Do Not Track or Global Privacy Control. (Cloudflare, which hosts the site, keeps its usual server logs.)</span>
     </div>
   </div>
 </footer>
@@ -289,14 +289,13 @@
   })();
 </script>
 <script>
-  // Anonymous counters: how often a page is opened and which buttons are clicked, so the author can tell whether
-  // anyone uses this. No cookie, and the server stores only a day, a name and a count (server/worker.js).
-  // Nothing is sent if the browser says Do Not Track.
+  // Anonymous counter: how often this page is opened, so the author can tell whether anyone uses it. No cookie, and
+  // the server stores only a day, a name and a count (server/worker.js). Nothing is sent if the browser says Do Not Track.
   (function () {
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return;
     var URL_ = "https://scores.khrecast.com/hit?e=";
-    function hit(name) {
-      try { fetch(URL_ + encodeURIComponent(name), { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
+    function hit(name, extra) {
+      try { fetch(URL_ + encodeURIComponent(name) + (extra || ""), { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
     }
     hit("view:leaderboard");
     document.addEventListener("click", function (ev) {

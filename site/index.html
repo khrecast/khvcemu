@@ -202,7 +202,7 @@
       <div class="card"><div class="ico">&#9881;&#65039;</div><h4>The game's own code</h4><p>Re:Cast runs the real game program and Superscape's 3D engine, unchanged, on an emulated phone processor. It is the game itself, not a remake.</p></div>
       <div class="card"><div class="ico">&#127925;</div><h4>The original music and sound</h4><p>The real soundtrack and sound effects, in step with the action, including the phone's compressed voice-codec effects, decoded properly. A first on PC.</p></div>
       <div class="card"><div class="ico">&#128190;</div><h4>Its own saves and scores</h4><p>Load Game, the save points and the &ldquo;post your score&rdquo; screen all behave the way they did on the phone.</p></div>
-      <div class="card"><div class="ico">&#128220;</div><h4>Play all 4 found chapters</h4><p>Obstacle Course, the Island, Agrabah and Maleficent's Castle, played through start to finish.</p></div>
+      <div class="card"><div class="ico">&#128220;</div><h4>Play all 3 found chapters</h4><p>The training area and Swashbuckler's Island, Agrabah and Maleficent's Castle, played through start to finish.</p></div>
     </div>
 
     <h4 class="subhead">Quality of life</h4>
@@ -402,7 +402,7 @@
       <strong style="color:var(--text)">Kingdom Hearts Re:Cast</strong><br>
       Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.<br><br>
       <a data-link="repo" href="#">Source code</a> &middot; <a data-link="issues" href="#">Report a problem</a> &middot; <a data-link="email" href="mailto:khrecast@gmail.com">Contact</a><br>
-      <span class="small">This site keeps no record of you: it only adds one to a daily count of visits and downloads, with no cookies, and counts nothing for browsers that send Do Not Track or Global Privacy Control. (Cloudflare, which hosts the site, keeps its usual server logs.)</span>
+      <span class="small">This site keeps no record of you: it only adds to daily counts of visits and downloads, with no cookies. The counts are by hour, country (as Cloudflare works it out), kind of computer (Windows, Mac, Linux, phone) and the site that linked here (its name only), each kept on its own, and nothing is counted for browsers that send Do Not Track or Global Privacy Control. (Cloudflare, which hosts the site, keeps its usual server logs.)</span>
     </div>
     <div>
       <strong style="color:var(--text)">Thanks</strong><br>
@@ -480,16 +480,57 @@
   })();
 </script>
 <script>
-  // Anonymous counters: how often a page is opened and which buttons are clicked, so the author can tell whether
-  // anyone uses this. No cookie, and the server stores only a day, a name and a count (server/worker.js).
-  // Nothing is sent if the browser says Do Not Track.
+  // Anonymous counters: how often a page is opened, which parts of it are scrolled to and which buttons are clicked,
+  // so the author can tell whether anyone uses this. No cookie, and the server stores only a day, a name and a count
+  // (server/worker.js). Besides the opening itself, only two short labels are sent, from fixed lists: the kind of
+  // computer (windows, mac, linux, android, ios...) and where the visitor came from (reddit, google, direct...; the
+  // website's name only, never the address). Nothing is sent if the browser says Do Not Track.
   (function () {
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return;
     var URL_ = "https://scores.khrecast.com/hit?e=";
-    function hit(name) {
-      try { fetch(URL_ + encodeURIComponent(name), { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
+    function hit(name, extra) {
+      try { fetch(URL_ + encodeURIComponent(name) + (extra || ""), { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
     }
-    hit("view:home");
+    function kindOfComputer() {
+      var ua = navigator.userAgent || "";
+      if (/Android/i.test(ua)) return "android";
+      if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+      if (/CrOS/.test(ua)) return "chromeos";
+      if (/Windows/i.test(ua)) return "windows";
+      if (/Macintosh|Mac OS X/i.test(ua)) return "mac";
+      if (/Linux|X11/i.test(ua)) return "linux";
+      return "other";
+    }
+    function whereFrom() {
+      var r = document.referrer, h = "";
+      if (!r) return "direct";
+      try { h = new URL(r).hostname.toLowerCase().replace(/^www\./, ""); } catch (e) { return "other"; }
+      var known = [["direct", /^khrecast\.com$/], ["reddit", /(^|\.)reddit\.com$|^redd\.it$/], ["google", /(^|\.)google\.[a-z.]+$/],
+        ["bing", /(^|\.)bing\.com$/], ["duckduckgo", /(^|\.)duckduckgo\.com$/], ["youtube", /(^|\.)youtube\.com$|^youtu\.be$/],
+        ["x", /^(t\.co|x\.com|twitter\.com)$|\.(x|twitter)\.com$/], ["bluesky", /(^|\.)bsky\.app$/], ["facebook", /(^|\.)(facebook|fb)\.com$/],
+        ["discord", /(^|\.)discord(app)?\.com$|^discord\.gg$/], ["khinsider", /(^|\.)khinsider\.com$/], ["kh13", /(^|\.)kh13\.com$/],
+        ["khwiki", /(^|\.)(khwiki|khdatabase)\.com$/], ["lostmedia", /(^|\.)lostmediawiki\.com$/], ["archive", /(^|\.)archive\.org$/],
+        ["github", /(^|\.)github\.com$/], ["hackernews", /^news\.ycombinator\.com$/]];
+      for (var i = 0; i < known.length; i++) if (known[i][1].test(h)) return known[i][0];
+      return "other";
+    }
+    hit("view:home", "&o=" + kindOfComputer() + "&r=" + whereFrom());
+
+    // which parts of the page are read: a section counts once, when it is in the middle part of the window
+    var sectionEls = ["about", "features", "screens", "launcher", "composer", "download", "help", "wonderland", "credits"]
+      .map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    var sectionSeen = {}, sectionTimer = null;
+    function checkSections() {
+      sectionTimer = null;
+      var h = window.innerHeight;
+      sectionEls.forEach(function (el) {
+        if (sectionSeen[el.id]) return;
+        var r = el.getBoundingClientRect();
+        if (r.top <= h * 0.7 && r.bottom >= h * 0.3) { sectionSeen[el.id] = 1; hit("sec:" + el.id); }   // overlaps the middle 40% of the window
+      });
+    }
+    window.addEventListener("scroll", function () { if (!sectionTimer) sectionTimer = setTimeout(checkSections, 150); }, { passive: true });
+    setTimeout(checkSections, 600);                      // what is already in view when the page has opened (a link to #download)
     document.addEventListener("click", function (ev) {
       var a = ev.target && ev.target.closest ? ev.target.closest("a") : null;
       if (!a || !a.getAttribute("href") || a.getAttribute("aria-disabled") === "true") return;

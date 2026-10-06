@@ -42,7 +42,7 @@ emulator to play it with its music and sound effects in context.
   effects are the phone's QCELP audio, decoded for you).
 * **The game's own saves and scores.** Load Game, save points and the
   "post your score and get a ranking" screen all work as they did on the phone.
-* Plays the surviving chapters (Obstacle Course, Island, Agrabah, Castle).
+* Plays the surviving chapters (chapter 1 with its training area and Swashbuckler's Island, Agrabah and Maleficent's Castle).
   The lost **Wonderland** episode is bridged with the game's own surviving
   screens rather than anything invented.
 
@@ -296,10 +296,14 @@ to allow one score per address every ten minutes and deletes it after ten minute
 so treat a shared rank as a rough comparison rather than a competitive ranking.
 
 **Website counters.** The project website counts, anonymously and per day, how often its pages are
-opened and which buttons are clicked (downloads per platform, source and issue links). No cookies, and the project's
-server keeps no address or other detail about the visitor, only a day, a name and a number; browsers that send
-Do Not Track or Global Privacy Control are not counted ([details](server/README.md#website-counters)). Cloudflare,
-which hosts the site, keeps its usual server logs. The emulator itself sends nothing to the website.
+opened, which parts of the main page are scrolled to and which buttons are clicked (downloads per platform,
+source and issue links), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
+location of the connection), the kind of computer (Windows, Mac, Linux, phone) and the website that linked to it
+(its name only, from a short fixed list). No cookies, and the project's server keeps no address, browser string or
+anything else about the visitor, only a day, a name and a number; the tallies are kept apart and never stored per visit, though on a very quiet day (a visit or two) the counts could still be matched up by eye. Browsers that send Do Not Track or Global Privacy Control are not counted
+([details](server/README.md#website-counters)). Cloudflare, which hosts the site, keeps its usual server logs.
+The emulator itself sends nothing to the website. `tools/show_site_stats.bat` (or `python tools/site_stats.py --open`)
+shows the totals as a page in your browser.
 
 Other options:
 

@@ -116,20 +116,31 @@ Errors are written to the Worker's log (`npx wrangler tail`), nothing identifyin
 
 ### Website counters
 
-The project website counts, anonymously, how often its two pages are opened and which buttons are
-clicked (the six downloads, the checksums file, the source and issue links, the soundtrack link,
-the contact link). The page asks `GET /hit?e=<name>` and the worker adds one to today's count for that
-name in the `site_stats` table: a UTC day, a name and a number, nothing else. This project's server
-reads and stores no address, cookie or browser detail (Cloudflare, which hosts it, keeps its usual request
-logs, as it does for every site). Only the names in `SITE_EVENTS` (`worker.js`) count; anything else, a
-`HEAD` request, or a request that says it came from another website, is answered `204` and ignored (a
-request with no `Referer` is accepted, because some browsers send none), so the table cannot be filled
-with junk. Each name also stops counting at a daily ceiling (`SITE_EVENTS`: 15,000 for the main page, 5,000
-for the leaderboard, 2,000 for each button), which bounds the database writes the counters can cause to
-about 42,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop
-scores being saved; it can still inflate a day's counts or stop them there, so these are rough counts, not
-proof. For real protection add a Cloudflare rate-limiting rule for `/hit` in the dashboard. A browser that sends Do Not Track (or Global Privacy Control) never
-asks. A missing table never breaks the page: the worker answers anyway.
+The project website counts, anonymously, how often its two pages are opened, which parts of the main page are
+scrolled to, and which buttons are clicked (the six downloads, the checksums file, the source and issue links, the
+soundtrack link, the contact link). The page asks `GET /hit?e=<name>` and the worker adds one to today's count for
+that name in the `site_stats` table: a UTC day, a name and a number, nothing else. This project's server
+reads and stores no address, cookie or browser string (Cloudflare, which hosts it, keeps its usual request
+logs, as it does for every site).
+
+Each opening of the main page (`view:home`) also adds one to four **separate** tallies, kept apart and never stored per visit, though on a very quiet day (a visit or two) the counts could still be matched up by eye: `hour:HH` (the UTC hour), `country:XX` (the country code Cloudflare gives
+the worker for the connection; the address itself is neither read nor stored), `os:<kind>` (windows, mac, linux,
+android, ios, chromeos or other, worked out by the page from the browser and sent as a word, never the browser
+string) and `ref:<site>` (where the visitor came from, as a word from a fixed list such as reddit, google,
+khinsider or direct; the page reduces the referrer to the website's name, never the address). A value that is not
+on the fixed list is ignored. The sections scrolled to are `sec:about`, `sec:download` and so on, counted once per
+visit.
+
+Only the names in `SITE_EVENTS` (`worker.js`) count; anything else, a `HEAD` request, or a request that says it
+came from another website, is answered `204` and ignored (a request with no `Referer` is accepted, because some
+browsers send none), so the table cannot be filled with junk. Each name also stops counting at a daily ceiling
+(`SITE_EVENTS`: 8,000 for the main page, 1,500 for the leaderboard, 1,000 for each section, 600 for each button;
+the extra tallies stop with the main page's ceiling), which bounds the database writes the counters can cause to
+about 57,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop scores
+being saved; it can still inflate a day's counts or stop them there, so these are rough counts, not proof. For
+real protection add a Cloudflare rate-limiting rule for `/hit` in the dashboard. A browser that sends Do Not Track
+(or Global Privacy Control) never asks. A missing table never breaks the page: the worker answers anyway. There
+are no unique-visitor counts on purpose: they would need an identifier.
 
 The database needs the table, once, from this folder:
 
@@ -137,8 +148,9 @@ The database needs the table, once, from this folder:
 npx wrangler d1 execute khvcemu-leaderboard --remote --file migrate_002_site_stats.sql
 ```
 
-Read the totals with `python tools/site_stats.py` (a read-only query through wrangler). A download
-click only opens the mirror; it is not a finished download.
+Read the totals with `tools/show_site_stats.bat` (double-click: it opens a page in your browser) or
+`python tools/site_stats.py` (text); both are read-only queries through wrangler. A download click only opens
+the mirror; it is not a finished download.
 
 ## Running the tests
 

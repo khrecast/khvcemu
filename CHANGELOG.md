@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### New
+- **A stats dashboard button, and more detail in the website counters.** `tools/show_site_stats.bat` opens a page in your browser with the visits per day, time of day, where visitors came from, countries,
+  kinds of computer, how far down the page people got, and clicks. The counters now also tally, as separate counts
+  kept apart and never stored per visit (on a very quiet day they could still be matched up by eye), each main-page opening's hour, country (Cloudflare's coarse location, no address kept),
+  kind of computer and referring website (its name only, from a fixed list), and which section of the page was
+  scrolled to. The footer says so. Needs the server and the website deployed.
 - **Faster loading: the music is rendered ahead of time.** The built-in synth used to build each tune the
   first time the game played it, which froze the game for about a second or two at the title screen and at
   each world's start (the title tune took 1.9 s). Now all the tunes are rendered in the background as the
