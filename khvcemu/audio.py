@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import wave
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -26,6 +27,25 @@ from . import midi_synth, music_settings, pmd
 from .paths import no_window
 
 RATE = midi_synth.RATE
+
+
+def _synth_version() -> str:
+    """A fingerprint of the code that turns a tune into sound: when it changes, every cached render
+    is stale and a new one is made."""
+    h = hashlib.sha1()
+    here = os.path.dirname(os.path.abspath(__file__))
+    for n in ("midi_synth.py", "music_settings.py"):
+        try:
+            with open(os.path.join(here, n), "rb") as f:
+                h.update(f.read())
+        except OSError:
+            h.update(n.encode())
+    return h.hexdigest()[:12]
+
+
+SYNTH_VERSION = _synth_version()
+CACHE_KEEP = 48                    # rendered tunes kept on disk (one per tune and Sound tab setting)
+FIRST_TUNES = ("training.mid", "island.mid", "agrabah.mid", "castle.mid")   # rendered first: the likeliest to play soon
 
 
 @dataclass(eq=False)          # identity comparison (pcm is an array)
@@ -56,6 +76,10 @@ class AudioEngine:
         self.music_files = {str(k).lower(): dict(v) for k, v in (music_files or {}).items()}
         self._file_failed: set = set()     # (path, size, mtime) that could not be used: tried again once edited
         self._midi_length: dict = {}       # sha1 of a MIDI -> samples the built-in synth renders it to
+        data_dir = getattr(emu, "data_dir", None)
+        self.cache_dir = os.path.join(data_dir, "audio_cache") if data_dir else None   # rendered tunes, kept between runs
+        self._key_locks: dict = {}         # one lock per sound, so the background renderer and the game never both render it
+        self._key_locks_guard = threading.Lock()
         self.soundfont = soundfont if soundfont and os.path.isfile(soundfont) else None
         self.fluidsynth = shutil.which("fluidsynth") if self.soundfont else None
         self.ffmpeg = shutil.which("ffmpeg")
@@ -104,15 +128,105 @@ class AudioEngine:
         pcm = self.cache.get(key)
         if pcm is not None:
             return pcm
+        with self._key_lock(key):
+            pcm = self.cache.get(key)          # the background renderer may have just finished it
+            if pcm is not None:
+                return pcm
+            try:
+                pcm = self._decode(data, name)
+            except Exception as e:
+                self.emu.log(f"[audio] could not decode {name or 'buffer'} ({len(data)} bytes): {e}")
+                pcm = np.zeros(RATE // 10, np.int16)
+            if wl != 1.0:
+                pcm = np.clip(pcm.astype(np.float32) * wl, -32768, 32767).astype(np.int16)
+            self.cache[key] = pcm
+            return pcm
+
+    def _key_lock(self, key: str):
+        with self._key_locks_guard:
+            return self._key_locks.setdefault(key, threading.Lock())
+
+    # ------------------------------------------------------- rendered tunes: ahead of time, and kept on disk
+    def start_prewarm(self, game_root: str):
+        """Render the game's tunes in the background, so the first time one plays the game does not stop
+        while the synth works (about a second for each long tune). Returns the thread, or None."""
+        tunes = self._game_tunes(game_root)
+        if not tunes:
+            return None
+        t = threading.Thread(target=self._prewarm, args=(tunes,), name="khvcemu-prewarm", daemon=True)
+        t.start()
+        return t
+
+    @staticmethod
+    def _game_tunes(game_root: str) -> list:
+        found = {}
+        mod = os.path.join(game_root or "", "mod")
         try:
-            pcm = self._decode(data, name)
-        except Exception as e:
-            self.emu.log(f"[audio] could not decode {name or 'buffer'} ({len(data)} bytes): {e}")
-            pcm = np.zeros(RATE // 10, np.int16)
-        if wl != 1.0:
-            pcm = np.clip(pcm.astype(np.float32) * wl, -32768, 32767).astype(np.int16)
-        self.cache[key] = pcm
+            for sub in sorted(os.listdir(mod)):
+                d = os.path.join(mod, sub)
+                if os.path.isdir(d):
+                    for fn in os.listdir(d):
+                        if fn.lower().endswith(".mid"):
+                            found.setdefault(fn.lower(), os.path.join(d, fn))
+        except OSError:
+            return []
+        order = [n for n in FIRST_TUNES if n in found] + sorted(n for n in found if n not in FIRST_TUNES)
+        return [(n, found[n]) for n in order]
+
+    def _prewarm(self, tunes: list):
+        for name, path in tunes:
+            try:
+                with open(path, "rb") as f:
+                    self.decode(f.read(), name)
+            except Exception as e:                      # a background helper must never hurt the game
+                self.emu.logv(f"[audio] could not pre-render {name}: {e}")
+
+    def _cache_file(self, data: bytes):
+        if not self.cache_dir:
+            return None
+        tune = hashlib.sha1(data).hexdigest()[:20]
+        how = hashlib.sha1((SYNTH_VERSION + "|" + music_settings.to_text(self.music)).encode()).hexdigest()[:12]
+        return os.path.join(self.cache_dir, f"{tune}-{how}.npy")
+
+    def _render_synth(self, data: bytes) -> np.ndarray:
+        """The built-in synth's rendering of a MIDI: from the disk cache if this exact tune, synth code and
+        Sound tab setting was rendered before, otherwise rendered now and kept."""
+        path = self._cache_file(data)
+        if path:
+            try:
+                pcm = np.load(path, allow_pickle=False)
+                if pcm.dtype == np.int16 and pcm.ndim == 1 and len(pcm):
+                    try:
+                        os.utime(path)                  # used just now: pruning keeps the tunes still in use
+                    except OSError:
+                        pass
+                    return pcm
+            except Exception:
+                pass                                    # missing, empty or damaged (any way numpy can fail): render again
+        pcm = midi_synth.render_midi(data, self.music)
+        if path:
+            self._store_cache(path, pcm)
         return pcm
+
+    def _store_cache(self, path: str, pcm: np.ndarray):
+        tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
+        try:
+            os.makedirs(self.cache_dir, exist_ok=True)
+            with open(tmp, "wb") as f:
+                np.save(f, pcm, allow_pickle=False)
+            os.replace(tmp, path)                       # whole file or nothing
+            files = [os.path.join(self.cache_dir, n) for n in os.listdir(self.cache_dir) if n.endswith(".npy")]
+            if len(files) > CACHE_KEEP:
+                files.sort(key=os.path.getmtime)
+                for old in files[: len(files) - CACHE_KEEP]:
+                    if old != path:
+                        os.remove(old)
+        except OSError as e:
+            self.emu.logv(f"[audio] could not keep the rendered tune ({e})")
+            try:
+                os.remove(tmp)                          # a full or read-only disk leaves nothing behind
+            except OSError:
+                pass
 
     @staticmethod
     def is_wonderland(name: str) -> bool:
@@ -134,7 +248,7 @@ class AudioEngine:
                 if self.music["master"] != 1.0:
                     pcm = np.clip(pcm.astype(np.float32) * self.music["master"], -32768, 32767).astype(np.int16)
                 return pcm
-            return midi_synth.render_midi(data, self.music)
+            return self._render_synth(data)
         if data[:4] == b"cmid":
             pcm = pmd.decode(data, RATE, ffmpeg=self.ffmpeg)
             return (pcm.astype(np.int32) * 7 // 10).astype(np.int16)   # SFX a bit under the music
