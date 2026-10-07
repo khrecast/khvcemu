@@ -150,12 +150,71 @@ def random_matrix(rnd):
     return struct.pack("<16fI", *m, flag)
 
 
+FMUL_FUNC = BASE + 0x3F604
+FSUB_FUNC = BASE + 0x3F030
+
+
+def float_pairs(rnd, n):
+    """Operand pairs (as 32 bit patterns): ordinary numbers, ties, zeros, denormals, infinities, NaNs, and exponents
+    near the overflow and underflow limits."""
+    def num(kind):
+        sign = rnd.randrange(2) << 31
+        if kind == "zero":
+            return sign
+        if kind == "denorm":
+            return sign | rnd.randrange(1, 1 << 23)
+        if kind == "inf":
+            return sign | 0x7F800000
+        if kind == "nan":
+            return sign | 0x7F800000 | rnd.randrange(1, 1 << 23)
+        e = {"mid": rnd.randrange(100, 160), "wide": rnd.randrange(1, 255), "hi": rnd.randrange(240, 255),
+             "lo": rnd.randrange(1, 20), "one": rnd.choice((126, 127, 128))}[kind]
+        mant = rnd.choice((rnd.randrange(1 << 23), rnd.randrange(1 << 23), 0, (1 << 23) - 1, 1 << 22,
+                           rnd.randrange(1 << 8) << 15, rnd.randrange(1 << 4) << 19))
+        return sign | e << 23 | mant
+    kinds = ("mid",) * 12 + ("wide",) * 4 + ("hi", "lo", "one", "one", "zero", "zero", "zero", "zero", "denorm", "inf", "nan")
+    out = []
+    for _ in range(n):
+        a, b = rnd.choice(kinds), rnd.choice(kinds)
+        out.append((num(a), num(b)))
+    for _ in range(n // 20):                                      # equal and opposite operands, and neighbours
+        x = num("mid")
+        out += [(x, x), (x, x ^ 0x80000000), (x, x + 1), (x, x - 1)]
+    return out
+
+
+def call_float(uc, entry, a, b):
+    uc.reg_write(UC_ARM_REG_CPSR, 0xD0)
+    uc.reg_write(UC_ARM_REG_SP, STACK + 0x8000)
+    uc.reg_write(UC_ARM_REG_R0, a)
+    uc.reg_write(UC_ARM_REG_R0 + 1, b)
+    for i, reg in enumerate(CALLEE_SAVED):
+        uc.reg_write(reg, 0x11110000 + i)
+    uc.reg_write(UC_ARM_REG_LR, SENTINEL)
+    try:
+        uc.emu_start(entry, SENTINEL, count=10_000)
+    except unicorn.UcError as e:
+        return ("fault", e.errno)
+    return tuple(uc.reg_read(r) for r in (UC_ARM_REG_R0,) + CALLEE_SAVED + (UC_ARM_REG_SP,))
+
+
 @unittest.skipUnless(find_module(), "swv21brew.mod not found (set KH_DUMP)")
 class SwervePatchTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         with open(find_module(), "rb") as f:
             cls.image = f.read()
+
+    def test_patch_code_and_cache_regions_do_not_overlap(self):
+        """The matrix cache's table is big: it must not run over another patch's code (it once would have)."""
+        regions = []
+        for p in swerve_patch.PATCHES.values():
+            regions.append((p["blob_offset"], p["blob_offset"] + len(p["blob"])))
+            if p["table_size"]:
+                regions.append((p["table_offset"], p["table_offset"] + p["table_size"]))
+        regions.sort()
+        for (a0, a1), (b0, b1) in zip(regions, regions[1:]):
+            self.assertLessEqual(a1, b0, f"{a0:#x}-{a1:#x} overlaps {b0:#x}-{b1:#x}")
 
     def test_the_whole_module_is_the_known_one(self):
         self.assertTrue(swerve_patch.module_is_known(self.image))
@@ -165,19 +224,42 @@ class SwervePatchTests(unittest.TestCase):
         for name, p in swerve_patch.PATCHES.items():
             uc, applied = make(self.image, (name,))
             self.assertEqual(applied, [True])
-            at = BASE + p["function_offset"]
-            self.assertEqual(bytes(uc.mem_read(at, 4)), p["entry_stub"])
+            first = p["stubs"][0]
+            at = BASE + first["offset"]
+            self.assertEqual(bytes(uc.mem_read(at, 4)), first["stub"])
             self.assertTrue(swerve_patch.apply(FakeCpu(uc), BASE, name), "applying twice is harmless")
             self.assertEqual(swerve_patch.state(FakeCpu(uc), BASE, name), "patched")
             self.assertTrue(swerve_patch.remove(FakeCpu(uc), BASE, name))
-            self.assertEqual(bytes(uc.mem_read(at, p["original_length"])),
+            self.assertEqual(bytes(uc.mem_read(BASE + p["function_offset"], p["original_length"])),
                              self.image[p["function_offset"]:p["function_offset"] + p["original_length"]])
             self.assertEqual(swerve_patch.state(FakeCpu(uc), BASE, name), "original")
             other = bytearray(self.image)
             other[p["function_offset"] + 40] ^= 1                # any other build of the module: leave it alone
             uc2, applied = make(bytes(other), (name,))
             self.assertEqual(applied, [False])
-            self.assertEqual(bytes(uc2.mem_read(at, 4)), bytes(other[p["function_offset"]:p["function_offset"] + 4]))
+            self.assertEqual(bytes(uc2.mem_read(at, 4)), bytes(other[first["offset"]:first["offset"] + 4]))
+
+    def test_a_patch_with_two_entry_stubs(self):
+        """None of the real patches has two stubs yet; apply, state and remove are written for several."""
+        real = swerve_patch.PATCHES["float"]
+        second = 0x3F604
+        fake = dict(real, stubs=list(real["stubs"]) + [dict(
+            offset=second, original_first=self.image[second:second + 4], stub=bytes.fromhex("0000000a"))])
+        saved = swerve_patch.PATCHES
+        swerve_patch.PATCHES = dict(saved, two=fake)
+        self.addCleanup(setattr, swerve_patch, "PATCHES", saved)
+        uc, _ = make(self.image)
+        cpu = FakeCpu(uc)
+        self.assertEqual(swerve_patch.state(cpu, BASE, "two"), "original")
+        self.assertTrue(swerve_patch.apply(cpu, BASE, "two"))
+        self.assertEqual(swerve_patch.state(cpu, BASE, "two"), "patched")
+        for s in fake["stubs"]:
+            self.assertEqual(bytes(uc.mem_read(BASE + s["offset"], 4)), s["stub"])
+        uc.mem_write(BASE + second, self.image[second:second + 4])           # one stub lost: not a patched module
+        self.assertEqual(swerve_patch.state(cpu, BASE, "two"), "")
+        uc.mem_write(BASE + second, fake["stubs"][1]["stub"])
+        self.assertTrue(swerve_patch.remove(cpu, BASE, "two"))
+        self.assertEqual(swerve_patch.state(cpu, BASE, "two"), "original")
 
     def test_a_loaded_state_gets_the_patches_even_in_a_fresh_run(self):
         """A state restores the module's memory and the table of loaded modules, but the new run never loaded the
@@ -288,6 +370,33 @@ class SwervePatchTests(unittest.TestCase):
             m = random_matrix(rnd)
             mem = bytes(0x100) + m + bytes(DATA_SIZE - 0x100 - len(m))
             self.assertEqual(call(uc, INV_FUNC, mem, DATA + 0x100), call(orig, INV_FUNC, mem, DATA + 0x100), n)
+
+    def test_float_shortcuts_give_the_same_bits(self):
+        """Soft-float reverse subtract (and, as a check that nothing else moved, the multiply): every result must equal
+        the original routine's, bit for bit, including the odd operands that the shortcut hands back to the original."""
+        rnd = random.Random(31)
+        orig, _ = make(self.image)
+        fast, applied = make(self.image, ("float",))
+        self.assertEqual(applied, [True])
+        pairs = float_pairs(rnd, 30000)
+        for entry, name in ((FMUL_FUNC, "fmul"), (FSUB_FUNC, "fsub")):
+            for a, b in pairs:
+                want = call_float(orig, entry, a, b)
+                got = call_float(fast, entry, a, b)
+                self.assertEqual(want, got, f"{name}({a:#010x}, {b:#010x}): original {want}, shortcut {got}")
+
+    def test_float_shortcuts_save_work_on_the_commonest_operands(self):
+        rnd = random.Random(8)
+        pairs = [(rnd.choice((0, 0, 0x80000000, 0x3F800000 + rnd.randrange(1 << 22), 0x40400000 + rnd.randrange(1 << 22))),
+                  rnd.choice((0, 0x3F000000 + rnd.randrange(1 << 22), 0xBF000000 + rnd.randrange(1 << 22)))) for _ in range(400)]
+        counts = []
+        for patches in ((), ("float",)):
+            uc, _ = make(self.image, patches)
+            total = count_instructions(uc)
+            for a, b in pairs:
+                call_float(uc, FSUB_FUNC, a, b)
+            counts.append(total[0])
+        self.assertLess(counts[1], counts[0] * 0.75, f"original {counts[0]} shortcut {counts[1]} instructions")
 
     def test_matrix_inversion_cache_saves_work_on_repeats(self):
         rnd = random.Random(5)

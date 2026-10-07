@@ -19,7 +19,7 @@ VOLUMES = [
     Setting("piano", "Piano", 0.0, 2.0, ""),
     Setting("strings", "Strings and choir", 0.0, 2.0, ""),
     Setting("brass", "Brass and horns", 0.0, 2.0, ""),
-    Setting("harp", "Harp and guitar", 0.0, 2.0, "also koto and other plucked strings"),
+    Setting("harp", "Harp and guitar", 0.0, 2.0, "also the koto and banjo-like plucked strings"),
     Setting("bells", "Bells and celesta", 0.0, 2.0, ""),
     Setting("winds", "Flutes and reeds", 0.0, 2.0, ""),
     Setting("pads", "Pads and organ", 0.0, 2.0, "the soft held chords"),
@@ -39,7 +39,7 @@ DEFAULTS = {k: 1.0 for k in ALL}
 
 # Which volume slider each of the synth's voice models answers to (midi_synth._timbre)
 GROUP_OF_KIND = {
-    "piano": "piano", "organ": "pads", "bell": "bells", "pluck": "harp", "bass": "bass",
+    "piano": "piano", "organ": "pads", "bell": "bells", "pluck": "harp", "twang": "harp", "bass": "bass",
     "bowed": "strings", "ensemble": "strings", "choir": "strings", "brass": "brass",
     "reed": "winds", "flute": "winds", "lead": "pads", "pad": "pads", "timpani": "drums",
 }

@@ -22,9 +22,14 @@ from . import _swerve_blob as blob
 
 PATCHES = blob.PATCHES
 NAMES = tuple(PATCHES)
-LABELS = {"span": "Faster 3D fill", "matinv": "Matrix cache"}
-HINTS = {"span": "The 3D engine fills each row of a polygon with a tighter loop. Same picture, about a tenth to a quarter faster in scenes with a lot on screen.",
-         "matinv": "The 3D engine inverts the same 4x4 matrices hundreds of times a frame; this remembers the answers. Same picture, faster when you walk around."}
+LABELS = {"span": "Faster 3D fill", "matinv": "Matrix cache", "float": "Float shortcut"}
+HINTS = {"span": "The 3D engine fills each row of a polygon with a tighter loop. Same picture, about a tenth to a "
+                 "quarter faster in scenes with a lot on screen.",
+         "matinv": "The 3D engine inverts the same 4x4 matrices hundreds of times a frame; this remembers the "
+                   "answers. Same picture, faster when you walk around.",
+         "float": "The 3D engine does its geometry maths in software floating point, and half a million "
+                  "reverse subtractions a second have a zero in them. This answers those at once. Same picture, a little "
+                  "faster when you walk around."}
 
 
 def _original_code(cpu, base: int, p: dict) -> bytes:
@@ -35,6 +40,15 @@ def _is_original(code: bytes, p: dict) -> bool:
     return len(code) == p["original_length"] and hashlib.sha256(code).hexdigest() == p["original_sha256"]
 
 
+def _unpatched_view(code: bytes, p: dict) -> bytes:
+    """The checked range with every entry stub replaced by the original first instruction it covers."""
+    out = bytearray(code)
+    for s in p["stubs"]:
+        at = s["offset"] - p["function_offset"]
+        out[at:at + 4] = s["original_first"]
+    return bytes(out)
+
+
 def state(cpu, base: int, name: str) -> str:
     """What the code a patch replaces is at `base`: "original" (the known code), "patched" (the known code with this
     patch fully in place) or "" (anything else, including no module there)."""
@@ -42,7 +56,8 @@ def state(cpu, base: int, name: str) -> str:
     current = _original_code(cpu, base, p)
     if _is_original(current, p):
         return "original"
-    if (current[:4] == p["entry_stub"] and _is_original(p["original_first"] + current[4:], p)
+    in_place = all(current[s["offset"] - p["function_offset"]:][:4] == s["stub"] for s in p["stubs"])
+    if (in_place and _is_original(_unpatched_view(current, p), p)
             and cpu.read(base + p["blob_offset"], len(p["blob"])) == p["blob"]):
         return "patched"
     return ""
@@ -62,7 +77,8 @@ def apply(cpu, base: int, name: str) -> bool:
     if p["table_size"] and any(cpu.read(base + p["table_offset"], p["table_size"])):
         return False
     cpu.write(at, p["blob"])
-    cpu.write(base + p["function_offset"], p["entry_stub"])
+    for s in p["stubs"]:
+        cpu.write(base + s["offset"], s["stub"])
     return True
 
 
@@ -71,7 +87,8 @@ def remove(cpu, base: int, name: str) -> bool:
     if state(cpu, base, name) != "patched":
         return False
     p = PATCHES[name]
-    cpu.write(base + p["function_offset"], p["original_first"])
+    for s in p["stubs"]:
+        cpu.write(base + s["offset"], s["original_first"])
     cpu.write(base + p["blob_offset"], bytes(len(p["blob"])))
     if p["table_size"]:
         cpu.write(base + p["table_offset"], bytes(p["table_size"]))

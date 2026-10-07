@@ -6,7 +6,9 @@ PATCHES = {
     "span": dict(
         function_offset=0xa8b4, original_length=856,
         original_sha256="b786ab5ff11418706e0b06f107f1ca3324701216abe53ad3a9b422ecbff48173",
-        original_first=bytes.fromhex("f04f2de9"), entry_stub=bytes.fromhex("d1d507ea"),
+        stubs=[
+            dict(offset=0xa8b4, original_first=bytes.fromhex("f04f2de9"), stub=bytes.fromhex("d1d507ea")),
+        ],
         blob_offset=0x200000, table_offset=0x0, table_size=0,
         blob=bytes.fromhex(
             "681290e5400051e36a01001a581290e5010011e36701000a602290e5000052e30100000a020b11e36201001af04f2de9"
@@ -44,7 +46,9 @@ PATCHES = {
     "matinv": dict(
         function_offset=0x1376c, original_length=788,
         original_sha256="5ba734efad3bd945119c3bd84c429b8c9d8f20121dbd74c13116cc7673aa15cd",
-        original_first=bytes.fromhex("f14f2de9"), entry_stub=bytes.fromhex("23b607ea"),
+        stubs=[
+            dict(offset=0x1376c, original_first=bytes.fromhex("f14f2de9"), stub=bytes.fromhex("23b607ea")),
+        ],
         blob_offset=0x201000, table_offset=0x2011c4, table_size=589824,
         blob=bytes.fromhex(
             "401090e5200051e33f0051130100a0031eff2f01f04f2de90040a0e101b4a0e319be8be303b08be300a0a0e30410a0e1"
@@ -57,5 +61,16 @@ PATCHES = {
             "881085e50410a0e10520a0e1c91fb1e8c91fa2e8c90fb1e8c90fa2e80400a0e1110000eb010050e30e00008a0210a003"
             "0110a0130100000a881085e5090000ea0410a0e1442085e2c05fb1e8c05fa2e8c05fb1e8c05fa2e8006091e5006082e5"
             "0210a0e3881085e5f08fbde8f14f2de96a49f8ea"
+        )),
+    "float": dict(
+        function_offset=0x3ed00, original_length=3072,
+        original_sha256="a76606f51e893626203b15c54ec037310fb25e8cdd1979ace45f8305d7b96733",
+        stubs=[
+            dict(offset=0x3f030, original_first=bytes.fromhex("ffc4a0e3"), stub=bytes.fromhex("f20507ea")),
+        ],
+        blob_offset=0x200800, table_offset=0x0, table_size=0,
+        blob=bytes.fromhex(
+            "8020b0e10300000a8130b0e10b00000affc4a0e306faf8ea8130b0e10100001a0000c1e10ef0a0e1233ca0e1013043e2"
+            "fe0053e3f5ffff2a0100a0e10ef0a0e1223ca0e1013043e2fe0053e3efffff2a020120e20ef0a0e1"
         )),
 }

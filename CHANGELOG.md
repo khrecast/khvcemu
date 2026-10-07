@@ -3,16 +3,27 @@
 ## Unreleased
 
 ### New
-- **Faster 3D: two speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
+- **Agrabah's twangy rhythm part can be heard.** The "parapa pa pa pa" part that lands with the bass is a koto in
+  the game's MIDI, and the built-in synth played it as a soft harp that the strings buried (it carried about a tenth
+  of the sound between 600 Hz and 2.4 kHz). Banjo, koto, shamisen and sitar (the four picked instruments, GM 104 to
+  107) now have their own voice: bright, dry, short, with a pick click. Measured against the authentic recording of
+  Agrabah, the whole tune's balance between 300 Hz and 9.6 kHz is much closer (squared error 40 dB to 11 dB), and
+  the part now holds between a third and three fifths of the energy from 600 Hz to 4.8 kHz instead of about a tenth.
+  Only the koto (GM 107) is used by the game, so no other tune changes; the Harp and guitar slider on the Sound tab
+  controls it. Measured, not heard: please listen, and tell me if it is too loud or too sharp (the knobs are the
+  TWANG_ constants).
+- **Faster 3D: three speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
   module is byte for byte the known one. (1) A tighter version of the function that fills a row of a polygon
   pixel by pixel (about half of the game's work in some scenes): same pixels in about half the instructions,
   checked on 3,000 random rows. (2) A cache for the 4x4 matrix inversion the engine repeats hundreds of times a
   frame on a few hundred different matrices: the key is all 17 input words, so an answer is exactly what the
-  original would have computed (checked on 1,500 random calls). A whole scene gives the same picture frame by
-  frame with and without them. On the build machine the Island's opening scene went from about 21 to about 25
-  frames per second and a walking scene from about 21 to about 23. The Options tab has a checkbox for each
-  ("Faster 3D fill", "Matrix cache"), `--no-speed-patch[=span,matinv]` turns them off, and the website's
-  launcher pictures were retaken. Needs an installer rebuild to ship.
+  original would have computed (checked on 1,500 random calls). (3) A shortcut for the engine's soft-float
+  reverse subtract, which runs half a million times a second, mostly with a zero operand (bit for bit the same
+  result on 60,000 random operand pairs, odd ones included; it gains only about 1%). A whole scene gives the
+  same picture frame by frame with and without them. On the build machine the Island's opening scene went from
+  about 21 to about 25 frames per second and a walking scene from about 21 to about 23. The Options tab has a
+  checkbox for each ("Faster 3D fill", "Matrix cache", "Float shortcut"), `--no-speed-patch[=span,matinv,float]`
+  turns them off, and the website's launcher pictures were retaken. Needs an installer rebuild to ship.
 - **Website: the search for Wonderland is now the top goal.** A gold banner above the hero, a "Find Wonderland"
   item first in the menu, and a new section right after the hero ("Do you still have the phone?") with a
   checklist, the phone models and two screenshots; the old section at the bottom is gone. The phone date range is

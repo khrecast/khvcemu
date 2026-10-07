@@ -192,7 +192,8 @@ include everything). The launcher:
   choose 3 or 4 for bigger;
 * **Sound** tunes the built-in music synth with sliders: a volume for each
   family of instruments (piano, strings, brass, harp and guitar, bells, flutes,
-  pads, bass, drums) and the music as a whole, plus piano hammer, piano tail,
+  pads, bass, drums; "harp and guitar" also sets the bright, picked koto/banjo voice
+  of Agrabah's rhythm part) and the music as a whole, plus piano hammer, piano tail,
   horn note length, bass cut and high-note softening. Pick a tune and press
   **Play** to hear it; while it plays, letting go of a slider plays the change. 100% everywhere is
   the sound as tuned (the **As tuned** mix, or double-click a percentage to reset one slider).
@@ -319,7 +320,7 @@ Other options:
 | `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
-| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the pixel fill) and `matinv` (the matrix cache). The Options tab has a checkbox for each. For troubleshooting. |
+| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the pixel fill), `matinv` (the matrix cache) and `float` (a floating point shortcut). The Options tab has a checkbox for each. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
 | `--mute` | Turns off audio output. |
@@ -465,10 +466,12 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   mostly drop frames rather than slow down. Two things dominate: the per-pixel
   fill of a polygon row (about half of the instructions in some scenes), and a
   4x4 matrix inversion the 3D engine repeats hundreds of times a frame on a few
-  hundred different matrices. Re:Cast speeds both up in memory (never in the
+  hundred different matrices. Re:Cast speeds these up in memory (never in the
   game files), only when the module is byte for byte the known one: a tighter
   fill loop, and a cache of the inversion's answers (the key is all 17 input
-  words, so a hit is exactly what the original would have computed). The picture
+  words, so a hit is exactly what the original would have computed); a third,
+  small one answers the engine's half a million soft-float reverse subtractions a
+  second, most of them with a zero operand. The picture
   is identical (checked frame by frame; see `khvcemu/swerve_patch.py`). Each can
   be turned off in the Options tab or with `--no-speed-patch`. On the machine
   this was built on, the Island's opening scene went from about 21 to about 25
@@ -556,7 +559,7 @@ khvcemu/
   resfile.py    .bar/.mif resource files;  m3g.py  M3G section reader/writer (script patching)
   chapters.py   save seeding, Wonderland stand-in world + theme
   savestate.py  save states: memory pages + HLE objects + trap table, slots and autosaves
-  swerve_patch.py  speed-ups for the 3D engine: a faster pixel-fill loop and a matrix inversion cache (same picture; machine code made by tools/gen_swerve_patch.py)
+  swerve_patch.py  speed-ups for the 3D engine: a faster pixel-fill loop, a matrix inversion cache and a float shortcut (same picture; machine code made by tools/gen_swerve_patch.py)
   frontend.py   pygame window, keys, picture filters, real-time loop;  __main__.py  CLI
   launcher.py   the tkinter launcher;  paths.py  per-user folders, icons, bundled tools
 ```
