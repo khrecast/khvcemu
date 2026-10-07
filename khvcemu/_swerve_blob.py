@@ -62,15 +62,4 @@ PATCHES = {
             "0110a0130100000a881085e5090000ea0410a0e1442085e2c05fb1e8c05fa2e8c05fb1e8c05fa2e8006091e5006082e5"
             "0210a0e3881085e5f08fbde8f14f2de96a49f8ea"
         )),
-    "float": dict(
-        function_offset=0x3ed00, original_length=3072,
-        original_sha256="a76606f51e893626203b15c54ec037310fb25e8cdd1979ace45f8305d7b96733",
-        stubs=[
-            dict(offset=0x3f030, original_first=bytes.fromhex("ffc4a0e3"), stub=bytes.fromhex("f20507ea")),
-        ],
-        blob_offset=0x200800, table_offset=0x0, table_size=0,
-        blob=bytes.fromhex(
-            "8020b0e10300000a8130b0e10b00000affc4a0e306faf8ea8130b0e10100001a0000c1e10ef0a0e1233ca0e1013043e2"
-            "fe0053e3f5ffff2a0100a0e10ef0a0e1223ca0e1013043e2fe0053e3efffff2a020120e20ef0a0e1"
-        )),
 }

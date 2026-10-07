@@ -150,54 +150,6 @@ def random_matrix(rnd):
     return struct.pack("<16fI", *m, flag)
 
 
-FMUL_FUNC = BASE + 0x3F604
-FSUB_FUNC = BASE + 0x3F030
-
-
-def float_pairs(rnd, n):
-    """Operand pairs (as 32 bit patterns): ordinary numbers, ties, zeros, denormals, infinities, NaNs, and exponents
-    near the overflow and underflow limits."""
-    def num(kind):
-        sign = rnd.randrange(2) << 31
-        if kind == "zero":
-            return sign
-        if kind == "denorm":
-            return sign | rnd.randrange(1, 1 << 23)
-        if kind == "inf":
-            return sign | 0x7F800000
-        if kind == "nan":
-            return sign | 0x7F800000 | rnd.randrange(1, 1 << 23)
-        e = {"mid": rnd.randrange(100, 160), "wide": rnd.randrange(1, 255), "hi": rnd.randrange(240, 255),
-             "lo": rnd.randrange(1, 20), "one": rnd.choice((126, 127, 128))}[kind]
-        mant = rnd.choice((rnd.randrange(1 << 23), rnd.randrange(1 << 23), 0, (1 << 23) - 1, 1 << 22,
-                           rnd.randrange(1 << 8) << 15, rnd.randrange(1 << 4) << 19))
-        return sign | e << 23 | mant
-    kinds = ("mid",) * 12 + ("wide",) * 4 + ("hi", "lo", "one", "one", "zero", "zero", "zero", "zero", "denorm", "inf", "nan")
-    out = []
-    for _ in range(n):
-        a, b = rnd.choice(kinds), rnd.choice(kinds)
-        out.append((num(a), num(b)))
-    for _ in range(n // 20):                                      # equal and opposite operands, and neighbours
-        x = num("mid")
-        out += [(x, x), (x, x ^ 0x80000000), (x, x + 1), (x, x - 1)]
-    return out
-
-
-def call_float(uc, entry, a, b):
-    uc.reg_write(UC_ARM_REG_CPSR, 0xD0)
-    uc.reg_write(UC_ARM_REG_SP, STACK + 0x8000)
-    uc.reg_write(UC_ARM_REG_R0, a)
-    uc.reg_write(UC_ARM_REG_R0 + 1, b)
-    for i, reg in enumerate(CALLEE_SAVED):
-        uc.reg_write(reg, 0x11110000 + i)
-    uc.reg_write(UC_ARM_REG_LR, SENTINEL)
-    try:
-        uc.emu_start(entry, SENTINEL, count=10_000)
-    except unicorn.UcError as e:
-        return ("fault", e.errno)
-    return tuple(uc.reg_read(r) for r in (UC_ARM_REG_R0,) + CALLEE_SAVED + (UC_ARM_REG_SP,))
-
-
 @unittest.skipUnless(find_module(), "swv21brew.mod not found (set KH_DUMP)")
 class SwervePatchTests(unittest.TestCase):
     @classmethod
@@ -241,8 +193,8 @@ class SwervePatchTests(unittest.TestCase):
 
     def test_a_patch_with_two_entry_stubs(self):
         """None of the real patches has two stubs yet; apply, state and remove are written for several."""
-        real = swerve_patch.PATCHES["float"]
-        second = 0x3F604
+        real = swerve_patch.PATCHES["span"]
+        second = 0xA940                                        # an instruction further into the same function
         fake = dict(real, stubs=list(real["stubs"]) + [dict(
             offset=second, original_first=self.image[second:second + 4], stub=bytes.fromhex("0000000a"))])
         saved = swerve_patch.PATCHES
@@ -370,33 +322,6 @@ class SwervePatchTests(unittest.TestCase):
             m = random_matrix(rnd)
             mem = bytes(0x100) + m + bytes(DATA_SIZE - 0x100 - len(m))
             self.assertEqual(call(uc, INV_FUNC, mem, DATA + 0x100), call(orig, INV_FUNC, mem, DATA + 0x100), n)
-
-    def test_float_shortcuts_give_the_same_bits(self):
-        """Soft-float reverse subtract (and, as a check that nothing else moved, the multiply): every result must equal
-        the original routine's, bit for bit, including the odd operands that the shortcut hands back to the original."""
-        rnd = random.Random(31)
-        orig, _ = make(self.image)
-        fast, applied = make(self.image, ("float",))
-        self.assertEqual(applied, [True])
-        pairs = float_pairs(rnd, 30000)
-        for entry, name in ((FMUL_FUNC, "fmul"), (FSUB_FUNC, "fsub")):
-            for a, b in pairs:
-                want = call_float(orig, entry, a, b)
-                got = call_float(fast, entry, a, b)
-                self.assertEqual(want, got, f"{name}({a:#010x}, {b:#010x}): original {want}, shortcut {got}")
-
-    def test_float_shortcuts_save_work_on_the_commonest_operands(self):
-        rnd = random.Random(8)
-        pairs = [(rnd.choice((0, 0, 0x80000000, 0x3F800000 + rnd.randrange(1 << 22), 0x40400000 + rnd.randrange(1 << 22))),
-                  rnd.choice((0, 0x3F000000 + rnd.randrange(1 << 22), 0xBF000000 + rnd.randrange(1 << 22)))) for _ in range(400)]
-        counts = []
-        for patches in ((), ("float",)):
-            uc, _ = make(self.image, patches)
-            total = count_instructions(uc)
-            for a, b in pairs:
-                call_float(uc, FSUB_FUNC, a, b)
-            counts.append(total[0])
-        self.assertLess(counts[1], counts[0] * 0.75, f"original {counts[0]} shortcut {counts[1]} instructions")
 
     def test_matrix_inversion_cache_saves_work_on_repeats(self):
         rnd = random.Random(5)

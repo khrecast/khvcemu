@@ -360,7 +360,7 @@ def load_state(emu, path: str) -> dict:
 
 
 # ----------------------------------------------------------------------------- slots
-AUTOSAVE_EVERY_MS = 5 * 60 * 1000      # of play time (the clock stops while paused); the Options tab can change it
+AUTOSAVE_EVERY_MS = 5 * 60 * 1000      # of play time (the clock stops while paused); the launcher's Saves tab can change it
 AUTOSAVES_KEPT = 3
 AREA_SAVE_DELAY_MS = 3000                # an autosave this long after "Loading..." has gone from the screen
 AREA_SAVE_MIN_GAP_MS = 30 * 1000         # but never within this long of the last autosave (a door, then another)

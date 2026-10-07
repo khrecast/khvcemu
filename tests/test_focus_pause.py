@@ -368,7 +368,7 @@ class FocusPauseTests(unittest.TestCase):
             post(pg.KEYDOWN, key=pg.K_RETURN, mod=0, unicode="", scancode=0)
         return script
 
-    def test_the_timed_autosave_uses_the_interval_from_the_options_tab(self):
+    def test_the_timed_autosave_uses_the_interval_from_the_launcher(self):
         """--autosave-every: 0.03 minutes is under two seconds of play; 0 turns the timed autosave off."""
         m = self.run_script(self.autosave_script(3.0), autosave=True, autosave_minutes=0.03,
                             autosave_on_quit=False, autosave_on_loading=False)

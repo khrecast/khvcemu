@@ -9,10 +9,10 @@ import time
 
 import numpy as np
 
-from .keys import AVK
+from .keys import AVK, DEFAULT_KEYS
 from .paths import icon_file, set_app_id
 
-HELP = """Controls (phone keypad):
+HELP = """Controls (phone keypad; the letters can be changed with --key or on the launcher's Controls tab):
   WASD / Arrows / 2 4 6 8  move (Up = forward)      Enter / Space / 5 ... select, attack, jump
   F1 or Q ................ left softkey (Continue)   F2 or E ............. right softkey (Options/Back)
   F or [ or numpad * ..... magic (*)                Z or 0 .............. status + items
@@ -20,10 +20,12 @@ HELP = """Controls (phone keypad):
   Backspace .............. CLR                      F10 mute   F11 picture filter   F12 screenshot
   Esc quit (asks first)
   F5 save state   F9 load state   F6/F7 previous/next slot (or Shift+1..9; slot 0 = autosave)
-  F8 autosave on/off (the kinds chosen in the Options tab: every few minutes of play, at loading screens, on quit)"""
+  F8 autosave on/off (the kinds chosen on the launcher's Saves tab: every few minutes of play, at loading screens, on quit)"""
 
 
-def build_keymap(pygame):
+def build_keymap(pygame, custom=None):
+    """pygame key -> the phone key it presses. `custom` ({action: key name}, see keys.REBINDABLE) moves an action's
+    chosen letter to another key; the arrows, Enter, Space, F1, F2 and the rest keep working."""
     k = pygame
     m = {
         k.K_UP: "UP", k.K_DOWN: "DOWN", k.K_LEFT: "LEFT", k.K_RIGHT: "RIGHT",
@@ -37,6 +39,17 @@ def build_keymap(pygame):
     for d in range(10):
         m[getattr(k, f"K_{d}")] = str(d)
         m[getattr(k, f"K_KP{d}")] = str(d)
+    for action, key in (custom or {}).items():
+        default = DEFAULT_KEYS.get(action)
+        if default is None or key == default:
+            continue
+        try:
+            new, old = k.key.key_code(key), k.key.key_code(default)
+        except ValueError:
+            continue                                  # a name this pygame does not know: leave the default
+        if m.get(old) == action:
+            del m[old]
+        m[new] = action
     return m
 
 
@@ -376,7 +389,8 @@ def window_unfocused(pygame) -> bool:
 def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots_dir: str = ".",
                slot: int = 1, autosave: bool = True, filt: str = "nearest", pause_on_focus_loss: bool = True,
                dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None,
-               autosave_minutes: float = 5.0, autosave_on_quit: bool = True, autosave_on_loading: bool = True):
+               autosave_minutes: float = 5.0, autosave_on_quit: bool = True, autosave_on_loading: bool = True,
+               custom_keys=None):
     """scale 0 = pick automatically. The window can be resized or maximised;
     the picture keeps the phone's aspect ratio (black bars fill the rest)."""
     from .savestate import StateError, StateSlots
@@ -399,7 +413,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
     backdrop, game_window = open_backdrop(pygame, emu) if dark_screen else (None, None)
     backdrop_settles = time.monotonic() + BACKDROP_SETTLE_S   # opening it briefly takes the focus
     emu.log(f"[frontend] window {w * scale}x{h * scale} (scale {scale}); drag the edges or maximise to resize")
-    keymap = build_keymap(pygame)
+    keymap = build_keymap(pygame, custom_keys)
     dirty = [True]
     emu.frame_listeners.append(lambda f: dirty.__setitem__(0, True))
     down: dict = {}
@@ -640,7 +654,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                     if slots.autosave_enabled or kinds:
                         slots.autosave_enabled = not slots.autosave_enabled
                     show(f"Autosave on ({kinds})" if slots.autosave_enabled else
-                         "Autosave off" if kinds else "Autosave is off: tick a kind in the Options tab")
+                         "Autosave off" if kinds else "Autosave is off: tick a kind on the launcher's Saves tab")
                 elif ev.mod & pygame.KMOD_SHIFT and pygame.K_0 <= ev.key <= pygame.K_9:
                     slots.slot = ev.key - pygame.K_0  # Shift+digit picks a slot (plain digits are phone keys)
                     show(slots.describe(slots.slot) + "   (F5 save, F9 load)")

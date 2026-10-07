@@ -181,16 +181,18 @@ include everything). The launcher:
   appears within five seconds and the highlight moves to the newest save until you pick a
   row yourself) and lets you **Start at world**: Island,
   Agrabah or Castle, after warning you that it replaces your current save
-  (which is backed up first);
+  (which is backed up first). Under the list sit the **Autosave** settings, three separate kinds: every N
+  minutes of play (the number is yours to type), when you quit, and at loading screens;
 * **Options**, in grouped boxes: **Window** (size, text size, picture filter, smooth hi-res text, a
   **dark screen** that blacks out the rest of the monitor behind the game); **While playing** (mute, whether the
-  game pauses when you click away, whether Esc or the window's X asks before quitting, and three separate
-  autosaves: every N minutes (the number is yours to type), when you quit, and at loading screens);
+  game pauses when you click away, whether Esc or the window's X asks before quitting);
   **Screenshots (F12)** (the folder, chosen with the folder icon; a list of the pictures in it by the time they
-  were taken, newest first; a preview of the one selected; and icons to open it or the folder; double-click opens one); **Online scores** (whether to share high scores, and
-  where); and the 3D **speed-ups** (on by default, same picture). **Restore default
-  settings** puts all of these back if one was changed by mistake (your saves, game
-  folder and the Sound tab are not touched). "Auto" window size picks the largest
+  were taken, newest first; a preview of the one selected; and icons to open it, open the folder, or delete it (a red x: on Windows it goes to the Recycle Bin, after a question that has a box to stop asking; Restore default settings brings the question back); double-click opens one); **Online scores** (whether to share high scores, and
+  where); and a **Speed enhancements...** button, which opens a small window with a switch and an info bubble
+  for each of the 3D engine's speed-ups (all on by default; each draws exactly the same picture, and the bubble
+  says when you might turn it off). **Restore default
+  settings** puts the settings on this tab back if one was changed by mistake (only this tab: your saves,
+  the Saves tab's autosave settings, the game folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
   choose 3 or 4 for bigger;
 * **Sound** tunes the built-in music synth with sliders: a volume for each
@@ -212,7 +214,8 @@ include everything). The launcher:
   so the game's timing and looping are unchanged (a recording of the same MIDI that starts at
   the same moment should loop seamlessly), it is played at the game's 22.05 kHz mono, and its
   volume and Music volume apply (the synth sliders do not). The
-  game uses all of this the next time it starts. **Advanced...** opens a window for a
+  game uses all of this the next time it starts. **Advanced...** opens a window with **Clear cached
+  music** (the tunes the game rendered and kept, a few MB; they are made again the next time it starts) and a
   **SoundFont** (a bank of instrument samples, `.sf2`) to play the music through instead of
   the built-in synth, with an explanation of how to use one; it needs the free `fluidsynth`
   program, which the installers do not include. A SoundFont and a recording used in the game
@@ -320,13 +323,14 @@ Other options:
 | `--hires-text` | Redraws the game's text sharply at your window's resolution. By default text is drawn at the phone's 176x220 and scales with the picture. (The launcher's **Smooth hi-res text** option.) |
 | `--leaderboard URL` | Shares high scores with a leaderboard server (see [`server/`](server/README.md)). Off by default on the command line (the launcher turns it on for the project's server). Scores stay offline too; nothing identifying is sent. |
 | `--no-autosave` | Turns off all autosave states (F8 toggles them in game). |
-| `--autosave-every MINUTES` | Minutes of play between timed autosaves (default 5; `0` turns the timed ones off). The launcher's Options tab has the box. |
+| `--autosave-every MINUTES` | Minutes of play between timed autosaves (default 5; `0` turns the timed ones off). The launcher's Saves tab has the box. |
 | `--no-autosave-on-quit` | No extra autosave when the window is closed mid-game. |
 | `--no-autosave-on-loading` | No autosave a few seconds after each Loading screen. |
 | `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
-| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the pixel fill), `matinv` (the matrix cache) and `float` (a floating point shortcut). The Options tab has a checkbox for each. For troubleshooting. |
+| `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options); keys are letters, `tab` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
+| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the blended pixel fill) and `matinv` (the matrix cache). The launcher's Options tab has them under **Speed enhancements...**. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
 | `--mute` | Turns off audio output. |
@@ -361,6 +365,13 @@ Z is an alias for the phone's `0` key, so it follows whatever that key is bound
 to on the game's own **Controls** screen (pause, **Options**, **Controls**).
 The launcher's **Controls** tab and the website show the main keys from this table.
 
+**Changing keys.** The letter keys (W, A, S, D for moving, F for magic, Z for status and items, Q for pause and
+Continue, E for back and Options) can be changed on the launcher's **Controls** tab: click a key, then press the
+new one (Esc cancels; a key already in use is refused with a message; a changed key is marked with a star;
+**Reset game keys** puts them all back). Letters, tab and `; ' / , . - = `` ` `` can be used. The arrows, Enter,
+Space, the number keys, F1, F2, `[` and `*` keep working as listed, and the F keys and Esc stay Re:Cast's. On the
+command line it is `--key UP=i` (repeatable, for example `--key UP=i --key LEFT=j`).
+
 ### Save states
 
 Save states snapshot the whole emulator at any moment, unlike the game's own
@@ -372,7 +383,7 @@ saves, which only happen at save points.
   shows the slot and whether it's empty. The plain number keys are still
   phone keys.
 * Autosave can be turned off with **F8** in game (it says which kinds are on), `--no-autosave`, or the
-  launcher's checkboxes: the three kinds can be switched separately.
+  Saves tab's checkboxes: the three kinds can be switched separately.
 * **Autosave:** khvcemu writes one every 5 minutes of play (or the number you set; saving by hand does not restart that
   timer), a few seconds after each "Loading..." screen when you enter a new area (not within 30
   seconds of the last autosave), and when you quit mid-game (Esc or the window's close button). A
@@ -475,13 +486,15 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   hundred different matrices. Re:Cast speeds these up in memory (never in the
   game files), only when the module is byte for byte the known one: a tighter
   fill loop, and a cache of the inversion's answers (the key is all 17 input
-  words, so a hit is exactly what the original would have computed); a third,
-  small one answers the engine's half a million soft-float reverse subtractions a
-  second, most of them with a zero operand. The picture
+  words, so a hit is exactly what the original would have computed). The picture
   is identical (checked frame by frame; see `khvcemu/swerve_patch.py`). Each can
-  be turned off in the Options tab or with `--no-speed-patch`. On the machine
-  this was built on, the Island's opening scene went from about 21 to about 25
-  frames per second and a walking scene from about 21 to about 23.
+  be turned off under Options, **Speed enhancements...**, or with `--no-speed-patch`.
+  Measured on the machine this was built on (real-time factor, 1.0 = the 25 fps
+  the game asks for), without and with them: a fight 0.70 to 0.79, Agrabah's lava
+  cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75
+  to 0.93. Agrabah's lava cave stays the slowest scene, at about 15 frames per second
+  there. Other speed-ups were built and dropped because they did not pay (see
+  `tools/gen_swerve_patch.py`): fewer instructions is not the same as faster here.
 * **Font.** The game asks for a custom font class (`0x0100a004`) that no
   firmware file provides, so text uses a host font (Verdana by default, drawn
   without smoothing). It's readable, but the shapes aren't the phone's; use
@@ -565,7 +578,7 @@ khvcemu/
   resfile.py    .bar/.mif resource files;  m3g.py  M3G section reader/writer (script patching)
   chapters.py   save seeding, Wonderland stand-in world + theme
   savestate.py  save states: memory pages + HLE objects + trap table, slots and autosaves
-  swerve_patch.py  speed-ups for the 3D engine: a faster pixel-fill loop, a matrix inversion cache and a float shortcut (same picture; machine code made by tools/gen_swerve_patch.py)
+  swerve_patch.py  speed-ups for the 3D engine: a faster blended pixel fill and a matrix inversion cache (same picture; machine code made by tools/gen_swerve_patch.py)
   frontend.py   pygame window, keys, picture filters, real-time loop;  __main__.py  CLI
   launcher.py   the tkinter launcher;  paths.py  per-user folders, icons, bundled tools
 ```
@@ -592,6 +605,9 @@ python tools/frames.py <dump> out/ --save castle --keys 11000:DOWN,12000:SELECT,
 python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names (font not included)
 python tools/launcher_screenshots.py                        # Windows: retake the launcher screenshots for the website
 python tools/disasm.py <mod> 0x100000 <addr> [n]            # needs capstone
+python tools/bench_state.py --root <dump> --state 7         # speed from one of your save states, speed-ups on and off
+python tools/profile_state.py --root <dump> --state 9       # where that scene spends its instructions
+python tools/bench_speed_patches.py --root <dump>           # every on/off combination on the headless Island scenes
 python tools/profile_guest.py --root <dump> world           # which ARM blocks the 3D scene runs most in
 python tools/gen_swerve_patch.py                            # rebuild the speed-ups' machine code (needs keystone-engine)
 python tools/xrefs.py  <mod> 0x100000 savegame summary      # string cross-references

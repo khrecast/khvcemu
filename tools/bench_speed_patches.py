@@ -1,6 +1,6 @@
 """Benchmark every combination of the 3D engine speed patches (khvcemu/swerve_patch.py) on the headless Island scenes.
 
-    python tools/bench_speed_patches.py --root <game folder> [--reps 3] [--patches span,matinv,float]
+    python tools/bench_speed_patches.py --root <game folder> [--reps 3] [--patches span,matinv]
 
 Each combination runs in its own process (android/spike/bench_headless.py world, on the virtual clock, so the numbers
 are the emulator's speed and not the game's pace); the combinations are interleaved over the repetitions, so a slow
@@ -42,7 +42,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", required=True, help="folder with mif/, mod/ and savegame(island).dat")
     ap.add_argument("--reps", type=int, default=3)
-    ap.add_argument("--patches", default="span,matinv,float", help="the patches to combine (all subsets are run)")
+    ap.add_argument("--patches", default="span,matinv", help="the patches to combine (all subsets are run)")
     a = ap.parse_args()
     names = [n for n in a.patches.split(",") if n]
     combos = [c for k in range(len(names) + 1) for c in itertools.combinations(names, k)]

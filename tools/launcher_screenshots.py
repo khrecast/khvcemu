@@ -7,7 +7,7 @@ PrintWindow (ordinary screen grabs of a Tk window come out blank here). It runs 
 temporary profile holding copies of your save states, so the pictures show your newest save
 but no personal paths or settings, and nothing is written to your real profile. Writes the
 four pictures the website uses, launcher_play/saves/options/sound.png; --all also writes
-launcher_controls.png and launcher_advanced.png (not used on the site: check them before
+launcher_controls.png, launcher_speed.png and launcher_advanced.png (not used on the site: check them before
 putting them in site/assets, which is published as a whole).
 """
 import ctypes
@@ -102,6 +102,11 @@ def main(out: str, everything: bool = False):
             app.tabs.select(app.tab_frames[key])
             capture(root, os.path.join(out, f"launcher_{key}.png"))
         if everything:
+            app.tabs.select(app.tab_frames["options"])
+            app.open_speed_window()
+            app.speed_win.geometry("+700+60")
+            capture(app.speed_win, os.path.join(out, "launcher_speed.png"))
+            app.close_speed_window()
             app.open_advanced()
             app.adv_win.geometry("+700+60")
             capture(app.adv_win, os.path.join(out, "launcher_advanced.png"))

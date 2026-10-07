@@ -464,7 +464,8 @@ class SoundTabTests(unittest.TestCase):
             opts = app.opts()
             self.assertEqual((app.scale.get(), app.font_size.get(), app.mute.get(), app.hires.get()),
                              ("Auto", "11", False, False))
-            self.assertEqual((opts["filter"], opts["autosave"], opts["share_scores"]), ("nearest", True, True))
+            self.assertEqual((opts["filter"], opts["share_scores"]), ("nearest", True))
+            self.assertIs(opts["autosave"], False, "the Saves tab's autosave settings are not the button's to change")
             self.assertEqual((opts["pause_on_focus_loss"], opts["screenshots"]), (True, ""))
             self.assertEqual(opts["speed_patches_off"], [], "the 3D speed-ups are back on")
             self.assertEqual(opts["soundfont"], "x.sf2", "the Sound tab's SoundFont is left alone")
@@ -478,7 +479,7 @@ class SoundTabTests(unittest.TestCase):
                 self.assertIn(key, ("scale", "font_size", "mute", "hires_text", "filter",
                                     "autosave", "pause_on_focus_loss", "screenshots", "dark_screen", "ask_before_quit", "share_scores",
                                     "leaderboard_url", "speed_patches_off", "autosave_minutes", "autosave_on_quit",
-                                    "autosave_on_loading"))
+                                    "autosave_on_loading", "ask_before_deleting_screenshot"))
             app.close()
 
     def test_tab_names_are_drawn_in_the_menu_font_and_fall_back_to_text(self):

@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-from . import music_settings, swerve_patch
+from . import keys, music_settings, swerve_patch
 from .paths import default_screenshot_dir, get_launcher_option, set_launcher_option
 
 
@@ -86,6 +86,10 @@ def main(argv=None):
                     help="don't write an autosave a few seconds after each Loading screen")
     ap.add_argument("--load-state", metavar="SLOT",
                     help="resume a save state: 1-9, auto (newest autosave), auto2 or auto3")
+    ap.add_argument("--key", metavar="ACTION=KEY", action="append", default=[],
+                    help="use another key for one of the game's actions, for example --key UP=i (repeatable). "
+                         "Actions: " + ", ".join(f"{a} ({w.lower()})" for a, w, _k in keys.REBINDABLE) + ". Keys: letters, "
+                         "tab and ; ' / , . - = ` . The launcher's Controls tab sets these.")
     ap.add_argument("--no-speed-patch", nargs="?", const="all", default="", metavar="NAMES",
                     help="turn off the 3D engine speed patches (they give the same picture, faster): all of them, or "
                          "a comma separated list of: " + ", ".join(swerve_patch.NAMES) +
@@ -112,6 +116,10 @@ def main(argv=None):
     w, h = (int(x) for x in args.screen.lower().split("x"))
     notes: list = []
     data = args.data or default_data_dir(args.dump, log=notes.append)
+    try:
+        custom_keys = keys.parse_key_options(args.key)
+    except ValueError as e:
+        ap.error(str(e))
     off = {x.strip() for x in args.no_speed_patch.split(",") if x.strip()}
     if "all" in off:
         off = set(swerve_patch.NAMES)
@@ -165,7 +173,7 @@ def main(argv=None):
                    slot=slot if args.load_state and isinstance(slot, int) else 1,
                    autosave=not args.no_autosave, pause_on_focus_loss=not args.no_focus_pause,
                    autosave_minutes=args.autosave_every, autosave_on_quit=not args.no_autosave_on_quit,
-                   autosave_on_loading=not args.no_autosave_on_loading,
+                   autosave_on_loading=not args.no_autosave_on_loading, custom_keys=custom_keys,
                    dark_screen=args.dark_screen, ask_before_quit=ask_quit,
                    remember_no_quit_prompt=lambda: set_launcher_option("ask_before_quit", False))
     finally:

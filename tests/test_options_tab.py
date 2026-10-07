@@ -1,4 +1,4 @@
-"""The redesigned Options tab: the three kinds of autosave (timed with an editable interval, on quit, at loading
+"""The launcher's Options and Saves tabs: the three kinds of autosave (on the Saves tab) (timed with an editable interval, on quit, at loading
 screens) and the screenshot list with its preview. The launcher tests skip themselves without a display."""
 import os
 import struct
@@ -137,7 +137,7 @@ class OptionsTabTests(unittest.TestCase):
         app.restore_defaults(ask=False)
         opts = app.opts()
         self.assertEqual((opts["autosave"], opts["autosave_minutes"], opts["autosave_on_quit"], opts["autosave_on_loading"]),
-                         (True, 5.0, True, True))
+                         (True, 20.0, False, False), "Restore default settings is for the Options tab only")
 
     def test_an_old_config_with_autosave_off_keeps_all_three_off(self):
         root, app = self.make_app({"autosave": False})
@@ -153,7 +153,41 @@ class OptionsTabTests(unittest.TestCase):
             for c in w.winfo_children():
                 yield from walk(c)
         titles = [str(w.cget("text")) for w in walk(app.tab_frames["options"]) if w.winfo_class() == "TLabelframe"]
-        self.assertEqual(titles, ["Window", "While playing", "Screenshots (F12)", "Online scores", "Speed-ups (same picture)"])
+        self.assertEqual(titles, ["Window", "While playing", "Speed", "Screenshots (F12)", "Online scores"])
+        saves = [str(w.cget("text")) for w in walk(app.tab_frames["saves"]) if w.winfo_class() == "TLabelframe"]
+        self.assertEqual(saves, ["Autosave (F8 turns it on and off in game)"], "autosave lives on the Saves tab")
+
+    def test_the_speed_enhancements_window(self):
+        from khvcemu import swerve_patch
+        root, app = self.make_app({"speed_patches_off": ["matinv"]})
+        self.assertEqual(app.speed_summary.cget("text"), "1 of %d off" % len(swerve_patch.NAMES))
+        tips = []
+        real = app.tooltip
+        app.tooltip = lambda widget, text: tips.append(text)
+        app.open_speed_window()
+        self.assertIsNotNone(app.speed_win)
+        checks = []
+
+        def walk(w):
+            for c in w.winfo_children():
+                if c.winfo_class() == "TCheckbutton":
+                    checks.append(str(c.cget("text")))
+                walk(c)
+        walk(app.speed_win)
+        self.assertEqual(checks, [swerve_patch.LABELS[n] for n in swerve_patch.NAMES], "one switch each, in order")
+        for n in swerve_patch.NAMES:
+            self.assertIn(swerve_patch.HINTS[n], tips, "an info bubble for each")
+            self.assertIn("Why turn it off?", swerve_patch.HINTS[n])
+        app.speed_vars["span"].set(False)
+        self.assertIn("2 of", app.speed_summary.cget("text"))
+        cmd = L.build_command("dump", app.opts())
+        self.assertEqual(set(cmd[cmd.index("--no-speed-patch") + 1].split(",")), {"span", "matinv"})
+        app.open_speed_window()                                   # a second click brings the same window forward
+        app.close_speed_window()
+        self.assertIsNone(app.speed_win)
+        app.tooltip = real
+        app.restore_defaults(ask=False)
+        self.assertEqual(app.speed_summary.cget("text"), "All on")
 
     def test_the_screenshot_list_shows_the_newest_first_and_previews_the_selected_one(self):
         folder = tempfile.mkdtemp()
@@ -186,6 +220,134 @@ class OptionsTabTests(unittest.TestCase):
         app.refresh_screenshots()
         self.assertEqual(app._shots_names[0], "newest.png")
         self.assertEqual(app.shots_selected_name(), "old.png")
+
+    def test_the_red_x_deletes_the_selected_screenshot_after_asking(self):
+        folder = tempfile.mkdtemp()
+        now = time.time()
+        for i, name in enumerate(("a.png", "b.png", "c.png")):
+            png(os.path.join(folder, name))
+            os.utime(os.path.join(folder, name), (now - 300 + i * 100,) * 2)    # c is the newest
+        root, app = self.make_app({"screenshots": folder})
+        app.refresh_screenshots()
+        app.shots_list.selection_clear(0, "end")
+        app.shots_list.selection_set(1)                                         # b
+        asked = []
+        real_trash = L.to_trash
+        self.addCleanup(setattr, L, "to_trash", real_trash)
+        L.to_trash = lambda p: (os.remove(p), True)[1]                          # never the real Recycle Bin in a test
+        app.confirm_delete_screenshot = lambda name: asked.append(name) or False
+        app.delete_screenshot()
+        self.assertTrue(os.path.exists(os.path.join(folder, "b.png")), "No: nothing happens")
+        app.confirm_delete_screenshot = lambda name: asked.append(name) or True
+        app.delete_screenshot()
+        self.assertFalse(os.path.exists(os.path.join(folder, "b.png")))
+        self.assertEqual(app._shots_names, ["c.png", "a.png"])
+        self.assertEqual(app.shots_selected_name(), "a.png", "the next one along is selected")
+        self.assertEqual(asked, ["b.png", "b.png"])
+        # a file another program holds open (Photos does) cannot be deleted: say so plainly, keep it listed
+        warned = []
+        real_warn = L.messagebox.showwarning
+        self.addCleanup(setattr, L.messagebox, "showwarning", real_warn)
+        L.messagebox.showwarning = lambda *a, **k: warned.append(a)
+        L.to_trash = lambda p: False
+        app.delete_screenshot()
+        self.assertEqual(len(warned), 1)
+        self.assertIn("open in another program", warned[0][1])
+        self.assertEqual(app._shots_names, ["c.png", "a.png"], "nothing changes")
+
+    def test_the_delete_question_has_a_box_to_stop_asking(self):
+        folder = tempfile.mkdtemp()
+        for name in ("a.png", "b.png", "c.png"):
+            png(os.path.join(folder, name))
+        root, app = self.make_app({"screenshots": folder})
+        real_trash = L.to_trash
+        self.addCleanup(setattr, L, "to_trash", real_trash)
+        L.to_trash = lambda p: (os.remove(p), True)[1]
+        self.assertTrue(app.ask_delete.get(), "asks by default")
+
+        def answer(button, untick):
+            """Open the real question, tick or untick its box, press Yes or No."""
+            def poke():
+                dlg = next(w for w in root.winfo_children() if w.winfo_class() == "Toplevel")
+                kids = []
+
+                def walk(w):
+                    for c in w.winfo_children():
+                        kids.append(c)
+                        walk(c)
+                walk(dlg)
+                box = next(c for c in kids if c.winfo_class() == "TCheckbutton")
+                self.assertEqual(str(box.cget("text")), "Ask me before deleting a screenshot")
+                if untick:
+                    box.invoke()
+                next(c for c in kids if c.winfo_class() == "TButton" and str(c.cget("text")) == button).invoke()
+            root.after(100, poke)
+            app.refresh_screenshots()
+            app.shots_list.selection_clear(0, "end")
+            app.shots_list.selection_set(0)
+            before = len(app._shots_names)
+            app.delete_screenshot()
+            return before - len(app._shots_names)
+        self.assertEqual(answer("No", untick=True), 0, "No deletes nothing")
+        self.assertTrue(app.ask_delete.get(), "and an unticked box only counts with Yes")
+        self.assertEqual(answer("Yes", untick=True), 1)
+        self.assertFalse(app.ask_delete.get(), "unticked and Yes: it stops asking")
+        self.assertIs(app.opts()["ask_before_deleting_screenshot"], False, "and that is remembered")
+        app.refresh_screenshots()
+        app.shots_list.selection_clear(0, "end")
+        app.shots_list.selection_set(0)
+        before = len(app._shots_names)
+        app.delete_screenshot()                                  # no question now
+        self.assertEqual(before - len(app._shots_names), 1)
+        app.restore_defaults(ask=False)
+        self.assertTrue(app.ask_delete.get(), "Restore default settings asks again")
+
+    def test_the_rendered_music_can_be_cleared(self):
+        data = tempfile.mkdtemp()
+        real = L.data_dir_for
+        L.data_dir_for = lambda dump: data
+        self.addCleanup(setattr, L, "data_dir_for", real)
+        cache = os.path.join(data, "audio_cache")
+        os.makedirs(cache)
+        for name in ("training-abc.npy", "island-def.npy"):
+            with open(os.path.join(cache, name), "wb") as f:
+                f.write(b"x" * 500_000)
+        open(os.path.join(cache, "half.npy.1.2.tmp"), "w").close()
+        open(os.path.join(cache, "keep.txt"), "w").close()
+        self.assertEqual(L.music_cache_size("dump"), (2, 1_000_000))
+        root, app = self.make_app({})
+        real_ask = L.messagebox.askyesno
+        self.addCleanup(setattr, L.messagebox, "askyesno", real_ask)
+        L.messagebox.askyesno = lambda *a, **k: True
+        app.open_advanced()
+        self.assertIn("2 tunes kept, 1.0 MB", app.cache_status.cget("text"))
+        app.clear_music()
+        self.assertEqual(sorted(os.listdir(cache)), ["keep.txt"], "only rendered tunes (and half-written ones) go")
+        self.assertEqual(app.cache_status.cget("text"), "Nothing kept yet")
+        self.assertEqual(str(app.cache_button.cget("state")), "disabled")
+        app.close_advanced()
+
+    def test_pictures_of_any_size_fit_the_preview_box(self):
+        folder = tempfile.mkdtemp()
+        sizes = {"frame.png": (176, 220), "wide.png": (900, 300), "tall.png": (200, 1200), "tiny.png": (30, 20),
+                 "window.png": (704, 880)}
+        now = time.time()
+        for i, (name, (w, h)) in enumerate(sizes.items()):
+            png(os.path.join(folder, name), w, h)
+            os.utime(os.path.join(folder, name), (now - 100 + i,) * 2)
+        root, app = self.make_app({"screenshots": folder})
+        app.refresh_screenshots()
+        for name, (w, h) in sizes.items():
+            app.shots_list.selection_clear(0, "end")
+            app.shots_list.selection_set(app._shots_names.index(name))
+            app.show_screenshot()
+            img = app._shots_image
+            self.assertIsNotNone(img, name)
+            self.assertLessEqual(img.width(), L.SHOT_W, name)
+            self.assertLessEqual(img.height(), L.SHOT_H, name)
+            self.assertLessEqual(img.width(), w, f"{name}: never enlarged past its own size")
+            if name in ("frame.png", "window.png"):
+                self.assertGreaterEqual(img.height(), L.SHOT_H - 12, "a game frame fills the box")
 
     def test_an_empty_or_missing_folder_is_fine(self):
         root, app = self.make_app({"screenshots": os.path.join(tempfile.mkdtemp(), "not made yet")})

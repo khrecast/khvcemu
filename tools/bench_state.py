@@ -83,7 +83,8 @@ def main():
     ap.add_argument("--seconds", type=float, default=12.0)
     ap.add_argument("--keys", choices=("mash", "none"), default="mash")
     ap.add_argument("--reps", type=int, default=2)
-    ap.add_argument("--patches", default="span,matinv,float")
+    ap.add_argument("--patches", default="span,matinv")
+    ap.add_argument("--sets", default="", help="patch sets to compare, separated by ';' (default: none and --patches)")
     a = ap.parse_args()
     os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
     from khvcemu.paths import game_data_dir
@@ -94,6 +95,8 @@ def main():
         sys.exit(f"no state at {path}")
     names = [n for n in a.patches.split(",") if n]
     combos = [(), tuple(names)]
+    if a.sets:
+        combos = [tuple(n for n in s.split(",") if n) for s in a.sets.split(";")]
     results = {c: [] for c in combos}
     for rep in range(a.reps):
         order = list(combos)
@@ -103,10 +106,12 @@ def main():
             results[c].append(r)
             print(f"rep {rep + 1} [{','.join(c) or 'none'}]: {r['factor']:.3f}x  frames {r['frames']}  faults {r['faults']}  digest {r['digest']}",
                   flush=True)
-    base = statistics.median(r["factor"] for r in results[()])
-    full = statistics.median(r["factor"] for r in results[tuple(names)])
+    base = statistics.median(r["factor"] for r in results[combos[0]])
+    print()
+    for c in combos:
+        med = statistics.median(r["factor"] for r in results[c])
+        print(f"  {','.join(c) or 'none':40} {med:.3f}x  ({100 * (med / base - 1):+.1f}% vs {','.join(combos[0]) or 'none'})")
     digests = {r["digest"] for rs in results.values() for r in rs}
-    print(f"\nnone {base:.3f}x   all patches {full:.3f}x   ({100 * (full / base - 1):+.1f}%)")
     print("same frames with and without the patches" if len(digests) == 1 else f"FRAMES DIFFER: {digests}")
 
 

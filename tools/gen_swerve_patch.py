@@ -6,13 +6,17 @@
           inverted over and over (about 365 calls per frame on about 430 distinct matrices), and one inversion costs
           about 4,000 guest instructions; a hit costs about 150. The key is all 17 input words, so a hit returns
           exactly what the original would have computed.
-  float   a shortcut in front of the engine's soft-float reverse subtract (r1 - r0, at 0x0103F030): the matrix and geometry
-          maths calls it half a million times a second and most of its operands are zero. A zero operand (with an ordinary
-          other operand) is answered in a few instructions with exactly the bits the original produces; every other
-          case runs the original routine. (A multiply shortcut was tried too: the multiply's own zero path is already
-          short, and it saved almost nothing.)
+Tried and dropped (2026-10-06; tools/bench_state.py on the user's save states, 4 runs each, and the headless Island
+scenes; every one drew identical frames):
+  flat    the flat (untextured, shaded) span fill at 0x0100B18C rewritten whole, and
+  tex     the textured span's inner loop at 0x0100E31C with the texture's constants hoisted out of the loop:
+          2 to 4% fewer guest instructions, but no measurable change in speed (gain over no patches: a fight +12.6% with them against
+          +12.8% without, Agrabah's lava +9.9% against +9.8%, a Castle room +29.8% against +30.1%).
+  float   a shortcut for the soft-float reverse subtract with a zero operand: it added instructions overall.
+  scanline setup and fmul/fadd fast paths: estimated under 2% each, not built.
+Fewer instructions is not the same as faster: Unicorn's time goes largely into memory accesses and block
+dispatch, which those loops still do. Their code was not kept (it was never committed).
 
-The game's 3D engine
 The game's 3D engine (swv21brew.mod) spends about half of all guest instructions in one function, the per-pixel
 span fill at 0x0100A8B4 (module offset 0xA8B4). It is generic: for every pixel it re-reads flag words from the
 state structure, spills its working values to the stack and always works out a fourth (alpha buffer) channel.
@@ -22,7 +26,7 @@ function bytes differ from the known ones) falls back to the original code, whic
 
 State structure fields read (all 32-bit, r0 = pointer): +4 y, +8 framebuffer, +0xC depth buffer, +0x10 x start,
 +0xDC x end, +0x1C z, +0x38/+0x3C/+0x40/+0x44 R/G/B/A and +0x68/+0x6C/+0x70/+0x74 their per-pixel steps,
-+0x4C z step, +0x258 flags (1 colour write, 0x20 depth test, 0x40 depth write, 0x800 alpha buffer),
++0x4C z step, +0x258 flags (1 color write, 0x20 depth test, 0x40 depth write, 0x800 alpha buffer),
 +0x25C alpha threshold, +0x260 alpha buffer base, +0x268 blend mode.
 
     python tools/gen_swerve_patch.py
@@ -64,7 +68,7 @@ def loop(tag, dtest, dwrite):
     out += ["mov r0, r10, lsl #27", "mov r0, r0, lsr #16", "sub lr, r6, r0", "mul lr, r11, lr", "add r0, r0, lr, asr #8",
             "add r0, r9, r0, asr #9", "mov r0, r0, asr #2", "cmp r0, #31", "movgt r0, #31", "bic r0, r0, r0, asr #31",
             "orr r12, r12, r0", f"b S{t}"]
-    # opaque pixel (alpha >= 0xFF00): the source colour is used as it is
+    # opaque pixel (alpha >= 0xFF00): the source color is used as it is
     out += [f"O{t}:",
             "add r0, r9, r4, asr #9", "mov r0, r0, asr #2", "cmp r0, #31", "movgt r0, #31", "bic r0, r0, r0, asr #31",
             "mov r12, r0, lsl #11",
@@ -169,26 +173,6 @@ def matinv_source():
     ]
 
 
-FSUB = 0x0103F030               # soft-float reverse subtract r0 = r1 - r0 (__aeabi_frsub)
-FLOAT_CHECK = (0x0103ED00, 0x0103F900)
-FLOAT_BLOB_OFFSET = 0x00200800
-
-
-def float_source():
-    return [
-        "FSUB:",
-        "movs r2, r0, lsl #1", "beq FS_Z0",
-        "movs r3, r1, lsl #1", "beq FS_Z1",
-        "FS_SLOW:", "mov ip, #0xff000000", f"b #{FSUB + 4:#x}",
-        "FS_Z0:", "movs r3, r1, lsl #1", "bne FS_Z0N",
-        "bic r0, r1, r0", "mov pc, lr",                                      # b - a with both zero: b's sign unless a has it too
-        "FS_Z0N:", "mov r3, r3, lsr #24", "sub r3, r3, #1", "cmp r3, #254", "bhs FS_SLOW",
-        "mov r0, r1", "mov pc, lr",                                          # b - 0 = b
-        "FS_Z1:", "mov r3, r2, lsr #24", "sub r3, r3, #1", "cmp r3, #254", "bhs FS_SLOW",
-        "eor r0, r0, #0x80000000", "mov pc, lr",                             # 0 - a = -a
-    ]
-
-
 def label_offset(lines, label):
     """Byte offset of a label in assembled code (every instruction is 4 bytes)."""
     n = 0
@@ -223,16 +207,12 @@ def main():
         return data[a - MOD_BASE:b - MOD_BASE]
 
     inv_blob = assemble(matinv_source(), MOD_BASE + INV_BLOB_OFFSET)
-    fl = float_source()
     patches = {
         "span": dict(check=(FUNC, FUNC_END), stubs=[(FUNC, 0)], blob_offset=BLOB_OFFSET, blob=assemble(source(), BLOB),
                      table_offset=0, table_size=0),
         # the cache table starts right after the code: that is where `adr r6, TABLE` points
         "matinv": dict(check=(INV, INV_END), stubs=[(INV, 0)], blob_offset=INV_BLOB_OFFSET, blob=inv_blob,
                        table_offset=INV_BLOB_OFFSET + len(inv_blob), table_size=144 << INV_SLOTS_BITS),
-        "float": dict(check=FLOAT_CHECK, stubs=[(FSUB, label_offset(fl, "FSUB"))],
-                      blob_offset=FLOAT_BLOB_OFFSET, blob=assemble(fl, MOD_BASE + FLOAT_BLOB_OFFSET),
-                      table_offset=0, table_size=0),
     }
     regions = sorted((p["blob_offset"], p["blob_offset"] + len(p["blob"])) for p in patches.values()) +         sorted((p["table_offset"], p["table_offset"] + p["table_size"]) for p in patches.values() if p["table_size"])
     regions.sort()

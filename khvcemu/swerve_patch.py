@@ -1,10 +1,10 @@
 """Speed patches for the game's 3D engine (swv21brew.mod), applied to the module's image in guest memory only:
 no game file is modified or stored. Each patch is independent and can be switched off (`--no-speed-patch`, the
-launcher's Options tab); every patch keeps the original code in place and falls back to it, and only touches a
+launcher's Speed enhancements window, under Options); every patch keeps the original code in place and falls back to it, and only touches a
 module whose code is byte for byte the known one.
 
   span    a tighter version of the per-pixel span fill (about half of all guest instructions in some scenes): the
-          commonest span kind (alpha blend mode 0x40, colour write on, no alpha buffer) in about half the
+          commonest span kind (alpha blend mode 0x40, color write on, no alpha buffer) in about half the
           instructions, drawing exactly the same pixels.
   matinv  a memo cache in front of the engine's 4x4 matrix inversion, which runs hundreds of times a frame on a few
           hundred different matrices (about a fifth of all instructions in a walking scene). The key is all 17
@@ -22,14 +22,21 @@ from . import _swerve_blob as blob
 
 PATCHES = blob.PATCHES
 NAMES = tuple(PATCHES)
-LABELS = {"span": "Faster 3D fill", "matinv": "Matrix cache", "float": "Float shortcut"}
-HINTS = {"span": "The 3D engine fills each row of a polygon with a tighter loop. Same picture, about a tenth to a "
-                 "quarter faster in scenes with a lot on screen.",
-         "matinv": "The 3D engine inverts the same 4x4 matrices hundreds of times a frame; this remembers the "
-                   "answers. Same picture, faster when you walk around.",
-         "float": "The 3D engine does its geometry maths in software floating point, and half a million "
-                  "reverse subtractions a second have a zero in them. This answers those at once. Same picture, a little "
-                  "faster when you walk around."}
+_SAME = ("No reason in normal play: the picture is identical (checked pixel for pixel) and what your saves "
+         "hold is not changed. Turn it off only to see whether it is behind a problem you notice, or to compare speed.")
+# name: (label in the launcher, what it does, when you might turn it off)
+INFO = {
+    "span": ("Faster blended fill",
+             "Draws see-through and blended surfaces (water, glows, fades) with a tighter loop. The biggest help "
+             "where much of the screen is blended, such as the Island's opening scene.", _SAME),
+    "matinv": ("Matrix cache",
+               "The 3D engine inverts the same 4x4 matrices hundreds of times a frame. This remembers the answers "
+               "(exactly what the engine would work out) in about 580 KB of the emulated phone's memory. Helps "
+               "most while walking around.",
+               _SAME + " Save states made with it on carry its memory, so they can be a little larger.")
+}
+LABELS = {n: INFO[n][0] for n in INFO}
+HINTS = {n: f"{INFO[n][1]}\n\nWhy turn it off? {INFO[n][2]}" for n in INFO}
 
 
 def _original_code(cpu, base: int, p: dict) -> bytes:

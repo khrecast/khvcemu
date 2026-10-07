@@ -167,7 +167,7 @@ if not data_dir:                              # a fresh folder each run, removed
     atexit.register(shutil.rmtree, data_dir, True)
 logs = []
 emu = Emulator(a.root, data_dir, realtime=False, audio=False, log=logs.append, verbose=(a.mode == "world"),
-                   speed_patches=[n for n in os.environ.get("KH_SPEED_PATCHES", "span,matinv,float").split(",") if n])
+                   speed_patches=[n for n in os.environ.get("KH_SPEED_PATCHES", "span,matinv").split(",") if n])
 out({"tcg_buffer_mib": emu.cpu.uc.ctl_get_tcg_buffer_size() / 2**20})
 if a.count:
     from unicorn.arm_const import UC_ARM_REG_CPSR

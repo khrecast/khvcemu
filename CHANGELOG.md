@@ -3,15 +3,27 @@
 ## Unreleased
 
 ### New
+- **Change the game's keys.** The Controls tab's letter keys (W, A, S, D, F, Z, Q, E) are now buttons: click one, press the
+  new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
+  puts them back. Letters, tab and `; ' / , . - = `` ` `` can be used; the arrows, Enter, Space, number keys, F1, F2,
+  `[` and `*` keep working, and the F keys and Esc stay Re:Cast's. Saved with the launcher's settings, and passed to the
+  game as `--key ACTION=KEY` (for example `--key UP=i`, repeatable). **Restore default settings** does not touch them.
+- **Delete a screenshot, and clear the cached music.** The Options tab's screenshot box has a red x under the folder icon:
+  it deletes the selected screenshot after asking (on Windows it goes to the Recycle Bin, so it can be restored). The question has a ticked box ("Ask me before
+  deleting a screenshot"): unticked and answered Yes, it stops asking (Restore default settings brings it back). If
+  Windows refuses (the picture is open in another program, such as Photos), a message says so. The Sound
+  tab's Advanced window has **Clear cached music**, with how many rendered tunes are kept and their size; the game renders
+  them again the next time it starts. Only the rendered tunes are deleted (and any half-written ones).
 - **The Options tab is redesigned, and autosave is split in three.** Settings now sit in boxes (Window, While playing,
-  Screenshots, Online scores, Speed-ups) in two columns, and the "Window size note" box and its title are gone: its tip is one
-  small gray line under the size choices. Autosave is three separate options: every N minutes (type the number; 1 to 120,
-  default 5), when you quit, and at loading screens; F8 in game says which are on. Command line: `--autosave-every MINUTES`
+  Screenshots, Online scores, Speed) in two columns, and the "Window size note" box and its title are gone: its tip is one
+  small gray line under the size choices. Autosave is three separate options, on the Saves tab under the list of states: every N minutes (type the number;
+  1 to 120, default 5), when you quit, and at loading screens; F8 in game says which are on. Command line: `--autosave-every MINUTES`
   (0 turns the timed ones off), `--no-autosave-on-quit`, `--no-autosave-on-loading` (`--no-autosave` still turns them all off,
   and a launcher setting from before the split that had autosave off keeps all three off). New: the screenshot box lists the
-  pictures in the screenshot folder (newest first, by the time they were taken) with a preview of the one selected, and small
+  pictures in the screenshot folder (newest first, by the time they were taken) with a larger preview of the one selected, and small
   icons instead of text buttons: a folder to choose the folder, a picture to open the selected one and a folder to open the
-  folder (double-click opens one). The launcher window is a little taller (692 px, was 649) and the four website launcher pictures
+  folder (double-click opens one). **Restore default settings** resets only the Options tab (an info bubble beside it says so; the window size tip is a bubble too):
+  the autosave settings are yours to manage on the Saves tab. The launcher window is about the same height as before (624 px; the Saves tab's list shows six rows with a scroll bar and its preview is a little smaller, so it is no taller than the Sound and Options tabs) and the four website launcher pictures
   were retaken (the site files are changed, not deployed).
 - **Agrabah's twangy rhythm part can be heard.** The "parapa pa pa pa" part that lands with the bass is a koto in
   the game's MIDI, and the built-in synth played it as a soft harp that the strings buried (it carried about a tenth
@@ -22,18 +34,20 @@
   Only the koto (GM 107) is used by the game, so no other tune changes; the Harp and guitar slider on the Sound tab
   controls it. Measured, not heard: please listen, and tell me if it is too loud or too sharp (the knobs are the
   TWANG_ constants).
-- **Faster 3D: three speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
-  module is byte for byte the known one. (1) A tighter version of the function that fills a row of a polygon
-  pixel by pixel (about half of the game's work in some scenes): same pixels in about half the instructions,
-  checked on 3,000 random rows. (2) A cache for the 4x4 matrix inversion the engine repeats hundreds of times a
-  frame on a few hundred different matrices: the key is all 17 input words, so an answer is exactly what the
-  original would have computed (checked on 1,500 random calls). (3) A shortcut for the engine's soft-float
-  reverse subtract, which runs half a million times a second, mostly with a zero operand (bit for bit the same
-  result on 60,000 random operand pairs, odd ones included; it gains only about 1%). A whole scene gives the
-  same picture frame by frame with and without them. On the build machine the Island's opening scene went from
-  about 21 to about 25 frames per second and a walking scene from about 21 to about 23. The Options tab has a
-  checkbox for each ("Faster 3D fill", "Matrix cache", "Float shortcut"), `--no-speed-patch[=span,matinv,float]`
-  turns them off, and the website's launcher pictures were retaken. Needs an installer rebuild to ship.
+- **Faster 3D: two speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
+  module is byte for byte the known one. (1) A tighter version of the function that fills a row of a blended or
+  see-through polygon pixel by pixel (about half of the game's work in some scenes): same pixels in about half the
+  instructions, checked on 3,000 random rows. (2) A cache for the 4x4 matrix inversion the engine repeats hundreds of
+  times a frame on a few hundred different matrices: the key is all 17 input words, so an answer is exactly what the
+  original would have computed (checked on 1,500 random calls). Every scene measured gives the same picture frame by
+  frame with and without them. Real-time factor (1.0 = the 25 fps the game asks for), without and with: a fight 0.70
+  to 0.79, Agrabah's lava cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75 to 0.93. Three
+  more (a faster plain fill, a faster texture fill, a floating point shortcut) were built, checked and dropped: they
+  cut instructions but not time, or added instructions. The launcher's Options tab has a **Speed enhancements...**
+  button that opens a window with a switch and an info bubble (what it does, when to turn it off) for each;
+  `--no-speed-patch[=span,matinv]` turns them off on the command line. New tools: `tools/bench_state.py` and
+  `tools/profile_state.py` (speed and profile from your own save states), `tools/bench_speed_patches.py`. Needs an
+  installer rebuild to ship.
 - **Website: the search for Wonderland is now the top goal.** A gold banner above the hero, a "Find Wonderland"
   item first in the menu, and a new section right after the hero ("Do you still have the phone?") with a
   checklist, the phone models and two screenshots; the old section at the bottom is gone. The phone date range is
