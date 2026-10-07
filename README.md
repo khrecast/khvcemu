@@ -59,8 +59,20 @@ emulator to play it with its music and sound effects in context.
 * **High scores that work again.** The original ranking server is long gone, so
   khvcemu answers for it: scores are kept on your PC and, in the launcher, shared
   anonymously with a **shared leaderboard** so you can see how you rank.
-* Keyboard controls (WASD or arrows) as well as the phone keypad, a resizable
-  window and readable text.
+* **Keyboard controls** (WASD or arrows) as well as the phone keypad, a resizable
+  window and readable text; move, action, magic, status, the two softkeys and
+  Backspace (back once, title screen twice) can each be changed to whatever you
+  like on the launcher's **Controls** tab.
+* **Faster 3D, same picture.** Measured speed-ups for the game's 3D engine (checked
+  pixel for pixel against the original, not just timed), on by default; each one can be
+  switched off from the Options tab, with an explanation of what it does and when you
+  might want to.
+* **Music your way.** Tune the built-in synth with sliders and ready-made or saved
+  mixes, play a recording of your own instead of a tune, or play the whole soundtrack
+  through a General MIDI **SoundFont** with the free `fluidsynth` program.
+* **A dark screen**, a **screenshot** tool (F12) with a list, preview and quick
+  delete (asks first, with an option to stop asking) right in the launcher, and
+  three separate autosave options (by time, on quit, at loading screens).
 * **Single-file installers** for Windows (64 and 32-bit), macOS and Linux with
   everything included (see [Installers](#installers-everything-included)).
 
@@ -89,12 +101,12 @@ time (Python, ffmpeg and the wheels are downloaded and cached in `build/`).
 
 | Build | Command | Result |
 | --- | --- | --- |
-| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~56 MB) |
-| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~43 MB) |
-| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~81 MB) |
-| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~86 MB) |
-| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~105 MB) |
-| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~93 MB) |
+| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~54 MB) |
+| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~41 MB) |
+| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~77 MB) |
+| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~82 MB) |
+| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~100 MB) |
+| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~89 MB) |
 
 **Windows:** double-click the exe. It asks once, installs for the current user only (no
 administrator rights), adds Start Menu and desktop shortcuts and an entry under

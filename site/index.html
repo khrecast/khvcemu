@@ -254,6 +254,8 @@
       <div class="card"><div class="ico">&#127912;</div><h4>Picture filters</h4><p>Crisp pixels, smooth, sharp pixels or Scale2x. Press F11 to compare them live.</p></div>
       <div class="card"><div class="ico">&#128288;</div><h4>Smooth hi-res text</h4><p>The game's tiny 176&times;220 text is redrawn sharply at your window's resolution, so menus and dialogue stay crisp at any size.</p></div>
       <div class="card"><div class="ico">&#127942;</div><h4>A shared leaderboard</h4><p>The original ranking server is long gone, so Re:Cast brings it back. Scores are shared anonymously (only the world, score, Munny, EXP, Level and time, never who you are) so you can see how you rank. You can switch sharing off.</p></div>
+      <div class="card"><div class="ico">&#9889;</div><h4>Faster 3D, same picture</h4><p>Speed-ups for the game's 3D engine, checked pixel for pixel against the original. On by default; each one can be switched off in the Options tab, with an info bubble explaining what it does.</p></div>
+      <div class="card"><div class="ico">&#127918;</div><h4>Set your own keys</h4><p>Move, action, magic, status, the two softkeys and Backspace can each be changed to whatever you like on the launcher's Controls tab. A key already in use tells you so.</p></div>
       <div class="card"><div class="ico">&#128230;</div><h4>Everything included</h4><p>One installer for Windows, Mac or Linux, with its own Python, ffmpeg and game files. No setup, no extra downloads.</p></div>
     </div>
   </div></section>
@@ -285,6 +287,7 @@
       <p style="margin:0 0 10px">The game&rsquo;s music is available as audio files from KHInsider: <a href="https://downloads.khinsider.com/game-soundtracks/album/kingdom-hearts-v-cast-mobile-gamerip-2005" target="_blank" rel="noopener">Kingdom Hearts V CAST (Mobile) (gamerip) (2005)</a>.</p>
       <p style="margin:0">If you prefer those recordings to Re:Cast&rsquo;s built-in synthesizer, the game can play them instead, tune by tune. In the launcher&rsquo;s <strong>Sound</strong> tab, pick the tune, <strong>Choose...</strong> the matching file, press <strong>Match</strong> to even out the volume, then tick <strong>Use the recording in the game</strong>. Re:Cast fits each recording to the game&rsquo;s own length for that tune, so the game plays exactly as before; untick it to go back to the built-in music.</p>
     </div>
+    <p>The <strong>Sound</strong> tab also has sliders and ready-made mixes for the built-in synth, and an <strong>Advanced...</strong> window to play every tune through a General MIDI <strong>SoundFont</strong> instead, with the free <code>fluidsynth</code> program (not included). The built-in synth renders each tune once and keeps it so it plays instantly after that; <strong>Clear cached music</strong> in that same window gives the space back if you want it.</p>
   </div></section>
 
   <section id="download"><div class="wrap">
@@ -293,32 +296,32 @@
     <div class="dl">
       <div class="card" data-os="win64">
         <div class="os">Windows</div><div class="name">64-bit</div>
-        <div class="meta">Windows 10 or 11. This is the one most PCs need. About 56&nbsp;MB.</div>
+        <div class="meta">Windows 10 or 11. This is the one most PCs need. About 54&nbsp;MB.</div>
         <a class="btn primary" data-link="win64" href="#">Download for Windows</a>
       </div>
       <div class="card" data-os="win32">
         <div class="os">Windows</div><div class="name">32-bit</div>
-        <div class="meta">For older 32-bit versions of Windows. About 43&nbsp;MB.</div>
+        <div class="meta">For older 32-bit versions of Windows. About 41&nbsp;MB.</div>
         <a class="btn" data-link="win32" href="#">Download 32-bit</a>
       </div>
       <div class="card" data-os="macArm">
         <div class="os">macOS</div><div class="name">Apple Silicon</div>
-        <div class="meta">Macs with an M1 chip or later. macOS 11 or newer. About 81&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
+        <div class="meta">Macs with an M1 chip or later. macOS 11 or newer. About 77&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
         <a class="btn" data-link="macArm" href="#">Download for Apple Silicon</a>
       </div>
       <div class="card" data-os="macIntel">
         <div class="os">macOS</div><div class="name">Intel</div>
-        <div class="meta">Macs with an Intel chip. macOS 10.15 or newer. About 86&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
+        <div class="meta">Macs with an Intel chip. macOS 10.15 or newer. About 82&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
         <a class="btn" data-link="macIntel" href="#">Download for Intel</a>
       </div>
       <div class="card" data-os="linux64">
         <div class="os">Linux</div><div class="name">x86-64</div>
-        <div class="meta">Most Linux PCs and laptops. Ubuntu 20.04, Debian 10, Fedora 29 or newer. About 105&nbsp;MB.</div>
+        <div class="meta">Most Linux PCs and laptops. Ubuntu 20.04, Debian 10, Fedora 29 or newer. About 100&nbsp;MB.</div>
         <a class="btn" data-link="linux64" href="#">Download for Linux</a>
       </div>
       <div class="card" data-os="linuxArm">
         <div class="os">Linux</div><div class="name">ARM64</div>
-        <div class="meta">Raspberry Pi 4 and 5 and other 64-bit ARM machines. About 93&nbsp;MB. <span class="badge warn">Untested on real hardware</span></div>
+        <div class="meta">Raspberry Pi 4 and 5 and other 64-bit ARM machines. About 89&nbsp;MB. <span class="badge warn">Untested on real hardware</span></div>
         <a class="btn" data-link="linuxArm" href="#">Download for ARM64</a>
       </div>
     </div>
@@ -334,12 +337,12 @@
       If they differ, don't run it: download it again, from the other place if you can.</p>
       <p>Windows (PowerShell): <code>Get-FileHash .\KH-ReCast-Windows-x64.exe</code> &middot; macOS: <code>shasum -a 256 KH-ReCast-macOS-arm64.zip</code> &middot; Linux: <code>sha256sum KH-ReCast-Linux-x86_64.run</code></p>
       <ul>
-        <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">c706f3bdd91bb98ad66fcf9a1c66e07645695a7b00b0c023ee5668e329982ea2</code></li>
-        <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">4e008abc857871a3789bd94b5f16d810068e2116b65026bf7bb2a04cefb1ab3c</code></li>
-        <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">6f6227965ce235a02309182ca207f1f1a940db81b17031829e357784bd2c0951</code></li>
-        <li><code>KH-ReCast-Windows-x86.exe</code><br><code style="word-break:break-all">daae28007c9cb2ad213624ab3cccf8e2a57a168f550063b187c4a6231244b406</code></li>
-        <li><code>KH-ReCast-macOS-arm64.zip</code><br><code style="word-break:break-all">7fb84976041edf9b8cdb1292a45914c46c6a9bd6630c292b79d657a5e6bdab10</code></li>
-        <li><code>KH-ReCast-macOS-x86_64.zip</code><br><code style="word-break:break-all">b1808263ea14a92743d9e9745cc96aa067a1ffb6ef526d981ccba006229705d1</code></li>
+        <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">56712e2c6ed71cb69e73e8241ac4f4223d47b44a1d5221a97b461645de442891</code></li>
+        <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">1175ac8596e294251b7f1863d83f0623c7388b2740e4a6f867f8fb2a50258254</code></li>
+        <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">7304b7ea53a6871701928fc9136a5ae21fbb60cc212f06443d4488741dc44aca</code></li>
+        <li><code>KH-ReCast-Windows-x86.exe</code><br><code style="word-break:break-all">13434bb87007499521d2f2be67f87ce8ced0e0f504f4029c5a8ee90a9cc9692c</code></li>
+        <li><code>KH-ReCast-macOS-arm64.zip</code><br><code style="word-break:break-all">53c91c5a7ba2e07fc355c1bf853497bcc2e7a5da10f53a93846d8b47ed21da8b</code></li>
+        <li><code>KH-ReCast-macOS-x86_64.zip</code><br><code style="word-break:break-all">4c5bbfef860fdf4567305411df1b4c5239dde7e07ecf26f3cbca5fd0d9662267</code></li>
       </ul>
     </details>
     <details>
@@ -387,6 +390,11 @@
     <details>
       <summary>It runs slowly on my computer</summary>
       <p>Re:Cast is emulating a whole phone, and the 3D engine is demanding. On the PC it was built on, most 3D scenes run at or near the game's 25 frames per second, and Agrabah's lava cave at about 15. Slower machines drop frames rather than slow the game down. The speed enhancements (launcher, Options) are on by default.</p>
+    </details>
+    <details>
+      <summary>Screenshots, and freeing up space</summary>
+      <p><strong>F12</strong> takes a screenshot (a small message confirms where it was saved). The launcher's <strong>Options</strong> tab lists them with a preview of the one you've selected: icons let you choose the folder, open the selected picture, open the folder, or delete it. On Windows a deleted screenshot goes to the Recycle Bin, after a question you can turn off and bring back with <strong>Restore default settings</strong>.</p>
+      <p>The built-in music synth renders each tune once and keeps it so it plays at once next time; it takes a few MB. The Sound tab's <strong>Advanced...</strong> window has <strong>Clear cached music</strong> if you want that space back (the game renders the tunes again when it needs them).</p>
     </details>
   </div></section>
 
