@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -99,6 +100,69 @@ def world_saves(dump: str) -> list:
     return out
 
 
+def clean_minutes(value, default: float = 5.0) -> float:
+    """The autosave interval typed in the Options tab: 1 to 120 minutes (a whole or half number), else the default."""
+    try:
+        m = float(str(value).strip().replace(",", "."))
+    except ValueError:
+        return default
+    if m != m or m in (float("inf"), float("-inf")):          # nan and infinity are not minutes
+        return default
+    return min(120.0, max(1.0, round(m * 2) / 2))
+
+
+def shot_label(filename: str) -> str:
+    """A short list entry for a screenshot: khvcemu_20261004_214135.png reads "Oct 04  21:41:35"; any other file name
+    is shown as it is."""
+    m = re.fullmatch(r"khvcemu_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})(?:[-_]\d+)?\.\w+", filename)
+    if m:
+        y, mo, d, h, mi, s = (int(x) for x in m.groups())
+        if 1 <= mo <= 12:
+            return f"{MONTHS[mo - 1]} {d:02d}  {h:02d}:{mi:02d}:{s:02d}"
+    return filename
+
+
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+# 16x16 pixel pictures for the small buttons: . transparent, o outline, y folder, Y folder front,
+# b sky, g hill, s sun
+ICONS = {
+    "folder": ("................", "................", "..oooo..........", ".oyyyyo.........", ".oyyyyoooooooo..",
+               ".oyyyyyyyyyyyyo.", ".oyyyyyyyyyyyyo.", ".oyyyyyyyyyyyyo.", ".oYYYYYYYYYYYYo.", ".oYYYYYYYYYYYYo.",
+               ".oYYYYYYYYYYYYo.", ".oYYYYYYYYYYYYo.", "..oooooooooooo..", "................", "................",
+               "................"),
+    "picture": ("................", ".oooooooooooooo.", ".obbbbbbbbbbbbo.", ".obbbbbbssbbbbo.", ".obbbbbbssbbbbo.",
+                ".obbbbbbbbbbbbo.", ".obbbgbbbbbbbbo.", ".obbgggbbbggbbo.", ".obgggggbgggggo.", ".oggggggggggggo.",
+                ".oggggggggggggo.", ".oooooooooooooo.", "................", "................", "................",
+                "................"),
+}
+ICON_COLORS = {"o": "#3a4a63", "y": "#f2c94c", "Y": "#d9a92a", "b": "#2f80ed", "g": "#58c46b", "s": "#ffe9a6"}
+
+
+def make_icon(name: str):
+    """A small button picture drawn from ICONS (no image files to ship)."""
+    img = tk.PhotoImage(width=16, height=16)
+    for y, row in enumerate(ICONS[name]):
+        for x, ch in enumerate(row):
+            if ch == ".":
+                img.tk.call(img, "transparency", "set", x, y, True)
+            else:
+                img.put(ICON_COLORS[ch], to=(x, y))
+    return img
+
+
+def open_in_viewer(path: str):
+    """Open a file or folder with the system's own program for it."""
+    try:
+        if sys.platform == "win32":
+            os.startfile(path)                                    # noqa: S606
+        else:
+            subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", path],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **no_window())
+    except OSError:
+        pass
+
+
 def build_command(dump: str, opts: dict, load_state: str = None, start: str = None) -> list:
     cmd = [sys.executable, "-m", "khvcemu", dump]
     if opts.get("scale"):
@@ -121,8 +185,20 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
             cmd += ["--music-file-volume", f"{name}={round(gain, 3):g}"]
     if abs(float(opts.get("wonderland_volume", 1.0)) - 1.0) > 1e-9:
         cmd += ["--wonderland-volume", f"{round(float(opts['wonderland_volume']), 3):g}"]
-    if not opts.get("autosave", True):
+    timed, on_quit, on_loading = (opts.get("autosave", True), opts.get("autosave_on_quit", True),
+                                  opts.get("autosave_on_loading", True))
+    if not (timed or on_quit or on_loading):
         cmd.append("--no-autosave")
+    else:
+        minutes = clean_minutes(opts.get("autosave_minutes", 5))
+        if not timed:
+            cmd += ["--autosave-every", "0"]
+        elif minutes != 5:
+            cmd += ["--autosave-every", f"{minutes:g}"]
+        if not on_quit:
+            cmd.append("--no-autosave-on-quit")
+        if not on_loading:
+            cmd.append("--no-autosave-on-loading")
     if not opts.get("pause_on_focus_loss", True):
         cmd.append("--no-focus-pause")
     if opts.get("screenshots"):
@@ -146,7 +222,8 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
 # What "Restore default settings" puts back (the Options tab). Not the game folder, the saves, the
 # Sound tab (its music sliders, mixes, recordings and SoundFont: the "As tuned" mix resets the sliders).
 OPTION_DEFAULTS = {"scale": "Auto", "font_size": 11, "mute": False, "hires_text": False,
-                   "filter": "nearest", "autosave": True, "pause_on_focus_loss": True, "screenshots": "",
+                   "filter": "nearest", "autosave": True, "autosave_minutes": 5, "autosave_on_quit": True,
+                   "autosave_on_loading": True, "pause_on_focus_loss": True, "screenshots": "",
                    "dark_screen": False, "ask_before_quit": True, "share_scores": True,
                    "leaderboard_url": "", "speed_patches_off": []}
 
@@ -157,6 +234,10 @@ def fluidsynth_found() -> bool:
 
 
 MIN_WIDTH = 620          # the window never goes narrower than this
+SHOT_W, SHOT_H = 88, 110          # the screenshot preview box (a 176x220 frame at half size)
+SHOT_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".gif")
+SHOTS_LISTED = 300                # the most recent screenshots shown in the Options tab list
+SHOT_MAX_BYTES = 8_000_000        # bigger pictures are listed but not previewed (loading one would stall the window)
 STATES_POLL_MS = 5000    # how often the save-state list is checked for changes made by the game
 
 # The shared high-score server; the launcher only switches sharing on or off
@@ -390,79 +471,7 @@ class Launcher:
         self.slot_info.pack(pady=4)
 
         # options
-        o = tab("options", "Options")
-        self.scale = tk.StringVar(value=str(self.cfg.get("scale", "Auto")))
-        ttk.Label(o, text="Window size:").grid(row=0, column=0, sticky="w", padx=6, pady=4)
-        ttk.Combobox(o, textvariable=self.scale, values=["Auto", "1", "2", "3", "4"], width=6,
-                     state="readonly").grid(row=0, column=1, sticky="w")
-        self.font_size = tk.StringVar(value=str(self.cfg.get("font_size", 11)))
-        ttk.Label(o, text="Text size:").grid(row=0, column=2, sticky="w", padx=(16, 6))
-        ttk.Spinbox(o, from_=8, to=16, textvariable=self.font_size, width=4).grid(row=0, column=3, sticky="w")
-        self.mute = tk.BooleanVar(value=self.cfg.get("mute", False))
-        ttk.Checkbutton(o, text="Mute", variable=self.mute).grid(row=0, column=4, padx=(16, 6))
-        self.hires = tk.BooleanVar(value=self.cfg.get("hires_text", False))
-        ttk.Checkbutton(o, text="Smooth hi-res text", variable=self.hires).grid(
-            row=0, column=5, padx=6)
-        self.dark = tk.BooleanVar(value=bool(self.cfg.get("dark_screen", False)))
-        self.ask_quit = tk.BooleanVar(value=bool(self.cfg.get("ask_before_quit", True)))
-        # how the picture is enlarged; F11 cycles the same choices in game
-        self.filter_names = dict(zip(PICTURE_FILTERS.values(), PICTURE_FILTERS))
-        self.picture = tk.StringVar(value=PICTURE_FILTERS.get(self.cfg.get("filter", "nearest"),
-                                                              PICTURE_FILTERS["nearest"]))
-        ttk.Label(o, text="Picture:").grid(row=1, column=0, sticky="w", padx=6, pady=4)
-        ttk.Combobox(o, textvariable=self.picture, values=list(PICTURE_FILTERS.values()), width=22,
-                     state="readonly").grid(row=1, column=1, columnspan=3, sticky="w")
-        note = ttk.LabelFrame(o, text="Window size note")      # right under the size and picture choices
-        note.grid(row=2, column=0, columnspan=6, sticky="we", padx=6, pady=(0, 8))
-        ttk.Label(note, text="The game was built for tiny flip-phone screens, so it looks its best in a small "
-                             "window. Auto picks up to 2x; choose 3 or 4 for bigger.",
-                  foreground=MUTED, font=("Segoe UI", 8), wraplength=MIN_WIDTH - 90, justify="left").pack(
-            anchor="w", padx=6, pady=3)
-        self.autosave = tk.BooleanVar(value=self.cfg.get("autosave", True))
-        ttk.Checkbutton(o, text="Autosave every 5 min and on quit (F8)",
-                        variable=self.autosave).grid(row=3, column=0, columnspan=3, sticky="w", padx=6, pady=(0, 4))
-        self.focus_pause = tk.BooleanVar(value=bool(self.cfg.get("pause_on_focus_loss", True)))
-        ttk.Checkbutton(o, text="Pause when the window loses focus",
-                        variable=self.focus_pause).grid(row=5, column=0, columnspan=3, sticky="w", padx=6, pady=(0, 4))
-        self.screenshots = tk.StringVar(value=self.cfg.get("screenshots", ""))
-        ttk.Label(o, text="Screenshots (F12):").grid(row=6, column=0, columnspan=2, sticky="w", padx=6, pady=(0, 4))
-        ask_check = ttk.Checkbutton(o, text="Ask before quitting (Esc / X)", variable=self.ask_quit)
-        ask_check.grid(row=3, column=3, columnspan=3, sticky="w", padx=6, pady=(0, 4))
-        self.tooltip(ask_check, "Esc or the window's X asks \"Quit the game?\" first. Untick to quit at once "
-                                "(in the question, D = quit and don't ask again).")
-        dark_check = ttk.Checkbutton(o, text="Dark screen (black out the background)", variable=self.dark)
-        dark_check.grid(row=5, column=3, columnspan=3, sticky="w", padx=6, pady=(0, 4))
-        self.tooltip(dark_check, "Covers the rest of the monitor the game window is on with black, behind the "
-                                 "window. Minimising the game removes it.")
-        shots_entry = ttk.Entry(o, textvariable=self.screenshots)
-        shots_entry.grid(row=6, column=2, columnspan=3, sticky="we", pady=(0, 4))
-        self.tooltip(shots_entry, "Where F12 saves screenshots. Empty: a khvcemu folder inside your Pictures folder.")
-        ttk.Button(o, text="Browse...", command=self.browse_screenshots, style="Small.TButton").grid(
-            row=6, column=5, padx=6, pady=(0, 4))
-        self.soundfont = tk.StringVar(value=self.cfg.get("soundfont", ""))      # shown on the Sound tab
-        # high scores are kept offline either way; this only adds a shared ranking
-        self.leaderboard = tk.StringVar(value=self.cfg.get("leaderboard_url") or LEADERBOARD_URL)
-        self.share = tk.BooleanVar(value=bool(self.cfg.get("share_scores", True)))
-        ttk.Checkbutton(o, text="Share high scores with:", variable=self.share,
-                        command=self.sync_share).grid(row=4, column=0, sticky="w", padx=6, pady=(0, 4))
-        self.share_entry = ttk.Entry(o, textvariable=self.leaderboard)
-        self.share_entry.grid(row=4, column=1, columnspan=5, sticky="we", padx=(0, 6), pady=(0, 4))
-        # the 3D engine's speed-ups: the same picture, faster; each can be switched off (for troubleshooting)
-        off = set(self.cfg.get("speed_patches_off") or ())
-        self.speed_vars = {n: tk.BooleanVar(value=n not in off) for n in swerve_patch.NAMES}
-        speed = ttk.Frame(o)
-        speed.grid(row=7, column=0, columnspan=6, sticky="w", padx=6, pady=(2, 0))
-        ttk.Label(speed, text="Speed-ups (same picture):").pack(side="left")
-        for n in swerve_patch.NAMES:
-            check = ttk.Checkbutton(speed, text=swerve_patch.LABELS[n], variable=self.speed_vars[n])
-            check.pack(side="left", padx=(10, 0))
-            self.tooltip(check, swerve_patch.HINTS[n])
-        ttk.Button(o, text="Restore default settings", command=self.restore_defaults,
-                   style="Small.TButton").grid(row=8, column=0, columnspan=2, sticky="w", padx=6, pady=(8, 2))
-        ttk.Label(o, text="Puts these options back as they were; your saves, game folder and "
-                          "Sound tab are not touched.",
-                  foreground=MUTED, font=("Segoe UI", 8), wraplength=MIN_WIDTH - 60, justify="left").grid(
-            row=9, column=0, columnspan=6, sticky="w", padx=6)
+        self.build_options(tab("options", "Options"))
 
         # sound: the built-in synth's sliders, with a player to hear them
         self.build_sound(tab("sound", "Sound"))
@@ -600,6 +609,8 @@ class Launcher:
         for key, frame in self.tab_frames.items():
             if str(frame) == self.tabs.select():
                 self.cfg["tab"] = key
+                if key == "options":
+                    self.refresh_screenshots()
                 try:
                     save_config(self.cfg)
                 except OSError:
@@ -617,6 +628,8 @@ class Launcher:
         return {"scale": int(scale) if scale.isdigit() else 0, "mute": self.mute.get(),
                 "font_size": self.font_size.get(), "hires_text": self.hires.get(),
                 "soundfont": self.soundfont.get().strip(), "autosave": self.autosave.get(),
+                "autosave_minutes": self.autosave_minutes_value(), "autosave_on_quit": self.autosave_on_quit.get(),
+                "autosave_on_loading": self.autosave_on_loading.get(),
                 "pause_on_focus_loss": self.focus_pause.get(), "screenshots": self.screenshots.get().strip(),
                 "dark_screen": self.dark.get(), "ask_before_quit": self.ask_quit.get(),
                 "speed_patches_off": [n for n, v in self.speed_vars.items() if not v.get()],
@@ -724,6 +737,8 @@ class Launcher:
         """Check on a timer; the launcher also checks the moment it is clicked or brought forward."""
         try:
             self.check_states()
+            if self.cfg.get("tab") == "options":
+                self.refresh_screenshots()          # F12 may have taken one since the tab was last looked at
         except tk.TclError:
             return                  # the window is closing
         finally:
@@ -796,6 +811,232 @@ class Launcher:
         self.slot_info.config(text=info)
 
     # ---------------------------------------------------------------- actions
+    # ---------------------------------------------------------------- options tab
+    def build_options(self, o):
+        """The Options tab: grouped boxes in two columns."""
+        cfg = self.cfg
+        left, right = ttk.Frame(o), ttk.Frame(o)
+        left.grid(row=0, column=0, sticky="nwe", padx=(0, 5))
+        right.grid(row=0, column=1, sticky="nwe", padx=(5, 0))
+        o.columnconfigure(0, weight=1)
+        o.columnconfigure(1, weight=1)
+        pad = dict(padx=6, pady=2)
+
+        # ---- Window
+        box = ttk.LabelFrame(left, text="Window")
+        box.pack(fill="x", pady=(0, 6))
+        self.scale = tk.StringVar(value=str(cfg.get("scale", "Auto")))
+        ttk.Label(box, text="Size:").grid(row=0, column=0, sticky="w", **pad)
+        ttk.Combobox(box, textvariable=self.scale, values=["Auto", "1", "2", "3", "4"], width=6,
+                     state="readonly").grid(row=0, column=1, sticky="w")
+        self.font_size = tk.StringVar(value=str(cfg.get("font_size", 11)))
+        ttk.Label(box, text="Text size:").grid(row=0, column=2, sticky="e", padx=(10, 4))
+        ttk.Spinbox(box, from_=8, to=16, textvariable=self.font_size, width=4).grid(row=0, column=3, sticky="w")
+        # how the picture is enlarged; F11 cycles the same choices in game
+        self.filter_names = dict(zip(PICTURE_FILTERS.values(), PICTURE_FILTERS))
+        self.picture = tk.StringVar(value=PICTURE_FILTERS.get(cfg.get("filter", "nearest"), PICTURE_FILTERS["nearest"]))
+        ttk.Label(box, text="Picture:").grid(row=1, column=0, sticky="w", **pad)
+        ttk.Combobox(box, textvariable=self.picture, values=list(PICTURE_FILTERS.values()), width=19,
+                     state="readonly").grid(row=1, column=1, columnspan=3, sticky="w")
+        self.hires = tk.BooleanVar(value=cfg.get("hires_text", False))
+        hires_check = ttk.Checkbutton(box, text="Smooth hi-res text", variable=self.hires)
+        hires_check.grid(row=2, column=0, columnspan=3, sticky="w", **pad)
+        self.tooltip(hires_check, "Redraws the game's text sharply at your window's resolution.")
+        self.dark = tk.BooleanVar(value=bool(cfg.get("dark_screen", False)))
+        dark_check = ttk.Checkbutton(box, text="Dark screen", variable=self.dark)
+        dark_check.grid(row=2, column=3, sticky="w", padx=(0, 6), pady=2)
+        self.tooltip(dark_check, "Covers the rest of the monitor the game window is on with black, behind the "
+                                 "window. Minimising the game removes it.")
+        ttk.Label(box, text="Built for flip-phone screens, so it looks best small: Auto picks up to 2x, "
+                            "choose 3 or 4 for bigger.",
+                  foreground=MUTED, font=("Segoe UI", 8), wraplength=270, justify="left").grid(
+            row=3, column=0, columnspan=4, sticky="w", padx=6, pady=(0, 4))
+
+        # ---- While playing: sound, pausing, quitting and the three kinds of autosave
+        box = ttk.LabelFrame(left, text="While playing")
+        box.pack(fill="x", pady=(0, 6))
+        first = ttk.Frame(box)
+        first.pack(anchor="w", padx=6, pady=2)
+        self.mute = tk.BooleanVar(value=cfg.get("mute", False))
+        ttk.Checkbutton(first, text="Mute", variable=self.mute).pack(side="left")
+        self.focus_pause = tk.BooleanVar(value=bool(cfg.get("pause_on_focus_loss", True)))
+        pause_check = ttk.Checkbutton(first, text="Pause when I click away", variable=self.focus_pause)
+        pause_check.pack(side="left", padx=(12, 0))
+        self.tooltip(pause_check, "The game pauses (and the time away is not counted as play time) while its window "
+                                  "is not the one you are using.")
+        self.ask_quit = tk.BooleanVar(value=bool(cfg.get("ask_before_quit", True)))
+        ask_check = ttk.Checkbutton(box, text="Ask before quitting (Esc / X)", variable=self.ask_quit)
+        ask_check.pack(anchor="w", **pad)
+        self.tooltip(ask_check, "Esc or the window's X asks \"Quit the game?\" first. Untick to quit at once "
+                                "(in the question, D = quit and don't ask again).")
+        legacy = cfg.get("autosave", True)       # before the split, one switch covered all three kinds
+        self.autosave = tk.BooleanVar(value=bool(legacy))
+        self.autosave_minutes = tk.StringVar(value=f"{clean_minutes(cfg.get('autosave_minutes', 5)):g}")
+        self.autosave_on_quit = tk.BooleanVar(value=bool(cfg.get("autosave_on_quit", legacy)))
+        self.autosave_on_loading = tk.BooleanVar(value=bool(cfg.get("autosave_on_loading", legacy)))
+        row = ttk.Frame(box)
+        row.pack(anchor="w", padx=6, pady=2)
+        timed = ttk.Checkbutton(row, text="Autosave every", variable=self.autosave)
+        timed.pack(side="left")
+        minutes = ttk.Spinbox(row, from_=1, to=120, textvariable=self.autosave_minutes, width=4)
+        minutes.pack(side="left", padx=(4, 4))
+        ttk.Label(row, text="min").pack(side="left")
+        self.tooltip(timed, "A timed autosave while you play (the clock stops while the game is paused). F8 turns "
+                            "all autosaves on and off in game.")
+        quit_save = ttk.Checkbutton(box, text="Autosave when I quit", variable=self.autosave_on_quit)
+        quit_save.pack(anchor="w", **pad)
+        self.tooltip(quit_save, "One more autosave when the window is closed in the middle of the game.")
+        load_save = ttk.Checkbutton(box, text="Autosave at loading screens", variable=self.autosave_on_loading)
+        load_save.pack(anchor="w", padx=6, pady=(2, 4))
+        self.tooltip(load_save, "A checkpoint a few seconds after each Loading screen (a new area).")
+
+        ttk.Button(left, text="Restore default settings", command=self.restore_defaults,
+                   style="Small.TButton").pack(anchor="w", pady=(2, 2))
+        ttk.Label(left, text="Saves, game folder and Sound tab are not touched.",
+                  foreground=MUTED, font=("Segoe UI", 8), wraplength=270, justify="left").pack(anchor="w")
+
+        # ---- Screenshots (F12)
+        box = ttk.LabelFrame(right, text="Screenshots (F12)")
+        box.pack(fill="x", pady=(0, 6))
+        self.screenshots = tk.StringVar(value=cfg.get("screenshots", ""))
+        top = ttk.Frame(box)
+        top.pack(fill="x", padx=6, pady=(4, 2))
+        shots_entry = ttk.Entry(top, textvariable=self.screenshots)
+        shots_entry.pack(side="left", fill="x", expand=True)
+        self.tooltip(shots_entry, "Where F12 saves screenshots. Empty: a khvcemu folder inside your Pictures folder.")
+        self.icons = {name: make_icon(name) for name in ("folder", "picture")}       # kept: Tk drops unreferenced images
+        choose = ttk.Button(top, image=self.icons["folder"], command=self.browse_screenshots, style="Small.TButton")
+        choose.pack(side="left", padx=(6, 0))
+        self.tooltip(choose, "Choose the folder F12 screenshots are saved in")
+        mid = ttk.Frame(box)
+        mid.pack(fill="x", padx=6, pady=(2, 4))
+        listing = ttk.Frame(mid)
+        listing.pack(side="left", fill="y")
+        self.shots_list = tk.Listbox(listing, height=7, width=15, exportselection=False, activestyle="none",
+                                     bg=PANEL, fg=TEXT, selectbackground=BLUE, selectforeground="white",
+                                     highlightthickness=1, highlightbackground=DIM, relief="flat", font=("Segoe UI", 8))
+        bar = ttk.Scrollbar(listing, orient="vertical", command=self.shots_list.yview)
+        self.shots_list.configure(yscrollcommand=bar.set)
+        self.shots_list.pack(side="left", fill="y")
+        bar.pack(side="left", fill="y")
+        self.shots_list.bind("<<ListboxSelect>>", lambda e: self.show_screenshot())
+        self.shots_list.bind("<Double-Button-1>", lambda e: self.open_screenshot())
+        self.shots_list.bind("<Return>", lambda e: self.open_screenshot())
+        pic = ttk.Frame(mid, width=SHOT_W + 6, height=SHOT_H + 6)
+        pic.pack(side="left", padx=(8, 0))
+        pic.pack_propagate(False)
+        self.shots_preview = ttk.Label(pic, text="No screenshots\nyet", foreground=MUTED, justify="center",
+                                       anchor="center", font=("Segoe UI", 8))
+        self.shots_preview.pack(fill="both", expand=True)
+        self.shots_preview.bind("<Double-Button-1>", lambda e: self.open_screenshot())
+        icons = ttk.Frame(mid)
+        icons.pack(side="left", anchor="n", padx=(8, 0))
+        show = ttk.Button(icons, image=self.icons["picture"], command=self.open_screenshot, style="Small.TButton")
+        show.pack(pady=(0, 4))
+        self.tooltip(show, "Open the selected screenshot (double-click does the same)")
+        where = ttk.Button(icons, image=self.icons["folder"], command=self.open_screenshot_folder, style="Small.TButton")
+        where.pack()
+        self.tooltip(where, "Open the screenshot folder")
+        self._shots_sig = None
+        self._shots_image = None
+        self._shots_names: list = []
+        self.screenshots.trace_add("write", lambda *_: self.root.after(400, self.refresh_screenshots))
+
+        # ---- Online scores
+        self.soundfont = tk.StringVar(value=cfg.get("soundfont", ""))      # shown on the Sound tab
+        box = ttk.LabelFrame(right, text="Online scores")
+        box.pack(fill="x", pady=(0, 6))
+        # high scores are kept offline either way; this only adds a shared ranking
+        self.leaderboard = tk.StringVar(value=cfg.get("leaderboard_url") or LEADERBOARD_URL)
+        self.share = tk.BooleanVar(value=bool(cfg.get("share_scores", True)))
+        ttk.Checkbutton(box, text="Share high scores with:", variable=self.share, command=self.sync_share).pack(
+            anchor="w", padx=6, pady=(2, 0))
+        self.share_entry = ttk.Entry(box, textvariable=self.leaderboard)
+        self.share_entry.pack(fill="x", padx=6, pady=(2, 4))
+
+        # ---- Speed-ups: the 3D engine's, the same picture, faster; each can be switched off (for troubleshooting)
+        box = ttk.LabelFrame(right, text="Speed-ups (same picture)")
+        box.pack(fill="x")
+        off = set(cfg.get("speed_patches_off") or ())
+        self.speed_vars = {n: tk.BooleanVar(value=n not in off) for n in swerve_patch.NAMES}
+        for i, n in enumerate(swerve_patch.NAMES):
+            check = ttk.Checkbutton(box, text=swerve_patch.LABELS[n], variable=self.speed_vars[n])
+            check.grid(row=i // 2, column=i % 2, sticky="w", padx=6, pady=(2, 2))
+            self.tooltip(check, swerve_patch.HINTS[n])
+
+    def autosave_minutes_value(self) -> float:
+        return clean_minutes(self.autosave_minutes.get())
+
+    # ---- screenshots: a list of the files in the folder and a preview of the selected one
+    def shots_folder(self) -> str:
+        from .paths import default_screenshot_dir
+        return self.screenshots.get().strip() or default_screenshot_dir()
+
+    def refresh_screenshots(self):
+        """Fill the list from the screenshot folder (newest first) when it has changed, and keep the selection."""
+        try:
+            folder = self.shots_folder()
+            names = []
+            try:
+                listing = os.listdir(folder) if os.path.isdir(folder) else []
+            except OSError:
+                listing = []                # a folder that cannot be read, or that has just gone
+            for fn in listing:
+                if fn.lower().endswith(SHOT_EXTS):
+                    try:
+                        names.append((os.path.getmtime(os.path.join(folder, fn)), fn))
+                    except OSError:
+                        pass
+            names.sort(reverse=True)
+            names = [fn for _, fn in names[:SHOTS_LISTED]]
+            sig = (folder, tuple(names))
+            if sig == self._shots_sig:
+                return
+            self._shots_sig = sig
+            keep = self.shots_selected_name()
+            self._shots_names = names
+            self.shots_list.delete(0, "end")
+            for fn in names:
+                self.shots_list.insert("end", shot_label(fn))
+            if names:
+                self.shots_list.selection_set(names.index(keep) if keep in names else 0)    # the latest unless one was picked
+            self.show_screenshot()
+        except tk.TclError:
+            pass                    # the window is closing
+
+    def shots_selected_name(self):
+        sel = self.shots_list.curselection()
+        return self._shots_names[sel[0]] if sel and sel[0] < len(self._shots_names) else None
+
+    def show_screenshot(self):
+        name = self.shots_selected_name()
+        self._shots_image = None
+        if name is None:
+            self.shots_preview.config(image="", text="No screenshots\nyet")
+            return
+        path = os.path.join(self.shots_folder(), name)
+        try:
+            if os.path.getsize(path) > SHOT_MAX_BYTES:
+                raise OSError("too big to preview")
+            img = tk.PhotoImage(file=path)
+            step = max(1, -(-img.width() // SHOT_W), -(-img.height() // SHOT_H))        # whole-number shrink
+            self._shots_image = img.subsample(step, step) if step > 1 else img
+            self.shots_preview.config(image=self._shots_image, text="")
+        except (tk.TclError, OSError, MemoryError):
+            self.shots_preview.config(image="", text="can't preview\nthis file")
+
+    def open_screenshot(self):
+        name = self.shots_selected_name()
+        if name:
+            open_in_viewer(os.path.join(self.shots_folder(), name))
+
+    def open_screenshot_folder(self):
+        folder = self.shots_folder()
+        if os.path.isdir(folder):
+            open_in_viewer(folder)
+        else:
+            self.status.config(text="That screenshot folder doesn't exist yet: it is made when you take the first one.")
+
     def browse_screenshots(self):
         from .paths import default_screenshot_dir
         start = self.screenshots.get().strip() or default_screenshot_dir()
@@ -1574,6 +1815,9 @@ class Launcher:
         self.hires.set(d["hires_text"])
         self.picture.set(PICTURE_FILTERS[d["filter"]])
         self.autosave.set(d["autosave"])
+        self.autosave_minutes.set(f"{d['autosave_minutes']:g}")
+        self.autosave_on_quit.set(d["autosave_on_quit"])
+        self.autosave_on_loading.set(d["autosave_on_loading"])
         self.focus_pause.set(d["pause_on_focus_loss"])
         self.screenshots.set(d["screenshots"])
         self.dark.set(d["dark_screen"])

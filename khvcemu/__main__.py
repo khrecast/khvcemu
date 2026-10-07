@@ -77,7 +77,13 @@ def main(argv=None):
                     help="keep playing when the window loses focus (by default the game pauses, and "
                          "time away is not counted as play time)")
     ap.add_argument("--no-autosave", action="store_true",
-                    help="don't write autosave states (every 5 min and on quit); F8 toggles in game")
+                    help="don't write autosave states at all; F8 toggles in game")
+    ap.add_argument("--autosave-every", type=float, default=5.0, metavar="MINUTES",
+                    help="minutes of play between timed autosaves (default 5; 0 turns the timed ones off; at most 1440)")
+    ap.add_argument("--no-autosave-on-quit", action="store_true",
+                    help="don't write one more autosave when the window is closed mid-game")
+    ap.add_argument("--no-autosave-on-loading", action="store_true",
+                    help="don't write an autosave a few seconds after each Loading screen")
     ap.add_argument("--load-state", metavar="SLOT",
                     help="resume a save state: 1-9, auto (newest autosave), auto2 or auto3")
     ap.add_argument("--no-speed-patch", nargs="?", const="all", default="", metavar="NAMES",
@@ -158,6 +164,8 @@ def main(argv=None):
         run_window(emu, scale=args.scale, shots_dir=args.screenshots or default_screenshot_dir(), filt=args.filter,
                    slot=slot if args.load_state and isinstance(slot, int) else 1,
                    autosave=not args.no_autosave, pause_on_focus_loss=not args.no_focus_pause,
+                   autosave_minutes=args.autosave_every, autosave_on_quit=not args.no_autosave_on_quit,
+                   autosave_on_loading=not args.no_autosave_on_loading,
                    dark_screen=args.dark_screen, ask_before_quit=ask_quit,
                    remember_no_quit_prompt=lambda: set_launcher_option("ask_before_quit", False))
     finally:

@@ -360,7 +360,7 @@ def load_state(emu, path: str) -> dict:
 
 
 # ----------------------------------------------------------------------------- slots
-AUTOSAVE_EVERY_MS = 5 * 60 * 1000      # of play time (the clock stops while paused)
+AUTOSAVE_EVERY_MS = 5 * 60 * 1000      # of play time (the clock stops while paused); the Options tab can change it
 AUTOSAVES_KEPT = 3
 AREA_SAVE_DELAY_MS = 3000                # an autosave this long after "Loading..." has gone from the screen
 AREA_SAVE_MIN_GAP_MS = 30 * 1000         # but never within this long of the last autosave (a door, then another)
@@ -376,7 +376,10 @@ class StateSlots:
         self.emu = emu
         self.folder = folder or os.path.join(emu.data_dir, "states")
         self.slot = 1
-        self.autosave_enabled = True
+        self.autosave_enabled = True          # the master switch (F8); the three kinds below say what it allows
+        self.autosave_every_ms = AUTOSAVE_EVERY_MS     # 0: no timed autosave
+        self.autosave_on_quit = True          # one more when the window is closed mid-game
+        self.autosave_on_loading = True       # a checkpoint a few seconds after each "Loading..." screen
         self.last_auto_ms = emu.clock_ms()
         self.last_autosave_ms = None          # when the last autosave was written (any kind); None: none yet
 
@@ -428,14 +431,26 @@ class StateSlots:
         return f"Loaded {self.label(slot)} (saved {when})"
 
     def autosave_due(self) -> bool:
-        return (self.autosave_enabled and bool(self.emu.applet_ptr)
-                and self.emu.clock_ms() - self.last_auto_ms >= AUTOSAVE_EVERY_MS)
+        return (self.autosave_enabled and self.autosave_every_ms > 0 and bool(self.emu.applet_ptr)
+                and self.emu.clock_ms() - self.last_auto_ms >= self.autosave_every_ms)
+
+    def describe_autosave(self) -> str:
+        """What F8 says: which kinds of autosave are on."""
+        kinds = []
+        if self.autosave_every_ms > 0:
+            mins = self.autosave_every_ms / 60000
+            kinds.append(f"every {mins:g} min")
+        if self.autosave_on_loading:
+            kinds.append("at loading screens")
+        if self.autosave_on_quit:
+            kinds.append("on quit")
+        return ", ".join(kinds)
 
     def area_save_due(self) -> bool:
         """True a few seconds after the game finished a "Loading..." screen (a new area): a good
         moment for a checkpoint. The caller clears emu.last_loading_ms and decides whether to save."""
         loading = getattr(self.emu, "last_loading_ms", None)
-        return (self.autosave_enabled and loading is not None and bool(self.emu.applet_ptr)
+        return (self.autosave_enabled and self.autosave_on_loading and loading is not None and bool(self.emu.applet_ptr)
                 and self.emu.clock_ms() - loading >= AREA_SAVE_DELAY_MS)
 
     def area_save_allowed(self) -> bool:

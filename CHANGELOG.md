@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### New
+- **The Options tab is redesigned, and autosave is split in three.** Settings now sit in boxes (Window, While playing,
+  Screenshots, Online scores, Speed-ups) in two columns, and the "Window size note" box and its title are gone: its tip is one
+  small gray line under the size choices. Autosave is three separate options: every N minutes (type the number; 1 to 120,
+  default 5), when you quit, and at loading screens; F8 in game says which are on. Command line: `--autosave-every MINUTES`
+  (0 turns the timed ones off), `--no-autosave-on-quit`, `--no-autosave-on-loading` (`--no-autosave` still turns them all off,
+  and a launcher setting from before the split that had autosave off keeps all three off). New: the screenshot box lists the
+  pictures in the screenshot folder (newest first, by the time they were taken) with a preview of the one selected, and small
+  icons instead of text buttons: a folder to choose the folder, a picture to open the selected one and a folder to open the
+  folder (double-click opens one). The launcher window is a little taller (692 px, was 649) and the four website launcher pictures
+  were retaken (the site files are changed, not deployed).
 - **Agrabah's twangy rhythm part can be heard.** The "parapa pa pa pa" part that lands with the bass is a koto in
   the game's MIDI, and the built-in synth played it as a soft harp that the strings buried (it carried about a tenth
   of the sound between 600 Hz and 2.4 kHz). Banjo, koto, shamisen and sitar (the four picked instruments, GM 104 to

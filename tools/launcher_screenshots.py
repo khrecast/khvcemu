@@ -78,6 +78,13 @@ def main(out: str, everything: bool = False):
         os.makedirs(os.path.join(data, "files"), exist_ok=True)
         if os.path.isfile(os.path.join(real, "files", "savegame.dat")):
             shutil.copy(os.path.join(real, "files", "savegame.dat"), os.path.join(data, "files", "savegame.dat"))
+        # the Options tab lists the screenshot folder: show a few of the frames F12 saved here (khvcemu_*.png in the
+        # repository folder, if there are any) from the profile's own Pictures/khvcemu, which is the default folder
+        import glob
+        shots = os.path.join(tmp, "Pictures", "khvcemu")
+        os.makedirs(shots, exist_ok=True)
+        for f in sorted(glob.glob(os.path.join(ROOT, "khvcemu_*.png")))[-3:]:
+            shutil.copy2(f, shots)
         with open(os.path.join(tmp, ".khvcemu", "launcher.json"), "w") as f:
             json.dump({"dump": ROOT, "tab": "play"}, f)
 

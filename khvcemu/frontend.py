@@ -20,7 +20,7 @@ HELP = """Controls (phone keypad):
   Backspace .............. CLR                      F10 mute   F11 picture filter   F12 screenshot
   Esc quit (asks first)
   F5 save state   F9 load state   F6/F7 previous/next slot (or Shift+1..9; slot 0 = autosave)
-  F8 autosave on/off (every 5 min of play)"""
+  F8 autosave on/off (the kinds chosen in the Options tab: every few minutes of play, at loading screens, on quit)"""
 
 
 def build_keymap(pygame):
@@ -375,7 +375,8 @@ def window_unfocused(pygame) -> bool:
 
 def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots_dir: str = ".",
                slot: int = 1, autosave: bool = True, filt: str = "nearest", pause_on_focus_loss: bool = True,
-               dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None):
+               dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None,
+               autosave_minutes: float = 5.0, autosave_on_quit: bool = True, autosave_on_loading: bool = True):
     """scale 0 = pick automatically. The window can be resized or maximised;
     the picture keeps the phone's aspect ratio (black bars fill the rest)."""
     from .savestate import StateError, StateSlots
@@ -415,6 +416,10 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
     slots = StateSlots(emu)
     slots.slot = slot
     slots.autosave_enabled = autosave
+    minutes = autosave_minutes if autosave_minutes == autosave_minutes else 0.0           # nan: no timed autosave
+    slots.autosave_every_ms = int(min(max(0.0, minutes), 24 * 60.0) * 60_000)           # 0: none; a day at most
+    slots.autosave_on_quit = autosave_on_quit
+    slots.autosave_on_loading = autosave_on_loading
     toast = ["", 0.0]           # text, monotonic time it disappears
     mute_icon = [None, 0.0]     # muted or not, monotonic time the speaker icon disappears
     save_icon = [0.0]           # monotonic time the floppy disc (autosaved) disappears; 0 = not shown
@@ -631,8 +636,11 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                     slots.slot = order[(order.index(slots.slot) + step) % len(order)]
                     show(slots.describe(slots.slot) + "   (F5 save, F9 load)")
                 elif ev.key == pygame.K_F8:
-                    slots.autosave_enabled = not slots.autosave_enabled
-                    show("Autosave on (every 5 minutes)" if slots.autosave_enabled else "Autosave off")
+                    kinds = slots.describe_autosave()
+                    if slots.autosave_enabled or kinds:
+                        slots.autosave_enabled = not slots.autosave_enabled
+                    show(f"Autosave on ({kinds})" if slots.autosave_enabled else
+                         "Autosave off" if kinds else "Autosave is off: tick a kind in the Options tab")
                 elif ev.mod & pygame.KMOD_SHIFT and pygame.K_0 <= ev.key <= pygame.K_9:
                     slots.slot = ev.key - pygame.K_0  # Shift+digit picks a slot (plain digits are phone keys)
                     show(slots.describe(slots.slot) + "   (F5 save, F9 load)")
@@ -700,7 +708,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
         wait = 0.002 if due is None else (due - emu.clock_ms()) / 1000
         if wait > 0.001:
             time.sleep(min(wait, 0.005))
-    if emu.applet_ptr and not emu.exit_requested and played[0] and slots.autosave_enabled:
+    if emu.applet_ptr and not emu.exit_requested and played[0] and slots.autosave_enabled and slots.autosave_on_quit:
         # leaving mid-game (Esc / window close): keep one more autosave
         try:
             slots.autosave()

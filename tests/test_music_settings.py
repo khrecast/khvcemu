@@ -477,7 +477,8 @@ class SoundTabTests(unittest.TestCase):
             for key, want in L.OPTION_DEFAULTS.items():
                 self.assertIn(key, ("scale", "font_size", "mute", "hires_text", "filter",
                                     "autosave", "pause_on_focus_loss", "screenshots", "dark_screen", "ask_before_quit", "share_scores",
-                                    "leaderboard_url", "speed_patches_off"))
+                                    "leaderboard_url", "speed_patches_off", "autosave_minutes", "autosave_on_quit",
+                                    "autosave_on_loading"))
             app.close()
 
     def test_tab_names_are_drawn_in_the_menu_font_and_fall_back_to_text(self):

@@ -182,10 +182,13 @@ include everything). The launcher:
   row yourself) and lets you **Start at world**: Island,
   Agrabah or Castle, after warning you that it replaces your current save
   (which is backed up first);
-* **Options**: window size, text size, mute, smooth hi-res text, the picture
-  filter, autosave, whether the game pauses when its window loses focus, whether Esc or the window's X
-  asks before quitting, the folder F12 screenshots go to, a **dark screen** (the rest of the monitor goes black behind the game
-  window), the 3D **speed-ups** (on by default, same picture), and whether to share high scores (and where). **Restore default
+* **Options**, in grouped boxes: **Window** (size, text size, picture filter, smooth hi-res text, a
+  **dark screen** that blacks out the rest of the monitor behind the game); **While playing** (mute, whether the
+  game pauses when you click away, whether Esc or the window's X asks before quitting, and three separate
+  autosaves: every N minutes (the number is yours to type), when you quit, and at loading screens);
+  **Screenshots (F12)** (the folder, chosen with the folder icon; a list of the pictures in it by the time they
+  were taken, newest first; a preview of the one selected; and icons to open it or the folder; double-click opens one); **Online scores** (whether to share high scores, and
+  where); and the 3D **speed-ups** (on by default, same picture). **Restore default
   settings** puts all of these back if one was changed by mistake (your saves, game
   folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
@@ -316,7 +319,10 @@ Other options:
 | `--filter MODE` | How the picture is enlarged to the window: `nearest` (crisp pixel blocks, the default), `smooth` (soft), `sharp` (crisp blocks of even width, edges softened only for the last fraction; best at odd window sizes) or `scale2x` (rounds off staircase edges without blurring). F11 cycles them in game; the launcher has the same choice under **Picture**. Only the picture: hi-res text is drawn on top either way, and F12 saves the raw frame. |
 | `--hires-text` | Redraws the game's text sharply at your window's resolution. By default text is drawn at the phone's 176x220 and scales with the picture. (The launcher's **Smooth hi-res text** option.) |
 | `--leaderboard URL` | Shares high scores with a leaderboard server (see [`server/`](server/README.md)). Off by default on the command line (the launcher turns it on for the project's server). Scores stay offline too; nothing identifying is sent. |
-| `--no-autosave` | Turns off autosave states (F8 toggles it in game). |
+| `--no-autosave` | Turns off all autosave states (F8 toggles them in game). |
+| `--autosave-every MINUTES` | Minutes of play between timed autosaves (default 5; `0` turns the timed ones off). The launcher's Options tab has the box. |
+| `--no-autosave-on-quit` | No extra autosave when the window is closed mid-game. |
+| `--no-autosave-on-loading` | No autosave a few seconds after each Loading screen. |
 | `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
@@ -365,9 +371,9 @@ saves, which only happen at save points.
   **Shift+1–9** jumps straight to a slot. A message at the top of the window
   shows the slot and whether it's empty. The plain number keys are still
   phone keys.
-* Autosave can be turned off with **F8** in game, `--no-autosave`, or the
-  launcher's checkbox.
-* **Autosave:** khvcemu writes one every 5 minutes of play (saving by hand does not restart that
+* Autosave can be turned off with **F8** in game (it says which kinds are on), `--no-autosave`, or the
+  launcher's checkboxes: the three kinds can be switched separately.
+* **Autosave:** khvcemu writes one every 5 minutes of play (or the number you set; saving by hand does not restart that
   timer), a few seconds after each "Loading..." screen when you enter a new area (not within 30
   seconds of the last autosave), and when you quit mid-game (Esc or the window's close button). A
   small floppy disc shows in the bottom-left corner when one is written, so it never covers the
