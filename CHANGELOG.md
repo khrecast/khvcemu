@@ -3,6 +3,61 @@
 ## Unreleased
 
 ### New
+- **Change the game's keys.** The Controls tab's keys (W, A, S, D, Space for the action, F, Z, Q, E and Backspace) are now buttons: click one, press the
+  new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
+  puts them back. Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used; the arrows, Enter and 5 (the action), number keys, F1, F2,
+  `[` and `*` keep working, and the F keys and Esc stay Re:Cast's. Saved with the launcher's settings, and passed to the
+  game as `--key ACTION=KEY` (for example `--key UP=i`, repeatable). **Restore default settings** does not touch them.
+- **Delete a screenshot, and clear the cached music.** The Options tab's screenshot box has a red x under the folder icon:
+  it deletes the selected screenshot after asking (on Windows it goes to the Recycle Bin, so it can be restored). The question has a ticked box ("Ask me before
+  deleting a screenshot"): unticked and answered Yes, it stops asking (Restore default settings brings it back). If
+  Windows refuses (the picture is open in another program, such as Photos), a message says so. The Sound
+  tab's Advanced window has **Clear cached music**, with how many rendered tunes are kept and their size; the game renders
+  them again the next time it starts. Only the rendered tunes are deleted (and any half-written ones).
+- **The Options tab is redesigned, and autosave is split in three.** Settings now sit in boxes (Window, While playing,
+  Screenshots, Online scores, Speed) in two columns, and the "Window size note" box and its title are gone: its tip is one
+  small gray line under the size choices. Autosave is three separate options, on the Saves tab under the list of states: every N minutes (type the number;
+  1 to 120, default 5), when you quit, and at loading screens; F8 in game says which are on. Command line: `--autosave-every MINUTES`
+  (0 turns the timed ones off), `--no-autosave-on-quit`, `--no-autosave-on-loading` (`--no-autosave` still turns them all off,
+  and a launcher setting from before the split that had autosave off keeps all three off). New: the screenshot box lists the
+  pictures in the screenshot folder (newest first, by the time they were taken) with a larger preview of the one selected, and small
+  icons instead of text buttons: a folder to choose the folder, a picture to open the selected one and a folder to open the
+  folder (double-click opens one). **Restore default settings** resets only the Options tab (an info bubble beside it says so; the window size tip is a bubble too):
+  the autosave settings are yours to manage on the Saves tab. The launcher window is about the same height as before (624 px; the Saves tab's list shows six rows with a scroll bar and its preview is a little smaller, so it is no taller than the Sound and Options tabs) and the four website launcher pictures
+  were retaken (the site files are changed, not deployed).
+- **Agrabah's twangy rhythm part can be heard.** The "parapa pa pa pa" part that lands with the bass is a koto in
+  the game's MIDI, and the built-in synth played it as a soft harp that the strings buried (it carried about a tenth
+  of the sound between 600 Hz and 2.4 kHz). Banjo, koto, shamisen and sitar (the four picked instruments, GM 104 to
+  107) now have their own voice: bright, dry, short, with a pick click. Measured against the authentic recording of
+  Agrabah, the whole tune's balance between 300 Hz and 9.6 kHz is much closer (squared error 40 dB to 11 dB), and
+  the part now holds between a third and three fifths of the energy from 600 Hz to 4.8 kHz instead of about a tenth.
+  Only the koto (GM 107) is used by the game, so no other tune changes; the Harp and guitar slider on the Sound tab
+  controls it. Tuned by measurement against the recording (the knobs are the TWANG_ constants in
+  `khvcemu/midi_synth.py`).
+- **Faster 3D: two speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
+  module is byte for byte the known one. (1) A tighter version of the function that fills a row of a blended or
+  see-through polygon pixel by pixel (about half of the game's work in some scenes): same pixels in about half the
+  instructions, checked on 3,000 random rows. (2) A cache for the 4x4 matrix inversion the engine repeats hundreds of
+  times a frame on a few hundred different matrices: the key is all 17 input words, so an answer is exactly what the
+  original would have computed (checked on 1,500 random calls). Every scene measured gives the same picture frame by
+  frame with and without them. Real-time factor (1.0 = the 25 fps the game asks for), without and with: a fight 0.70
+  to 0.79, Agrabah's lava cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75 to 0.93. Three
+  more (a faster plain fill, a faster texture fill, a floating point shortcut) were built, checked and dropped: they
+  cut instructions but not time, or added instructions. The launcher's Options tab has a **Speed enhancements...**
+  button that opens a window with a switch and an info bubble (what it does, when to turn it off) for each;
+  `--no-speed-patch[=span,matinv]` turns them off on the command line. New tools: `tools/bench_state.py` and
+  `tools/profile_state.py` (speed and profile from your own save states), `tools/bench_speed_patches.py`. Needs an
+  installer rebuild to ship.
+- **Website: the search for Wonderland is now the top goal.** A gold banner above the hero, a "Find Wonderland"
+  item first in the menu, and a new section right after the hero ("Do you still have the phone?") with a
+  checklist, the phone models and two screenshots; the old section at the bottom is gone. The phone date range is
+  now "the V CAST years (2005 to 2012)" on the website and in the README, and the splash screen in the game no
+  longer says "since 2007". Needs the website deployed (and an installer rebuild for the splash wording).
+- **A stats dashboard button, and more detail in the website counters.** `tools/show_site_stats.bat` opens a page in your browser with the visits per day, time of day, where visitors came from, countries,
+  kinds of computer, how far down the page people got, and clicks. The counters now also tally, as separate counts
+  kept apart and never stored per visit (on a very quiet day they could still be matched up by eye), each main-page opening's hour, country (Cloudflare's coarse location, no address kept),
+  kind of computer and referring website (its name only, from a fixed list), and which section of the page was
+  scrolled to. The footer says so. Needs the server and the website deployed.
 - **Faster loading: the music is rendered ahead of time.** The built-in synth used to build each tune the
   first time the game played it, which froze the game for about a second or two at the title screen and at
   each world's start (the title tune took 1.9 s). Now all the tunes are rendered in the background as the
@@ -43,7 +98,7 @@
   dims and a "PAUSED - Click the window to continue" box shows, so a paused game never looks frozen.
 - **Dark screen option.** The Options tab's "Dark screen" (`--dark-screen`) blacks out the rest of
   the monitor the game window is on, behind the window, for playing without distractions.
-  Clicking the black area just brings the game back to the front; minimising the game removes it;
+  Clicking the black area just brings the game back to the front; minimizing the game removes it;
   the game window's X button still asks "Quit the game?".
 - **F12 tells you where the screenshot went.** A small "Saved: ..." message shows at the top of
   the window (or "Screenshot failed"). Screenshots now go to a `khvcemu` folder in your Pictures

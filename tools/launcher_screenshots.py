@@ -7,7 +7,7 @@ PrintWindow (ordinary screen grabs of a Tk window come out blank here). It runs 
 temporary profile holding copies of your save states, so the pictures show your newest save
 but no personal paths or settings, and nothing is written to your real profile. Writes the
 four pictures the website uses, launcher_play/saves/options/sound.png; --all also writes
-launcher_controls.png and launcher_advanced.png (not used on the site: check them before
+launcher_controls.png, launcher_speed.png and launcher_advanced.png (not used on the site: check them before
 putting them in site/assets, which is published as a whole).
 """
 import ctypes
@@ -78,6 +78,13 @@ def main(out: str, everything: bool = False):
         os.makedirs(os.path.join(data, "files"), exist_ok=True)
         if os.path.isfile(os.path.join(real, "files", "savegame.dat")):
             shutil.copy(os.path.join(real, "files", "savegame.dat"), os.path.join(data, "files", "savegame.dat"))
+        # the Options tab lists the screenshot folder: show a few of the frames F12 saved here (khvcemu_*.png in the
+        # repository folder, if there are any) from the profile's own Pictures/khvcemu, which is the default folder
+        import glob
+        shots = os.path.join(tmp, "Pictures", "khvcemu")
+        os.makedirs(shots, exist_ok=True)
+        for f in sorted(glob.glob(os.path.join(ROOT, "khvcemu_*.png")))[-3:]:
+            shutil.copy2(f, shots)
         with open(os.path.join(tmp, ".khvcemu", "launcher.json"), "w") as f:
             json.dump({"dump": ROOT, "tab": "play"}, f)
 
@@ -95,6 +102,11 @@ def main(out: str, everything: bool = False):
             app.tabs.select(app.tab_frames[key])
             capture(root, os.path.join(out, f"launcher_{key}.png"))
         if everything:
+            app.tabs.select(app.tab_frames["options"])
+            app.open_speed_window()
+            app.speed_win.geometry("+700+60")
+            capture(app.speed_win, os.path.join(out, "launcher_speed.png"))
+            app.close_speed_window()
             app.open_advanced()
             app.adv_win.geometry("+700+60")
             capture(app.adv_win, os.path.join(out, "launcher_advanced.png"))

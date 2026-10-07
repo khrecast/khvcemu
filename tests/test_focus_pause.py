@@ -355,6 +355,61 @@ class FocusPauseTests(unittest.TestCase):
         self.assertGreater(len(icons), 0, "a floppy disc in the corner says it autosaved")
         self.assertFalse([t for t in toasts if "utosaved" in t], "and no text message over the game")
 
+    def autosave_script(self, wait, quit_at_end=True):
+        pg = self.pg
+
+        def script(emu, post, m):
+            post(pg.KEYDOWN, key=pg.K_UP, mod=0, unicode="", scancode=0)      # a game key: something was played
+            post(pg.KEYUP, key=pg.K_UP, mod=0, unicode="", scancode=0)
+            time.sleep(wait)
+            m["before_quit"] = os.path.exists(os.path.join(self.tmp.name, "states", "auto1.khs"))
+            post(pg.QUIT)
+            time.sleep(0.2)
+            post(pg.KEYDOWN, key=pg.K_RETURN, mod=0, unicode="", scancode=0)
+        return script
+
+    def test_the_timed_autosave_uses_the_interval_from_the_launcher(self):
+        """--autosave-every: 0.03 minutes is under two seconds of play; 0 turns the timed autosave off."""
+        m = self.run_script(self.autosave_script(3.0), autosave=True, autosave_minutes=0.03,
+                            autosave_on_quit=False, autosave_on_loading=False)
+        self.assertTrue(m["before_quit"], "saved by the timer alone")
+        self.tmp.cleanup()
+        self.tmp = tempfile.TemporaryDirectory()
+        m = self.run_script(self.autosave_script(3.0), autosave=True, autosave_minutes=0,
+                            autosave_on_quit=False, autosave_on_loading=False)
+        self.assertFalse(m["before_quit"], "0 minutes: no timed autosave")
+
+    def test_autosave_on_quit_has_its_own_switch(self):
+        states = lambda: os.path.exists(os.path.join(self.tmp.name, "states", "auto1.khs"))  # noqa: E731
+        self.run_script(self.autosave_script(0.5), autosave=True, autosave_minutes=0, autosave_on_loading=False)
+        self.assertTrue(states(), "closing the window mid-game writes one more autosave")
+        self.tmp.cleanup()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.run_script(self.autosave_script(0.5), autosave=True, autosave_minutes=0, autosave_on_loading=False,
+                        autosave_on_quit=False)
+        self.assertFalse(states(), "unticked: it is not written")
+
+    def test_the_loading_screen_autosave_has_its_own_switch(self):
+        from khvcemu import savestate
+        pg = self.pg
+        real = savestate.AREA_SAVE_MIN_GAP_MS
+        savestate.AREA_SAVE_MIN_GAP_MS = 0
+        self.addCleanup(setattr, savestate, "AREA_SAVE_MIN_GAP_MS", real)
+
+        def script(emu, post, m):
+            post(pg.KEYDOWN, key=pg.K_UP, mod=0, unicode="", scancode=0)
+            post(pg.KEYUP, key=pg.K_UP, mod=0, unicode="", scancode=0)
+            time.sleep(0.3)
+            emu.last_loading_ms = emu.clock_ms()
+            time.sleep(4.5)
+            m["saved"] = os.path.exists(os.path.join(self.tmp.name, "states", "auto1.khs"))
+            post(pg.QUIT)
+            time.sleep(0.2)
+            post(pg.KEYDOWN, key=pg.K_RETURN, mod=0, unicode="", scancode=0)
+
+        m = self.run_script(script, autosave=True, autosave_minutes=0, autosave_on_quit=False, autosave_on_loading=False)
+        self.assertFalse(m["saved"], "unticked: a Loading screen does not save")
+
     def test_the_floppy_disc_is_small_and_stays_in_the_bottom_left_corner(self):
         import khvcemu.frontend as fe
         pg = self.pg
