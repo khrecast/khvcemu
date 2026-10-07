@@ -446,9 +446,10 @@ class SoundTabTests(unittest.TestCase):
                                           "filter": "sharp", "soundfont": "x.sf2", "autosave": False,
                                           "pause_on_focus_loss": False, "screenshots": "D:/shots",
                                           "share_scores": False, "leaderboard_url": "https://typo.example",
-                                          "music": "piano=0.5"})
+                                          "music": "piano=0.5", "speed_patches_off": ["matinv"]})
             L.save_config = lambda c: saved.append(dict(c))
             self.assertEqual(app.scale.get(), "4")
+            self.assertEqual(app.opts()["speed_patches_off"], ["matinv"])
             self.assertEqual(app.leaderboard.get(), "https://typo.example")
             asked = []
             real = L.messagebox.askyesno
@@ -465,6 +466,7 @@ class SoundTabTests(unittest.TestCase):
                              ("Auto", "11", False, False))
             self.assertEqual((opts["filter"], opts["autosave"], opts["share_scores"]), ("nearest", True, True))
             self.assertEqual((opts["pause_on_focus_loss"], opts["screenshots"]), (True, ""))
+            self.assertEqual(opts["speed_patches_off"], [], "the 3D speed-ups are back on")
             self.assertEqual(opts["soundfont"], "x.sf2", "the Sound tab's SoundFont is left alone")
             self.assertEqual(app.leaderboard.get(), L.LEADERBOARD_URL)
             self.assertEqual(opts["leaderboard"], L.LEADERBOARD_URL)
@@ -475,7 +477,7 @@ class SoundTabTests(unittest.TestCase):
             for key, want in L.OPTION_DEFAULTS.items():
                 self.assertIn(key, ("scale", "font_size", "mute", "hires_text", "filter",
                                     "autosave", "pause_on_focus_loss", "screenshots", "dark_screen", "ask_before_quit", "share_scores",
-                                    "leaderboard_url"))
+                                    "leaderboard_url", "speed_patches_off"))
             app.close()
 
     def test_tab_names_are_drawn_in_the_menu_font_and_fall_back_to_text(self):

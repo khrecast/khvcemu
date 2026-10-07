@@ -20,7 +20,7 @@ import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import music_settings
+from . import music_settings, swerve_patch
 from .paths import data_home, find_wonderland_music, icon_file, no_window, set_app_id, use_bundled_tools
 
 PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -129,6 +129,9 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
         cmd += ["--screenshots", opts["screenshots"]]
     if opts.get("dark_screen"):
         cmd.append("--dark-screen")
+    off = [n for n in swerve_patch.NAMES if n in (opts.get("speed_patches_off") or ())]
+    if off:                                                  # the 3D engine speed-ups (same picture), each can be off
+        cmd += ["--no-speed-patch", ",".join(off)]
     if not opts.get("ask_before_quit", True):
         cmd.append("--no-quit-prompt")
     if opts.get("leaderboard"):
@@ -145,7 +148,7 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
 OPTION_DEFAULTS = {"scale": "Auto", "font_size": 11, "mute": False, "hires_text": False,
                    "filter": "nearest", "autosave": True, "pause_on_focus_loss": True, "screenshots": "",
                    "dark_screen": False, "ask_before_quit": True, "share_scores": True,
-                   "leaderboard_url": ""}
+                   "leaderboard_url": "", "speed_patches_off": []}
 
 
 def fluidsynth_found() -> bool:
@@ -444,6 +447,16 @@ class Launcher:
                         command=self.sync_share).grid(row=4, column=0, sticky="w", padx=6, pady=(0, 4))
         self.share_entry = ttk.Entry(o, textvariable=self.leaderboard)
         self.share_entry.grid(row=4, column=1, columnspan=5, sticky="we", padx=(0, 6), pady=(0, 4))
+        # the 3D engine's speed-ups: the same picture, faster; each can be switched off (for troubleshooting)
+        off = set(self.cfg.get("speed_patches_off") or ())
+        self.speed_vars = {n: tk.BooleanVar(value=n not in off) for n in swerve_patch.NAMES}
+        speed = ttk.Frame(o)
+        speed.grid(row=7, column=0, columnspan=6, sticky="w", padx=6, pady=(2, 0))
+        ttk.Label(speed, text="Speed-ups (same picture):").pack(side="left")
+        for n in swerve_patch.NAMES:
+            check = ttk.Checkbutton(speed, text=swerve_patch.LABELS[n], variable=self.speed_vars[n])
+            check.pack(side="left", padx=(10, 0))
+            self.tooltip(check, swerve_patch.HINTS[n])
         ttk.Button(o, text="Restore default settings", command=self.restore_defaults,
                    style="Small.TButton").grid(row=8, column=0, columnspan=2, sticky="w", padx=6, pady=(8, 2))
         ttk.Label(o, text="Puts these options back as they were; your saves, game folder and "
@@ -606,6 +619,7 @@ class Launcher:
                 "soundfont": self.soundfont.get().strip(), "autosave": self.autosave.get(),
                 "pause_on_focus_loss": self.focus_pause.get(), "screenshots": self.screenshots.get().strip(),
                 "dark_screen": self.dark.get(), "ask_before_quit": self.ask_quit.get(),
+                "speed_patches_off": [n for n, v in self.speed_vars.items() if not v.get()],
                 "leaderboard": self.leaderboard_url() if self.share.get() else "",
                 # kept only when changed, so a later change of the default server reaches everyone else
                 "leaderboard_url": self.leaderboard_url() if self.leaderboard_url() != LEADERBOARD_URL else "",
@@ -1549,8 +1563,8 @@ class Launcher:
         if ask and not messagebox.askyesno(
                 "Restore default settings",
                 "Put window size, text size, mute, hi-res text, picture filter, autosave, pausing on "
-                "focus loss, the quit question, the dark screen, the screenshot folder and score sharing (and its "
-                "address) back to their defaults?\n\n"
+                "focus loss, the quit question, the dark screen, the speed-ups, the screenshot folder and score sharing "
+                "(and its address) back to their defaults?\n\n"
                 "Your saves, game folder and Sound tab are not changed."):
             return
         d = OPTION_DEFAULTS
@@ -1564,6 +1578,8 @@ class Launcher:
         self.screenshots.set(d["screenshots"])
         self.dark.set(d["dark_screen"])
         self.ask_quit.set(d["ask_before_quit"])
+        for var in self.speed_vars.values():
+            var.set(True)
         self.share.set(d["share_scores"])
         self.leaderboard.set(LEADERBOARD_URL)
         self.sync_share()

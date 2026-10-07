@@ -335,6 +335,7 @@ def load_state(emu, path: str) -> dict:
         emu._cancel_fn = cancel
     elif hasattr(emu, "_cancel_fn"):
         del emu._cancel_fn
+    emu.reapply_speed_patch()      # the restored memory has the 3D engine as it was when the state was made
     emu.helpers.rng.setstate(payload["helpers"]["rng"])
     emu.helpers.last_error = payload["helpers"]["last_error"]
 

@@ -185,7 +185,7 @@ include everything). The launcher:
 * **Options**: window size, text size, mute, smooth hi-res text, the picture
   filter, autosave, whether the game pauses when its window loses focus, whether Esc or the window's X
   asks before quitting, the folder F12 screenshots go to, a **dark screen** (the rest of the monitor goes black behind the game
-  window), and whether to share high scores (and where). **Restore default
+  window), the 3D **speed-ups** (on by default, same picture), and whether to share high scores (and where). **Restore default
   settings** puts all of these back if one was changed by mistake (your saves, game
   folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
@@ -319,6 +319,7 @@ Other options:
 | `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
+| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the pixel fill) and `matinv` (the matrix cache). The Options tab has a checkbox for each. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
 | `--mute` | Turns off audio output. |
@@ -461,7 +462,17 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   million ARM instructions per frame. The game asks for 25 fps; 3D scenes ran
   at about real-time speed on the machine this was built on, so slower PCs
   will get fewer frames. The game reads the clock each frame, so it should
-  mostly drop frames rather than slow down.
+  mostly drop frames rather than slow down. Two things dominate: the per-pixel
+  fill of a polygon row (about half of the instructions in some scenes), and a
+  4x4 matrix inversion the 3D engine repeats hundreds of times a frame on a few
+  hundred different matrices. Re:Cast speeds both up in memory (never in the
+  game files), only when the module is byte for byte the known one: a tighter
+  fill loop, and a cache of the inversion's answers (the key is all 17 input
+  words, so a hit is exactly what the original would have computed). The picture
+  is identical (checked frame by frame; see `khvcemu/swerve_patch.py`). Each can
+  be turned off in the Options tab or with `--no-speed-patch`. On the machine
+  this was built on, the Island's opening scene went from about 21 to about 25
+  frames per second and a walking scene from about 21 to about 23.
 * **Font.** The game asks for a custom font class (`0x0100a004`) that no
   firmware file provides, so text uses a host font (Verdana by default, drawn
   without smoothing). It's readable, but the shapes aren't the phone's; use
@@ -545,6 +556,7 @@ khvcemu/
   resfile.py    .bar/.mif resource files;  m3g.py  M3G section reader/writer (script patching)
   chapters.py   save seeding, Wonderland stand-in world + theme
   savestate.py  save states: memory pages + HLE objects + trap table, slots and autosaves
+  swerve_patch.py  speed-ups for the 3D engine: a faster pixel-fill loop and a matrix inversion cache (same picture; machine code made by tools/gen_swerve_patch.py)
   frontend.py   pygame window, keys, picture filters, real-time loop;  __main__.py  CLI
   launcher.py   the tkinter launcher;  paths.py  per-user folders, icons, bundled tools
 ```
@@ -571,6 +583,8 @@ python tools/frames.py <dump> out/ --save castle --keys 11000:DOWN,12000:SELECT,
 python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names (font not included)
 python tools/launcher_screenshots.py                        # Windows: retake the launcher screenshots for the website
 python tools/disasm.py <mod> 0x100000 <addr> [n]            # needs capstone
+python tools/profile_guest.py --root <dump> world           # which ARM blocks the 3D scene runs most in
+python tools/gen_swerve_patch.py                            # rebuild the speed-ups' machine code (needs keystone-engine)
 python tools/xrefs.py  <mod> 0x100000 savegame summary      # string cross-references
 python tools/build_installer.py | build_mac.py | build_linux.py   # installers, see above
 python tools/make_icon.py                                   # redraws the window icon

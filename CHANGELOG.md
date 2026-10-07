@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### New
+- **Faster 3D: two speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
+  module is byte for byte the known one. (1) A tighter version of the function that fills a row of a polygon
+  pixel by pixel (about half of the game's work in some scenes): same pixels in about half the instructions,
+  checked on 3,000 random rows. (2) A cache for the 4x4 matrix inversion the engine repeats hundreds of times a
+  frame on a few hundred different matrices: the key is all 17 input words, so an answer is exactly what the
+  original would have computed (checked on 1,500 random calls). A whole scene gives the same picture frame by
+  frame with and without them. On the build machine the Island's opening scene went from about 21 to about 25
+  frames per second and a walking scene from about 21 to about 23. The Options tab has a checkbox for each
+  ("Faster 3D fill", "Matrix cache"), `--no-speed-patch[=span,matinv]` turns them off, and the website's
+  launcher pictures were retaken. Needs an installer rebuild to ship.
 - **Website: the search for Wonderland is now the top goal.** A gold banner above the hero, a "Find Wonderland"
   item first in the menu, and a new section right after the hero ("Do you still have the phone?") with a
   checklist, the phone models and two screenshots; the old section at the bottom is gone. The phone date range is

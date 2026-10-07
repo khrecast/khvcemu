@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-from . import music_settings
+from . import music_settings, swerve_patch
 from .paths import default_screenshot_dir, get_launcher_option, set_launcher_option
 
 
@@ -80,6 +80,10 @@ def main(argv=None):
                     help="don't write autosave states (every 5 min and on quit); F8 toggles in game")
     ap.add_argument("--load-state", metavar="SLOT",
                     help="resume a save state: 1-9, auto (newest autosave), auto2 or auto3")
+    ap.add_argument("--no-speed-patch", nargs="?", const="all", default="", metavar="NAMES",
+                    help="turn off the 3D engine speed patches (they give the same picture, faster): all of them, or "
+                         "a comma separated list of: " + ", ".join(swerve_patch.NAMES) +
+                         ". Write --no-speed-patch=NAMES, or put a bare --no-speed-patch after the game folder")
     ap.add_argument("-v", "--verbose", action="store_true", help="log every BREW call category")
     args = ap.parse_args(argv)
     try:
@@ -102,10 +106,17 @@ def main(argv=None):
     w, h = (int(x) for x in args.screen.lower().split("x"))
     notes: list = []
     data = args.data or default_data_dir(args.dump, log=notes.append)
+    off = {x.strip() for x in args.no_speed_patch.split(",") if x.strip()}
+    if "all" in off:
+        off = set(swerve_patch.NAMES)
+    unknown = off - set(swerve_patch.NAMES)
+    if unknown:
+        ap.error(f"--no-speed-patch: unknown patch {', '.join(sorted(unknown))} (known: {', '.join(swerve_patch.NAMES)})")
+    speed_patches = [n for n in swerve_patch.NAMES if n not in off]
     emu = Emulator(args.dump, data, screen=(w, h), verbose=args.verbose, realtime=True,
                    audio=not args.mute, soundfont=args.soundfont,
                    skip_wonderland=not args.keep_wonderland, music=music, music_files=music_files,
-                   wonderland_volume=args.wonderland_volume)
+                   wonderland_volume=args.wonderland_volume, speed_patches=speed_patches)
     emu.leaderboard_url = args.leaderboard.strip()
     emu.font_size = args.font_size
     emu.font_name = args.font

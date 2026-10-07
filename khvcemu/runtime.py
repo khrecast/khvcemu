@@ -49,7 +49,7 @@ class Emulator:
                  log: Callable[[str], None] = None, realtime=True, audio=True,
                  soundfont: Optional[str] = None, skip_wonderland: bool = True,
                  music: Optional[dict] = None, music_files: Optional[dict] = None,
-                 wonderland_volume: float = 1.0):
+                 wonderland_volume: float = 1.0, speed_patches=None):
         self.game_root = os.path.abspath(game_root)
         self.data_dir = os.path.abspath(data_dir)
         os.makedirs(self.data_dir, exist_ok=True)
@@ -83,6 +83,9 @@ class Emulator:
         self.extensions: dict[int, ModuleInfo] = {}
         self.applets: dict[int, ModuleInfo] = {}
         self._loaded_ext: dict[str, int] = {}   # mod path -> IModule*
+        from . import swerve_patch                # speed patches for the 3D engine (same pictures); None = all
+        self.speed_patches = set(swerve_patch.NAMES if speed_patches is None else speed_patches)
+        self._swerve_base = 0
         self._next_ext_base = EXT_MODULE_BASE
 
         self.timers: list[Timer] = []
@@ -238,6 +241,29 @@ class Emulator:
         self.heap.free(pp)
         return obj if rc == 0 else 0
 
+    def reapply_speed_patch(self):
+        """Make the 3D engine's speed patches what `speed_patches` says: each one in place or not (also after a save
+        state replaced the module's memory, with or without them, before this run loaded the module)."""
+        from . import swerve_patch
+        if self._swerve_base:
+            bases = [self._swerve_base]
+        elif any(os.path.basename(p).lower() == "swv21brew.mod" for p in self._loaded_ext):
+            bases = range(EXT_MODULE_BASE, self._next_ext_base, EXT_MODULE_STRIDE)    # restored by a state: find it
+        else:
+            return
+        base = swerve_patch.find_module(self.cpu, bases)
+        if not base:
+            if self.speed_patches:
+                self.log("[load] 3D engine: speed patches not applied (the module is not the known one)")
+            return
+        self._swerve_base = base
+        for name in swerve_patch.NAMES:
+            if name in self.speed_patches:
+                if swerve_patch.apply(self.cpu, base, name):
+                    self.log(f"[load] 3D engine: speed patch '{name}' applied")
+            elif swerve_patch.remove(self.cpu, base, name):
+                self.log(f"[load] 3D engine: speed patch '{name}' removed")
+
     def load_extension(self, cls: int) -> int:
         info = self.extensions.get(cls)
         if info is None:
@@ -247,6 +273,13 @@ class Emulator:
             base = self._next_ext_base
             size = self._load_image(info.mod_path, base)
             self._next_ext_base += max(EXT_MODULE_STRIDE, (size + 0xFFFFF) & ~0xFFFFF)
+            if os.path.basename(info.mod_path).lower() == "swv21brew.mod":
+                from . import swerve_patch
+                if swerve_patch.module_is_known(self.cpu.read(base, size)):
+                    self._swerve_base = base
+                    self.reapply_speed_patch()
+                elif self.speed_patches:
+                    self.log("[load] 3D engine: speed patches not applied (the module is not the known one)")
             module = self._module_load(base)
             self._loaded_ext[info.mod_path] = module
             self.log(f"[load] extension '{info.title}' ready (IModule 0x{module:08x})")
