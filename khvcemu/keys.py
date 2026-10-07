@@ -14,21 +14,23 @@ AVK = {
 # it has unless changed (a pygame key name). Everything else on the keyboard keeps its job.
 REBINDABLE = (
     ("UP", "Move up", "w"), ("DOWN", "Move down", "s"), ("LEFT", "Move left", "a"), ("RIGHT", "Move right", "d"),
-    ("STAR", "Magic", "f"), ("0", "Status + items", "z"), ("SOFT1", "Pause, Continue", "q"),
-    ("SOFT2", "Back, Options", "e"),
+    ("SELECT", "Action, attack", "space"), ("STAR", "Magic", "f"), ("0", "Status + items", "z"), ("SOFT1", "Pause, Continue", "q"),
+    ("SOFT2", "Back, Options", "e"), ("CLR", "Back, pause", "backspace"),
 )
 DEFAULT_KEYS = {action: key for action, _what, key in REBINDABLE}
 ACTION_NAMES = {action: what for action, what, _key in REBINDABLE}
 # what also does the same job and cannot be changed
 ALSO = {"UP": "also the Up arrow", "DOWN": "also the Down arrow", "LEFT": "also the Left arrow",
-        "RIGHT": "also the Right arrow", "STAR": "also [ and the number pad *", "0": "also the 0 key",
-        "SOFT1": "also F1", "SOFT2": "also F2"}
-# keys that may be chosen: letters and a few punctuation keys. Digits, arrows, Enter, Space, Backspace, brackets,
+        "RIGHT": "also the Right arrow", "SELECT": "also Enter and 5", "STAR": "also [ and the number pad *", "0": "also the 0 key",
+        "SOFT1": "also F1", "SOFT2": "also F2",
+        "CLR": "twice: back to the title screen"}
+# keys that may be chosen: letters, Space, Tab, Backspace and a few punctuation keys. Digits, arrows, Enter, brackets,
 # the number pad, Esc and the F keys already have a job (the game's, or Re:Cast's) and stay as they are.
-ALLOWED_KEYS = frozenset("abcdefghijklmnopqrstuvwxyz") | frozenset(";'/,.-=`\\") | {"tab"}
+ALLOWED_KEYS = frozenset("abcdefghijklmnopqrstuvwxyz") | frozenset(";'/,.-=`\\") | {"tab", "space", "backspace"}
 # Tk key names (event.keysym) to pygame key names
 _TK_PUNCTUATION = {"semicolon": ";", "apostrophe": "'", "slash": "/", "comma": ",", "period": ".", "minus": "-",
-                   "equal": "=", "grave": "`", "backslash": "\\", "Tab": "tab"}
+                   "equal": "=", "grave": "`", "backslash": "\\", "Tab": "tab", "space": "space",
+                   "BackSpace": "backspace"}
 
 
 def key_from_tk(keysym: str):
@@ -39,7 +41,7 @@ def key_from_tk(keysym: str):
 
 def display_key(name: str) -> str:
     """How a key is shown to the player."""
-    return name.upper() if len(name) == 1 and name.isalpha() else name.capitalize() if name == "tab" else name
+    return name.upper() if len(name) == 1 and name.isalpha() else name.capitalize() if len(name) > 1 else name
 
 
 def parse_key_options(items) -> dict:
@@ -53,7 +55,7 @@ def parse_key_options(items) -> dict:
         if action not in DEFAULT_KEYS:
             raise ValueError(f"--key {item!r}: unknown action {action!r} (known: {', '.join(DEFAULT_KEYS)})")
         if key not in ALLOWED_KEYS:
-            raise ValueError(f"--key {item!r}: {key!r} cannot be used (letters, tab and the keys ; ' / , . - = ` can)")
+            raise ValueError(f"--key {item!r}: {key!r} cannot be used (letters, space, tab, backspace and the keys ; ' / , . - = ` can)")
         out[action] = key
     full = {**DEFAULT_KEYS, **out}
     seen = {}

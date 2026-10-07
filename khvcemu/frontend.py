@@ -16,8 +16,8 @@ HELP = """Controls (phone keypad; the letters can be changed with --key or on th
   WASD / Arrows / 2 4 6 8  move (Up = forward)      Enter / Space / 5 ... select, attack, jump
   F1 or Q ................ left softkey (Continue)   F2 or E ............. right softkey (Options/Back)
   F or [ or numpad * ..... magic (*)                Z or 0 .............. status + items
-  ] or numpad / .......... #                        0-9 (row or numpad) . number keys
-  Backspace .............. CLR                      F10 mute   F11 picture filter   F12 screenshot
+  Backspace .............. back: pauses, twice goes to the title screen   0-9 (row or numpad) number keys
+  F10 mute   F11 picture filter   F12 screenshot
   Esc quit (asks first)
   F5 save state   F9 load state   F6/F7 previous/next slot (or Shift+1..9; slot 0 = autosave)
   F8 autosave on/off (the kinds chosen on the launcher's Saves tab: every few minutes of play, at loading screens, on quit)"""
@@ -34,7 +34,6 @@ def build_keymap(pygame, custom=None):
         k.K_F1: "SOFT1", k.K_q: "SOFT1", k.K_F2: "SOFT2", k.K_e: "SOFT2",
         k.K_z: "0",                                   # Status + items (the game's 0 key)
         k.K_BACKSPACE: "CLR", k.K_LEFTBRACKET: "STAR", k.K_KP_MULTIPLY: "STAR",
-        k.K_RIGHTBRACKET: "POUND", k.K_KP_DIVIDE: "POUND",
     }
     for d in range(10):
         m[getattr(k, f"K_{d}")] = str(d)
@@ -391,7 +390,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None,
                autosave_minutes: float = 5.0, autosave_on_quit: bool = True, autosave_on_loading: bool = True,
                custom_keys=None):
-    """scale 0 = pick automatically. The window can be resized or maximised;
+    """scale 0 = pick automatically. The window can be resized or maximized;
     the picture keeps the phone's aspect ratio (black bars fill the rest)."""
     from .savestate import StateError, StateSlots
     make_dpi_aware()
@@ -412,7 +411,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
     pygame.display.set_caption(title)
     backdrop, game_window = open_backdrop(pygame, emu) if dark_screen else (None, None)
     backdrop_settles = time.monotonic() + BACKDROP_SETTLE_S   # opening it briefly takes the focus
-    emu.log(f"[frontend] window {w * scale}x{h * scale} (scale {scale}); drag the edges or maximise to resize")
+    emu.log(f"[frontend] window {w * scale}x{h * scale} (scale {scale}); drag the edges or maximize to resize")
     keymap = build_keymap(pygame, custom_keys)
     dirty = [True]
     emu.frame_listeners.append(lambda f: dirty.__setitem__(0, True))
@@ -576,7 +575,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                         and time.monotonic() < backdrop_settles):
                     continue                                     # the backdrop's own opening, not the player leaving
                 if ev.type == getattr(pygame, "WINDOWMINIMIZED", -1):
-                    backdrop.hide()                              # minimising the game must not leave a black screen
+                    backdrop.hide()                              # minimizing the game must not leave a black screen
                 elif ev.type == getattr(pygame, "WINDOWRESTORED", -1):
                     backdrop.show()
                     game_window.focus()

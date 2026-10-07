@@ -32,7 +32,7 @@ def main(argv=None):
     ap.add_argument("--scale", type=int, default=0,
                     help="window size as a multiple of the 176x220 screen (default: the largest that "
                          "fits your desktop, up to 2: the game looks best small); the window can also "
-                         "be resized or maximised")
+                         "be resized or maximized")
     ap.add_argument("--mute", action="store_true", help="no audio output")
     ap.add_argument("--soundfont", metavar="SF2",
                     help="render MIDI music with fluidsynth + this SoundFont instead of the built-in synth")

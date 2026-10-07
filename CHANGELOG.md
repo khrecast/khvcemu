@@ -3,9 +3,9 @@
 ## Unreleased
 
 ### New
-- **Change the game's keys.** The Controls tab's letter keys (W, A, S, D, F, Z, Q, E) are now buttons: click one, press the
+- **Change the game's keys.** The Controls tab's keys (W, A, S, D, Space for the action, F, Z, Q, E and Backspace) are now buttons: click one, press the
   new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
-  puts them back. Letters, tab and `; ' / , . - = `` ` `` can be used; the arrows, Enter, Space, number keys, F1, F2,
+  puts them back. Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used; the arrows, Enter and 5 (the action), number keys, F1, F2,
   `[` and `*` keep working, and the F keys and Esc stay Re:Cast's. Saved with the launcher's settings, and passed to the
   game as `--key ACTION=KEY` (for example `--key UP=i`, repeatable). **Restore default settings** does not touch them.
 - **Delete a screenshot, and clear the cached music.** The Options tab's screenshot box has a red x under the folder icon:
@@ -32,8 +32,8 @@
   Agrabah, the whole tune's balance between 300 Hz and 9.6 kHz is much closer (squared error 40 dB to 11 dB), and
   the part now holds between a third and three fifths of the energy from 600 Hz to 4.8 kHz instead of about a tenth.
   Only the koto (GM 107) is used by the game, so no other tune changes; the Harp and guitar slider on the Sound tab
-  controls it. Measured, not heard: please listen, and tell me if it is too loud or too sharp (the knobs are the
-  TWANG_ constants).
+  controls it. Tuned by measurement against the recording (the knobs are the TWANG_ constants in
+  `khvcemu/midi_synth.py`).
 - **Faster 3D: two speed-ups for the game's 3D engine, same picture.** In memory only, and only when the game
   module is byte for byte the known one. (1) A tighter version of the function that fills a row of a blended or
   see-through polygon pixel by pixel (about half of the game's work in some scenes): same pixels in about half the
@@ -98,7 +98,7 @@
   dims and a "PAUSED - Click the window to continue" box shows, so a paused game never looks frozen.
 - **Dark screen option.** The Options tab's "Dark screen" (`--dark-screen`) blacks out the rest of
   the monitor the game window is on, behind the window, for playing without distractions.
-  Clicking the black area just brings the game back to the front; minimising the game removes it;
+  Clicking the black area just brings the game back to the front; minimizing the game removes it;
   the game window's X button still asks "Quit the game?".
 - **F12 tells you where the screenshot went.** A small "Saved: ..." message shows at the top of
   the window (or "Screenshot failed"). Screenshots now go to a `khvcemu` folder in your Pictures

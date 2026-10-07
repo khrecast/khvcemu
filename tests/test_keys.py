@@ -12,8 +12,8 @@ from khvcemu import launcher as L  # noqa: E402
 
 class KeyRuleTests(unittest.TestCase):
     def test_defaults_are_the_keys_the_game_always_had(self):
-        self.assertEqual(keys.DEFAULT_KEYS, {"UP": "w", "DOWN": "s", "LEFT": "a", "RIGHT": "d", "STAR": "f", "0": "z",
-                                             "SOFT1": "q", "SOFT2": "e"})
+        self.assertEqual(keys.DEFAULT_KEYS, {"UP": "w", "DOWN": "s", "LEFT": "a", "RIGHT": "d", "SELECT": "space",
+                                             "STAR": "f", "0": "z", "SOFT1": "q", "SOFT2": "e", "CLR": "backspace"})
         self.assertEqual(set(keys.ALSO), set(keys.DEFAULT_KEYS))
         self.assertEqual(keys.parse_key_options([]), {})
 
@@ -22,7 +22,7 @@ class KeyRuleTests(unittest.TestCase):
         self.assertEqual(keys.parse_key_options(["UP=i", "DOWN=w"]), {"UP": "i", "DOWN": "w"}, "keys can be swapped round")
 
     def test_parse_refuses_what_cannot_work(self):
-        for bad, why in ((["UP=1"], "digit"), (["UP=up"], "name"), (["UP=space"], "space"), (["FOO=a"], "action"),
+        for bad, why in ((["UP=1"], "digit"), (["UP=up"], "name"), (["UP=return"], "enter"), (["UP=space"], "taken by Action"), (["FOO=a"], "action"),
                          (["UP=s"], "taken by Move down"), (["UP=a", "LEFT=a"], "same key twice"), (["UP"], "no key"),
                          (["UP="], "empty")):
             with self.subTest(why=why), self.assertRaises(ValueError):
@@ -30,12 +30,13 @@ class KeyRuleTests(unittest.TestCase):
 
     def test_tk_keys_become_names_and_the_rest_are_refused(self):
         for tk_name, want in (("w", "w"), ("W", "w"), ("semicolon", ";"), ("slash", "/"), ("Tab", "tab"), ("grave", "`"),
-                              ("backslash", chr(92)), ("1", None), ("F5", None), ("Up", None), ("space", None),
-                              ("Return", None), ("Escape", None), ("Shift_L", None), ("bracketleft", None)):
+                              ("backslash", chr(92)), ("BackSpace", "backspace"), ("1", None), ("F5", None), ("Up", None), ("space", "space"),
+                              ("Return", None), ("Escape", None), ("Shift_L", None), ("bracketleft", None), ("bracketright", None)):
             self.assertEqual(keys.key_from_tk(tk_name), want, tk_name)
 
     def test_display_and_owner(self):
-        self.assertEqual((keys.display_key("w"), keys.display_key(";"), keys.display_key("tab")), ("W", ";", "Tab"))
+        self.assertEqual((keys.display_key("w"), keys.display_key(";"), keys.display_key("tab"), keys.display_key("space")),
+                         ("W", ";", "Tab", "Space"))
         self.assertEqual(keys.key_owner({}, "w"), "UP")
         self.assertEqual(keys.key_owner({"UP": "i"}, "w"), None, "W is free once Up moved to I")
         self.assertEqual(keys.key_owner({"UP": "i"}, "i"), "UP")
@@ -74,6 +75,31 @@ class KeyMapTests(unittest.TestCase):
         self.assertEqual((m[pg.K_UP], m[pg.K_LEFTBRACKET], m[pg.K_KP_MULTIPLY], m[pg.K_F2]),
                          ("UP", "STAR", "STAR", "SOFT2"), "arrows, [, number pad * and F2 still work")
         self.assertEqual((m[pg.K_s], m[pg.K_a], m[pg.K_d], m[pg.K_z], m[pg.K_q]), ("DOWN", "LEFT", "RIGHT", "0", "SOFT1"))
+
+    def test_the_action_key_can_move_off_space_and_enter_and_5_stay(self):
+        from khvcemu.frontend import build_keymap
+        pg = self.pg
+        m = build_keymap(pg, {"SELECT": "x"})
+        self.assertEqual((m[pg.K_x], m[pg.K_RETURN], m[pg.K_KP_ENTER], m[pg.K_5]), ("SELECT", "SELECT", "SELECT", "5"))
+        self.assertNotIn(pg.K_SPACE, m)
+        m = build_keymap(pg, keys.parse_key_options(["SELECT=x", "STAR=space"]))
+        self.assertEqual((m[pg.K_SPACE], m[pg.K_x]), ("STAR", "SELECT"), "Space can go to another action once it is free")
+
+    def test_backspace_can_be_moved_and_the_hash_keys_do_nothing(self):
+        from khvcemu.frontend import build_keymap
+        pg = self.pg
+        m = build_keymap(pg)
+        self.assertEqual(m[pg.K_BACKSPACE], "CLR")
+        self.assertNotIn(pg.K_RIGHTBRACKET, m, "] was the # key, which the game ignores")
+        self.assertNotIn(pg.K_KP_DIVIDE, m)
+        self.assertNotIn("POUND", set(m.values()))
+        m = build_keymap(pg, {"CLR": "x"})
+        self.assertEqual(m[pg.K_x], "CLR")
+        self.assertNotIn(pg.K_BACKSPACE, m)
+        for custom in ({"STAR": "backspace", "CLR": "x"}, {"CLR": "x", "STAR": "backspace"}):    # either order
+            m = build_keymap(pg, keys.parse_key_options([f"{a}={k}" for a, k in custom.items()]))
+            self.assertEqual((m[pg.K_BACKSPACE], m[pg.K_x]), ("STAR", "CLR"), "Backspace given to magic once it is free")
+            self.assertNotIn(pg.K_f, m)
 
     def test_keys_can_be_swapped(self):
         from khvcemu.frontend import build_keymap
@@ -120,7 +146,7 @@ class ControlsTabTests(unittest.TestCase):
     def test_the_tab_shows_the_current_keys_and_changes_them(self):
         root, app, saved = self.make_app({})
         self.assertEqual([str(app.key_buttons[a].cget("text")) for a in keys.DEFAULT_KEYS],
-                         ["W", "S", "A", "D", "F", "Z", "Q", "E"])
+                         ["W", "S", "A", "D", "Space", "F", "Z", "Q", "E", "Backspace"])
         self.assertNotIn("--key", L.build_command("dump", app.opts()))
         self.assertTrue(app.apply_key("UP", "i"))
         self.assertEqual(str(app.key_buttons["UP"].cget("text")), "I *", "a changed key is marked")
@@ -136,7 +162,7 @@ class ControlsTabTests(unittest.TestCase):
 
     def test_keys_that_cannot_be_used_are_refused_with_a_reason(self):
         root, app, _ = self.make_app({})
-        for keysym in ("1", "F5", "Up", "space", "Return", "bracketleft", "Shift_L"):
+        for keysym in ("1", "F5", "Up", "Return", "bracketleft", "Shift_L", "KP_Enter"):
             self.assertFalse(app.apply_key("STAR", keysym), keysym)
             self.assertIn("cannot be used", app.status.cget("text"))
         self.assertEqual(app.custom_keys, {})

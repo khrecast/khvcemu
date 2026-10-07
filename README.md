@@ -316,7 +316,7 @@ Other options:
 
 | Option | What it does |
 | --- | --- |
-| `--scale N` | Sets the window size as a multiple of the 176×220 screen. The game was built for tiny flip-phone screens (176×220), so it looks its best in a small window. By default it picks the largest that fits your desktop, up to 2 (use `--scale 3` or `4` for bigger). You can also drag the window edges or maximise it; the picture keeps its shape. |
+| `--scale N` | Sets the window size as a multiple of the 176×220 screen. The game was built for tiny flip-phone screens (176×220), so it looks its best in a small window. By default it picks the largest that fits your desktop, up to 2 (use `--scale 3` or `4` for bigger). You can also drag the window edges or maximize it; the picture keeps its shape. |
 | `--font-size N` | Sets the text size in phone pixels (default 11). Try 10 for smaller, 12 for bigger. |
 | `--font NAME` | Picks the font for game text. The default is Verdana, else DejaVu Sans, Tahoma, Segoe UI or Arial. |
 | `--filter MODE` | How the picture is enlarged to the window: `nearest` (crisp pixel blocks, the default), `smooth` (soft), `sharp` (crisp blocks of even width, edges softened only for the last fraction; best at odd window sizes) or `scale2x` (rounds off staircase edges without blurring). F11 cycles them in game; the launcher has the same choice under **Picture**. Only the picture: hi-res text is drawn on top either way, and F12 saves the raw frame. |
@@ -326,10 +326,10 @@ Other options:
 | `--autosave-every MINUTES` | Minutes of play between timed autosaves (default 5; `0` turns the timed ones off). The launcher's Saves tab has the box. |
 | `--no-autosave-on-quit` | No extra autosave when the window is closed mid-game. |
 | `--no-autosave-on-loading` | No autosave a few seconds after each Loading screen. |
-| `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
+| `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimizing the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
-| `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options); keys are letters, `tab` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
+| `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `SELECT` (action, attack), `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options), `CLR` (back; twice goes to the title screen); keys are letters, `space`, `tab`, `backspace` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
 | `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the blended pixel fill) and `matinv` (the matrix cache). The launcher's Options tab has them under **Speed enhancements...**. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
@@ -353,8 +353,7 @@ Other options:
 | Z, or 0 (row or numpad) | 0 | **Status**: health, magic and stats. **Next** (F1 or Q) lists your items, potions and munny. In the pause box this quits instead. |
 | 1–9 (row or numpad) | Number keys | |
 | F, `[` or numpad `*` | `*` | Cast magic |
-| `]` / numpad `/` | `#` | |
-| Backspace | CLR | |
+| Backspace | CLR | Back: in play it opens the pause box and pressing it again goes back to the title screen; on story and summary screens it moves on |
 | F10 / F12 / Esc | | Mute / screenshot (says where it was saved) / quit (F10 flashes a speaker in the corner, crossed out when muted; Esc asks "Quit the game?" first: Enter or Y quits, Esc or N resumes, D quits and never asks again; the launcher's Options tab and `--no-quit-prompt` turn the question off) |
 | F11 | | Picture filter: crisp pixels, smooth, sharp pixels, Scale2x (cycles) |
 | F5 / F9 | | Save state / load state (current slot) |
@@ -365,11 +364,12 @@ Z is an alias for the phone's `0` key, so it follows whatever that key is bound
 to on the game's own **Controls** screen (pause, **Options**, **Controls**).
 The launcher's **Controls** tab and the website show the main keys from this table.
 
-**Changing keys.** The letter keys (W, A, S, D for moving, F for magic, Z for status and items, Q for pause and
-Continue, E for back and Options) can be changed on the launcher's **Controls** tab: click a key, then press the
+**Changing keys.** Ten keys can be changed: W, A, S, D (moving), Space (the action and attack key), F (magic), Z
+(status and items), Q (pause and Continue), E (back and Options) and Backspace (back: once pauses, twice goes back to
+the title screen). Change them on the launcher's **Controls** tab: click a key, then press the
 new one (Esc cancels; a key already in use is refused with a message; a changed key is marked with a star;
-**Reset game keys** puts them all back). Letters, tab and `; ' / , . - = `` ` `` can be used. The arrows, Enter,
-Space, the number keys, F1, F2, `[` and `*` keep working as listed, and the F keys and Esc stay Re:Cast's. On the
+**Reset game keys** puts them all back). Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used. The arrows, Enter
+(and 5) for the action, the number keys, F1, F2, `[` and `*` keep working as listed, and the F keys and Esc stay Re:Cast's. On the
 command line it is `--key UP=i` (repeatable, for example `--key UP=i --key LEFT=j`).
 
 ### Save states

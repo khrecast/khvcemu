@@ -446,6 +446,7 @@ def apply_theme(root: tk.Tk):
                  indicatorforeground=GREEN)
     st.map("TCheckbutton", background=[("active", BG)], indicatorbackground=[("selected", FIELD)])
     st.configure("Small.TButton", padding=(8, 1))
+    st.configure("Key.TButton", padding=(4, 0))
     st.configure("SmallOn.TButton", padding=(8, 1), background=BLUE, foreground="white")   # what is playing
     st.map("SmallOn.TButton", background=[("active", "#4693ff"), ("pressed", "#1d5fc0")])
     st.configure("Soft.TButton", background="#1d3a5c", foreground=TEXT, padding=(12, 8))
@@ -528,7 +529,7 @@ class Launcher:
         # play: the front card
         self.build_hero(tab("play", "Play"))
 
-        # play
+        # saves
         body = tab("saves", "Saves")
         top = ttk.Frame(body)
         top.pack(fill="both", expand=True)
@@ -944,7 +945,7 @@ class Launcher:
         dark_check = ttk.Checkbutton(box, text="Dark screen", variable=self.dark)
         dark_check.grid(row=2, column=3, columnspan=2, sticky="w", padx=(0, 6), pady=2)
         self.tooltip(dark_check, "Covers the rest of the monitor the game window is on with black, behind the "
-                                 "window. Minimising the game removes it.")
+                                 "window. Minimizing the game removes it.")
         self.icons = getattr(self, "icons", {})
         self.icons.setdefault("info", make_icon("info"))
         size_info = ttk.Label(box, image=self.icons["info"], cursor="question_arrow")
@@ -1110,9 +1111,9 @@ class Launcher:
         left = ttk.LabelFrame(body, text="Game keys: click one, then press the new key")
         left.pack(side="left", fill="both", padx=(0, 8), pady=2)
         for r, (action, what, _default) in enumerate(keymod.REBINDABLE):
-            ttk.Label(left, text=what).grid(row=r, column=0, sticky="w", padx=(8, 6), pady=2)
-            btn = ttk.Button(left, width=9, style="Small.TButton", command=lambda a=action: self.start_key_capture(a))
-            btn.grid(row=r, column=1, padx=2, pady=2)
+            ttk.Label(left, text=what).grid(row=r, column=0, sticky="w", padx=(8, 6), pady=0)
+            btn = ttk.Button(left, width=10, style="Key.TButton", command=lambda a=action: self.start_key_capture(a))
+            btn.grid(row=r, column=1, padx=2, pady=0)
             ttk.Label(left, text=keymod.ALSO[action], foreground=MUTED, font=("Segoe UI", 8)).grid(
                 row=r, column=2, sticky="w", padx=(6, 8))
             self.key_buttons[action] = btn
@@ -1123,9 +1124,11 @@ class Launcher:
             ttk.Label(right, text=emu_keys, foreground=MUTED).grid(row=r, column=1, sticky="w", padx=(0, 8))
         ttk.Button(right, text="Reset game keys", command=self.reset_keys, style="Small.TButton").grid(
             row=len(CONTROLS), column=0, columnspan=2, sticky="w", padx=8, pady=(10, 4))
-        ttk.Label(right, text="Esc cancels. Letters, tab and ; ' / , . - = ` can be used.", foreground=MUTED,
+        ttk.Label(right, text="Esc cancels. Letters, space, tab, backspace and ; ' / , . - = ` can be used.", foreground=MUTED,
                   font=("Segoe UI", 8), wraplength=190, justify="left").grid(
             row=len(CONTROLS) + 1, column=0, columnspan=2, sticky="w", padx=8)
+        ttk.Label(right, text="Always on: the number keys 0 to 9 (can be remapped in-game).", foreground=MUTED, font=("Segoe UI", 8), wraplength=190,
+                  justify="left").grid(row=len(CONTROLS) + 2, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 4))
         self.refresh_key_buttons()
 
     def key_label(self, action: str) -> str:
@@ -1169,7 +1172,7 @@ class Launcher:
         """Give `action` the key Tk calls `keysym`, if it can have it. Says why not in the status line."""
         key = keymod.key_from_tk(keysym)
         if key is None:
-            self.status.config(text=f"{keysym} cannot be used. Letters, tab and ; ' / , . - = ` can. Esc cancels.")
+            self.status.config(text=f"{keysym} cannot be used. Letters, space, tab, backspace and ; ' / , . - = ` can. Esc cancels.")
             return False
         owner = keymod.key_owner(self.custom_keys, key, except_action=action)
         if owner is not None:
@@ -2184,8 +2187,8 @@ class Launcher:
         if ask and not messagebox.askyesno(
                 "Restore default settings",
                 "Put window size, text size, mute, hi-res text, picture filter, pausing on focus loss, the quit "
-                "question, the dark screen, the speed enhancements, the screenshot folder and score sharing "
-                "(and its address) back to their defaults?\n\n"
+                "question, the dark screen, the speed enhancements, the screenshot folder, asking before deleting a "
+                "screenshot and score sharing (and its address) back to their defaults?\n\n"
                 "Only the Options tab changes: your saves, autosave settings, game folder and Sound tab stay as "
                 "they are."):
             return

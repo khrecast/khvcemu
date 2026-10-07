@@ -52,8 +52,8 @@ usually printed under the battery.
 ## The music
 
 Composer: Ian Livingstone, credited in game as "Music and Sound by MTS -
-Mediathemes & Sound" ([KH Database][khdb]). He wrote the pieces in 2004
-without playing the game (he saw only a few screenshots) and said memory was so
+Mediathemes & Sound" ([KH Database][khdb]). They wrote the pieces in 2004
+without playing the game (they saw only a few screenshots) and said memory was so
 tight that they had to be very short ([interview in the description of 13th
 Vessel's soundtrack video][13v]).
 
