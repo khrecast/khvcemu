@@ -22,6 +22,12 @@ rewound by loading a save state, so time is never lost or gained by those.
 
 Loading a save state taken earlier in a world does not take time off: only time spent
 watching the game run is ever added.
+
+A run in which a save state was loaded (autosaves included) is still timed and logged, but its
+time is never sent with the score, so the shared leaderboard (which ignores a score that comes
+without a time) does not record it. States make a run easy to repeat, and a time measured
+across a jump is not a fair time. A state loaded after a world's Summary also ends the right
+to post that clear. The score still goes into your own table.
 """
 
 from __future__ import annotations
@@ -50,6 +56,8 @@ class PlayTimer:
         self.world = None             # the world on screen, if any
         self.last = None              # game clock at the last tick
         self.stats: dict = {}         # munny, exp, level, score read off the latest Summary screen
+        self.state_used: set = set()  # worlds whose current run had a save state loaded (kept in the file)
+        self.fair: set = set()        # worlds whose last clear was finished without one (this sitting only)
         self._label = None            # (stat, y) of the label just drawn, waiting for its number
         self._unsaved = 0
         self._load()
@@ -61,8 +69,9 @@ class PlayTimer:
                 d = json.load(f)
             self.totals = {k: int(v) for k, v in d.get("totals", {}).items()}
             self.clears = {k: int(v) for k, v in d.get("clears", {}).items()}
+            self.state_used = {str(w) for w in d.get("state_used", [])}
         except (OSError, ValueError, AttributeError, TypeError):
-            self.totals, self.clears = {}, {}
+            self.totals, self.clears, self.state_used = {}, {}, set()
 
     def save(self):
         self.tick()
@@ -73,7 +82,8 @@ class PlayTimer:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             tmp = self.path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"totals": self.totals, "clears": self.clears}, f)
+                json.dump({"totals": self.totals, "clears": self.clears,
+                           "state_used": sorted(self.state_used)}, f)
             os.replace(tmp, self.path)
             self._unsaved = 0
         except OSError:
@@ -93,9 +103,14 @@ class PlayTimer:
 
     def resync(self, world=None):
         """After a save state is loaded: the clock jumped, so start again from here, in the
-        world the state was taken in."""
+        world the state was taken in. Whatever world that is, its run no longer counts for the
+        shared leaderboard, and neither does a clear finished before the state was loaded."""
         self.world = world
         self.last = self.emu.clock_ms()
+        self.fair.clear()
+        if world:
+            self.state_used.add(world)
+        self._write()
 
     def file_opened(self, name: str):
         world = WORLD_FILES.get(name.lower().replace("\\", "/").rsplit("/", 1)[-1])
@@ -126,6 +141,13 @@ class PlayTimer:
         if ms > 0:
             self.clears[self.world] = ms
             self.log_row("clear", self.world, "", round(ms / 1000), "")
+            if self.world in self.state_used:
+                self.fair.discard(self.world)
+                self.emu.log(f"[time] {self.world}: a save state was used in this run, so its score "
+                             "stays on your own table and is not shared")
+            else:
+                self.fair.add(self.world)
+        self.state_used.discard(self.world)
         self.world = None
         self.save()
 
@@ -140,6 +162,8 @@ class PlayTimer:
         world = "island" if lid == "wonderland" else lid      # that screen repeats the Island run
         ms = self.clears.get(world)
         text = "not measured" if ms is None else f"{ms // 60000}:{ms // 1000 % 60:02d} of play"
+        if ms is not None and world not in self.fair:
+            text += ", not shared (a save state was used, or the run was not finished in this sitting)"
         self.emu.log(f"[time] {lid} score {q.get('s', '?')}: {text} (the game's own value: {q.get('t', '?')})")
         self.log_row("post", lid, q.get("s", ""), "" if ms is None else round(ms / 1000), q.get("t", ""))
 
@@ -167,11 +191,16 @@ class PlayTimer:
 
     def seconds_for_url(self, url: str):
         """The measured time, in whole seconds, for the world a rank.php request is about, or
-        None if that world's run was not measured."""
+        None if that run was not measured, or was not a fair one (a save state was loaded in it,
+        or since its Summary, or it was finished in an earlier sitting): the shared leaderboard
+        records no score that comes without a time."""
         q = {k: v[0] for k, v in parse_qs(urlsplit(url).query, keep_blank_values=True).items()}
         lid = q.get("lid", "").lower()
-        ms = self.clears.get("island" if lid == "wonderland" else lid)
-        return None if ms is None else max(0, round(ms / 1000))
+        world = "island" if lid == "wonderland" else lid
+        ms = self.clears.get(world)
+        if ms is None or world not in self.fair:
+            return None
+        return max(0, round(ms / 1000))
 
     def log_row(self, event: str, world, score, seconds, game_t):
         """Append a line to clear_times.csv: a world finished ("clear") or a score posted ("post")."""

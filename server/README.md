@@ -76,7 +76,9 @@ measures how long the world took and sends it as `pt` (seconds). A score with no
 `pt` under the minimum for that world (`MIN_SECONDS` in `worker.js`: Island 6 minutes, Agrabah 10,
 Castle 8, about a quarter of a careful first clear), is answered like any other score but not stored, so the player sees no
 error. Equal scores are ranked by the faster time; the same score with the same time is stored
-once. Older scores that have no time still show, after timed ones. The minimums come from real first clears
+once. The emulator sends no `pt` for a run in which a save state was loaded (or after loading one), so such a score is
+not stored: this keeps save-state farming off the board, but it is the client's word, like everything else here.
+Older scores that have no time still show, after timed ones. The minimums come from real first clears
 (Island 26:30, Agrabah 54:00, Castle 42:30); the emulator logs times in `clear_times.csv`.
 
 Free-tier limits are far above what this needs: a score is a few dozen bytes and

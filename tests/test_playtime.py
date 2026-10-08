@@ -149,6 +149,92 @@ class PlayTimerTests(unittest.TestCase):
         self.assertEqual(self.t.seconds_for_url(url % "wonderland"), 754, "that screen repeats the Island run")
         self.assertIsNone(self.t.seconds_for_url(url % "castle"))
 
+    URL = "http://x/disney/rank.php?uid=&aid=KH&lid=%s&s=918&t=1&u1=1&u2="
+
+    def test_a_clean_run_is_sent_with_its_time(self):
+        self.t.file_opened("island.m3g")
+        self.play(400)
+        self.t.summary()
+        self.assertEqual(self.t.seconds_for_url(self.URL % "island"), 400)
+
+    def test_a_run_with_a_save_state_loaded_is_never_sent(self):
+        self.t.file_opened("island.m3g")
+        self.play(100)
+        self.emu.now = 5_000
+        self.t.resync("island")                        # F9 mid-run
+        self.play(400)
+        self.t.summary()
+        self.assertIsNone(self.t.seconds_for_url(self.URL % "island"))
+        self.assertIsNone(self.t.seconds_for_url(self.URL % "wonderland"))
+        self.assertEqual(self.t.clears["island"], 500_000, "it is still timed and logged")
+        self.assertTrue(any("save state" in m for m in self.emu.logs))
+
+    def test_the_next_clean_run_is_sent_again(self):
+        self.t.file_opened("island.m3g")
+        self.t.resync("island")
+        self.play(400)
+        self.t.summary()
+        self.t.file_opened("island.m3g")
+        self.play(500)
+        self.t.summary()
+        self.assertEqual(self.t.seconds_for_url(self.URL % "island"), 500)
+
+    def test_loading_a_state_after_the_summary_cancels_the_post(self):
+        self.t.file_opened("island.m3g")
+        self.play(400)
+        self.t.summary()                               # the score prompt is up...
+        self.t.resync(None)                            # ...and a state taken there is loaded
+        self.assertIsNone(self.t.seconds_for_url(self.URL % "island"))
+
+    def test_a_state_in_one_world_does_not_spoil_another(self):
+        self.t.file_opened("castle.m3g")
+        self.play(500)
+        self.t.summary()
+        self.t.file_opened("island.m3g")
+        self.t.resync("island")
+        self.play(400)
+        self.t.summary()
+        self.assertIsNone(self.t.seconds_for_url(self.URL % "island"))
+        self.assertIsNone(self.t.seconds_for_url(self.URL % "castle"),
+                          "a state loaded since the Castle clear cancels its post too")
+
+    def test_the_mark_survives_quitting_so_a_run_cannot_be_cleaned(self):
+        self.t.file_opened("island.m3g")
+        self.play(100)
+        self.t.resync("island")
+        self.t.save()
+        again = PlayTimer(FakeEmu(), self.path)
+        again.emu.now = 0
+        again.file_opened("island.m3g")
+        again.emu.now += 400_000
+        again.tick()
+        again.summary()
+        self.assertIsNone(again.seconds_for_url(self.URL % "island"))
+
+    def test_a_clear_from_an_earlier_sitting_is_not_sent(self):
+        self.t.file_opened("island.m3g")
+        self.play(400)
+        self.t.summary()
+        again = PlayTimer(FakeEmu(), self.path)
+        self.assertEqual(again.clears["island"], 400_000)
+        self.assertIsNone(again.seconds_for_url(self.URL % "island"))
+
+    def test_a_post_from_a_run_with_a_state_says_it_is_not_shared(self):
+        self.t.file_opened("island.m3g")
+        self.t.resync("island")
+        self.play(400)
+        self.t.summary()
+        self.t.on_post(self.URL % "island")
+        self.assertTrue(any("not shared" in m and "[time]" in m for m in self.emu.logs))
+
+    def test_a_file_from_before_the_mark_still_loads(self):
+        import json
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump({"totals": {"island": 1000}, "clears": {"island": 400000}}, f)
+        again = PlayTimer(FakeEmu(), self.path)
+        self.assertEqual(again.totals, {"island": 1000})
+        self.assertEqual(again.state_used, set())
+
     def test_an_unmeasured_world_is_logged_as_such(self):
         self.t.on_post("http://x/disney/rank.php?uid=&aid=KH&lid=castle&s=5&t=9&u1=1&u2=")
         self.assertTrue(any("not measured" in m for m in self.emu.logs))

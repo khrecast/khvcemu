@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### New
+- **Runs that used a save state are no longer shared.** A score goes to the shared leaderboard only from a run played
+  to its Summary screen without loading a save state (autosaves count); loading one, even after the Summary and before
+  posting, keeps that score on your own table. The run is still timed and logged, it is just sent without its time, which
+  the shared leaderboard does not record. This also stops a score being posted with the time of an older run, and a clear
+  from an earlier sitting being posted. A world where a state was loaded and then abandoned stays marked until its next Summary. The Online scores box on the Options tab has an info bubble that says so; the
+  README, the server notes and the leaderboard page do too. (Found when a state loaded at an Island Summary posted a
+  score with the time of the earlier run.)
 - **Change the game's keys.** The Controls tab's keys (W, A, S, D, Space for the action, F, Z, Q, E and Backspace) are now buttons: click one, press the
   new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
   puts them back. Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used; the arrows, Enter and 5 (the action), number keys, F1, F2,

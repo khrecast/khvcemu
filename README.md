@@ -294,9 +294,17 @@ clock, not a completion time). It counts the game's clock while a world is on sc
 pausing, switching to another window, closing the window or loading a save state never adds or removes time, and the
 Summary screen ends the run. Every world you finish, and every score the game posts, is appended to
 `~/.khvcemu/<dump folder name>/clear_times.csv` with the time measured, and totals are kept
-in `playtime.json` beside it. The measured time is also sent with a shared score, and
+in `playtime.json` beside it. The measured time is also sent with a shared score (unless a save state was used, see below), and
 the shared leaderboard turns away runs under a minimum for the world (Island 6 minutes, Agrabah 10,
 Castle 8).
+
+**Save states and the shared leaderboard.** A score is shared only from a run played to its Summary screen
+without loading a save state (autosaves count as save states). Save states make a run easy to repeat, so a run
+in which one was loaded, or a score posted after loading one, goes into your own table only: it is still timed
+and logged, but it is sent without its time, which the shared leaderboard does not record. Saving a state is
+fine; loading one is what counts. A clear finished in an earlier sitting is not sent either. A world in which you loaded a state
+and then gave up stays marked until its next Summary, so the next finished run of it is not
+shared either; the one after is.
 
 **The shared leaderboard.** Scores can also be ranked against other people's.
 The launcher's Options has **Share high scores with:**, **ticked by default** and

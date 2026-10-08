@@ -1065,8 +1065,16 @@ class Launcher:
         # high scores are kept offline either way; this only adds a shared ranking
         self.leaderboard = tk.StringVar(value=cfg.get("leaderboard_url") or LEADERBOARD_URL)
         self.share = tk.BooleanVar(value=bool(cfg.get("share_scores", True)))
-        ttk.Checkbutton(box, text="Share high scores with:", variable=self.share, command=self.sync_share).pack(
-            anchor="w", padx=6, pady=(2, 0))
+        share_row = ttk.Frame(box)
+        share_row.pack(fill="x", padx=6, pady=(2, 0))
+        ttk.Checkbutton(share_row, text="Share high scores with:", variable=self.share,
+                        command=self.sync_share).pack(side="left")
+        self.icons.setdefault("info", make_icon("info"))
+        share_info = ttk.Label(share_row, image=self.icons["info"], cursor="question_arrow")
+        share_info.pack(side="left", padx=(6, 0))
+        self.tooltip(share_info, "Scores are always kept on your own PC. A score reaches the shared leaderboard only "
+                     "from a run you play from the start of the world to its Summary screen without loading a "
+                     "save state (autosaves count too). A run that used one stays on your own table.")
         self.share_entry = ttk.Entry(box, textvariable=self.leaderboard)
         self.share_entry.pack(fill="x", padx=6, pady=(2, 4))
 
