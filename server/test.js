@@ -268,17 +268,22 @@ await check("a database without the new columns still works, in either deploy or
 });
 
 // the website's anonymous counters
-async function hit(e, name, headers = {}, method = "GET") {
-  const res = await worker.fetch(new Request("https://scores.khrecast.com/hit?e=" + encodeURIComponent(name),
-    { method, headers: { "cf-connecting-ip": "10.9.9.9", ...headers } }), e);
-  return res;
+async function hit(e, name, headers = {}, method = "GET", { query = "", country } = {}) {
+  const req = new Request("https://scores.khrecast.com/hit?e=" + encodeURIComponent(name) + query,
+    { method, headers: { "cf-connecting-ip": "10.9.9.9", ...headers } });
+  if (country !== undefined) Object.defineProperty(req, "cf", { value: { country } });   // what Cloudflare adds in production
+  return await worker.fetch(req, e);
 }
-const counts = (e) => Object.fromEntries(e.DB.prepare("SELECT day, name, n FROM site_stats ORDER BY name").all().results
+const allCounts = (e) => Object.fromEntries(e.DB.prepare("SELECT day, name, n FROM site_stats ORDER BY name").all().results
   .map((r) => [r.day + " " + r.name, r.n]));
+const DIMENSIONS = /^(hour|country|os|ref):/;
+const counts = (e) => Object.fromEntries(Object.entries(allCounts(e)).filter(([k]) => !DIMENSIONS.test(k.slice(11))));   // the main counters
+const dims = (e) => Object.fromEntries(Object.entries(allCounts(e)).filter(([k]) => DIMENSIONS.test(k.slice(11))).map(([k, v]) => [k.slice(11), v]));
+const today = () => new Date().toISOString().slice(0, 10);
 
 await check("page views and button clicks are counted per day, per name", async () => {
   const e = env();
-  const day = new Date().toISOString().slice(0, 10);
+  const day = today();
   for (let i = 0; i < 3; i++) assert.strictEqual((await hit(e, "view:home")).status, 204);
   await hit(e, "dl:win64");
   assert.deepStrictEqual(counts(e), { [day + " dl:win64"]: 1, [day + " view:home"]: 3 });
@@ -290,11 +295,11 @@ await check("page views and button clicks are counted per day, per name", async 
 
 await check("only the known names are counted, so the table cannot be filled", async () => {
   const e = env();
-  for (const bad of ["", "view:other", "dl:../../x", "<script>", "x".repeat(500), "dl:win64 ", "VIEW:HOME"]) {
+  for (const bad of ["", "view:other", "dl:../../x", "<script>", "x".repeat(500), "dl:win64 ", "VIEW:HOME", "hour:00", "country:US", "ref:reddit", "sec:other"]) {
     assert.strictEqual((await hit(e, bad)).status, 204, "the page is never told off");
   }
-  assert.deepStrictEqual(counts(e), {});
-  assert.ok(Object.keys(SITE_EVENTS).length < 30);
+  assert.deepStrictEqual(allCounts(e), {});
+  assert.ok(Object.keys(SITE_EVENTS).length < 40);
 });
 
 await check("a probe, a wrong method or another site does not count; one of ours, or no referrer, does", async () => {
@@ -303,33 +308,88 @@ await check("a probe, a wrong method or another site does not count; one of ours
   assert.strictEqual((await hit(e, "view:home", {}, "POST")).status, 405);
   await hit(e, "view:home", { referer: "https://evil.example/page" });
   await hit(e, "view:home", { referer: "not a url" });
-  assert.deepStrictEqual(counts(e), {});
+  assert.deepStrictEqual(allCounts(e), {});
   await hit(e, "view:home", { referer: "https://khrecast.com/" });
   await hit(e, "view:leaderboard", { referer: "https://www.khrecast.com/leaderboard" });
   await hit(e, "dl:sums");                                  // fetch with no referrer (privacy settings)
   assert.strictEqual(Object.values(counts(e)).reduce((a, b) => a + b, 0), 3);
 });
 
-await check("a name stops counting at its daily ceiling, so the counters cannot use up the database's writes", async () => {
+await check("a section scrolled to counts under its own name", async () => {
   const e = env();
-  const day = new Date().toISOString().slice(0, 10);
+  for (const sec of ["about", "download", "wonderland", "credits"]) await hit(e, "sec:" + sec);
+  await hit(e, "sec:download");
+  const c = counts(e), day = today();
+  assert.strictEqual(c[day + " sec:download"], 2);
+  assert.strictEqual(c[day + " sec:about"], 1);
+  assert.deepStrictEqual(dims(e), {}, "only an opening of the main page adds the other tallies");
+});
+
+await check("an opening of the main page also tallies hour, country, system and where from, as separate counts", async () => {
+  const e = env();
+  const hour = String(new Date().getUTCHours()).padStart(2, "0");
+  await hit(e, "view:home", {}, "GET", { query: "&o=windows&r=reddit", country: "us" });
+  await hit(e, "view:home", {}, "GET", { query: "&o=windows&r=direct", country: "GB" });
+  assert.deepStrictEqual(dims(e), {
+    ["hour:" + hour]: 2, "country:US": 1, "country:GB": 1, "os:windows": 2, "ref:reddit": 1, "ref:direct": 1,
+  });
+  assert.strictEqual(counts(e)[today() + " view:home"], 2);
+});
+
+await check("the extra tallies cannot be filled with made-up values, and a missing value is simply skipped", async () => {
+  const e = env();
+  await hit(e, "view:home", {}, "GET", { query: "&o=<script>&r=evil.example", country: "USA" });
+  await hit(e, "view:home", {}, "GET", { query: "&o=windows" });                              // no referrer bucket, no country (local test)
+  await hit(e, "view:home", {}, "GET", { query: "&o=" + "x".repeat(300) + "&r=" + "y".repeat(300), country: "" });
+  await hit(e, "view:home", {}, "GET", { query: "&o=mac&r=google", country: "XX" });
+  await hit(e, "view:home", {}, "GET", { query: "&o=mac&r=google", country: "T1" });          // Tor: a real value Cloudflare may send
+  const d = dims(e);
+  assert.deepStrictEqual(Object.keys(d).filter((k) => !k.startsWith("hour:")).sort(),
+    ["country:T1", "country:XX", "os:mac", "os:windows", "ref:google"]);
+  assert.strictEqual(d["os:mac"], 2);
+  assert.strictEqual(Object.keys(allCounts(e)).length < 12, true, "a handful of rows, not one per request");
+});
+
+await check("a name stops counting at its daily ceiling, and the extra tallies stop with it", async () => {
+  const e = env();
+  const day = today();
   const cap = SITE_EVENTS["dl:sums"];
-  assert.strictEqual(cap, 2000);
+  assert.strictEqual(cap, 600);
   for (let i = 0; i < cap + 25; i++) await hit(e, "dl:sums");
   assert.strictEqual(counts(e)[day + " dl:sums"], cap, "it stops at the ceiling");
   await hit(e, "view:home");
   assert.strictEqual(counts(e)[day + " view:home"], 1, "the other names are not affected");
-  const total = Object.values(SITE_EVENTS).reduce((a, b) => a + b, 0);
-  assert.ok(total < 50000, "all the ceilings together stay well under the free plan's daily writes: " + total);
+  // the main page, with a small ceiling: past it neither the count nor its tallies move
+  const real = SITE_EVENTS["view:home"];
+  SITE_EVENTS["view:home"] = 3;
+  try {
+    for (let i = 0; i < 10; i++) await hit(e, "view:home", {}, "GET", { query: "&o=linux&r=github", country: "DE" });
+  } finally { SITE_EVENTS["view:home"] = real; }
+  assert.strictEqual(counts(e)[day + " view:home"], 3);
+  assert.strictEqual(dims(e)["os:linux"], 2, "3 views counted (one earlier, without a system type): the 7 above the ceiling add nothing");
+  // the worst case of all the ceilings together stays well under the free plan's daily writes
+  const total = Object.entries(SITE_EVENTS).reduce((a, [n, c]) => a + c * (n === "view:home" ? 5 : 1), 0);
+  assert.ok(total < 65000, "writes a day at the ceilings: " + total);
+});
+
+await check("if the database does not say whether a row changed, the extra tallies are not written (the ceiling is never skipped)", async () => {
+  const e = env();
+  const real = e.DB.prepare.bind(e.DB);
+  e.DB = { prepare(sql) { const api = real(sql); const run = api.run; api.run = () => { run(); return {}; }; return api; } };   // a run() with no change count
+  await hit(e, "view:home", {}, "GET", { query: "&o=windows&r=reddit", country: "US" });
+  const rows = Object.keys(allCounts(e));
+  assert.deepStrictEqual(rows, [today() + " view:home"], "the main count is written, nothing extra");
 });
 
 await check("no identity is stored with the counters, and a database without the table still answers", async () => {
   const e = env();
-  await hit(e, "view:home", { "user-agent": "Mozilla/5.0 secret", cookie: "a=b" });
+  await hit(e, "view:home", { "user-agent": "Mozilla/5.0 secret", cookie: "a=b" }, "GET", { query: "&o=mac&r=reddit", country: "US" });
   const cols = e.DB.prepare("SELECT * FROM site_stats").all().results[0];
   assert.deepStrictEqual(Object.keys(cols).sort(), ["day", "n", "name"]);
+  const everything = JSON.stringify(e.DB.prepare("SELECT * FROM site_stats").all().results);
+  assert.ok(!/secret|a=b|10\.9\.9\.9/.test(everything), "nothing from the request itself is kept");
   const old = env(OLD_SCHEMA);                              // the live database until migrate_002 is run
-  assert.strictEqual((await hit(old, "view:home")).status, 204, "the page is not hurt by a missing table");
+  assert.strictEqual((await hit(old, "view:home", {}, "GET", { query: "&o=mac", country: "US" })).status, 204, "the page is not hurt by a missing table");
 });
 
 await check("helpers", () => {

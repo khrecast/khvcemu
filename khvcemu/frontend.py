@@ -9,21 +9,23 @@ import time
 
 import numpy as np
 
-from .keys import AVK
+from .keys import AVK, DEFAULT_KEYS
 from .paths import icon_file, set_app_id
 
-HELP = """Controls (phone keypad):
+HELP = """Controls (phone keypad; the letters can be changed with --key or on the launcher's Controls tab):
   WASD / Arrows / 2 4 6 8  move (Up = forward)      Enter / Space / 5 ... select, attack, jump
   F1 or Q ................ left softkey (Continue)   F2 or E ............. right softkey (Options/Back)
   F or [ or numpad * ..... magic (*)                Z or 0 .............. status + items
-  ] or numpad / .......... #                        0-9 (row or numpad) . number keys
-  Backspace .............. CLR                      F10 mute   F11 picture filter   F12 screenshot
+  Backspace .............. back: pauses, twice goes to the title screen   0-9 (row or numpad) number keys
+  F10 mute   F11 picture filter   F12 screenshot
   Esc quit (asks first)
   F5 save state   F9 load state   F6/F7 previous/next slot (or Shift+1..9; slot 0 = autosave)
-  F8 autosave on/off (every 5 min of play)"""
+  F8 autosave on/off (the kinds chosen on the launcher's Saves tab: every few minutes of play, at loading screens, on quit)"""
 
 
-def build_keymap(pygame):
+def build_keymap(pygame, custom=None):
+    """pygame key -> the phone key it presses. `custom` ({action: key name}, see keys.REBINDABLE) moves an action's
+    chosen letter to another key; the arrows, Enter, Space, F1, F2 and the rest keep working."""
     k = pygame
     m = {
         k.K_UP: "UP", k.K_DOWN: "DOWN", k.K_LEFT: "LEFT", k.K_RIGHT: "RIGHT",
@@ -32,11 +34,21 @@ def build_keymap(pygame):
         k.K_F1: "SOFT1", k.K_q: "SOFT1", k.K_F2: "SOFT2", k.K_e: "SOFT2",
         k.K_z: "0",                                   # Status + items (the game's 0 key)
         k.K_BACKSPACE: "CLR", k.K_LEFTBRACKET: "STAR", k.K_KP_MULTIPLY: "STAR",
-        k.K_RIGHTBRACKET: "POUND", k.K_KP_DIVIDE: "POUND",
     }
     for d in range(10):
         m[getattr(k, f"K_{d}")] = str(d)
         m[getattr(k, f"K_KP{d}")] = str(d)
+    for action, key in (custom or {}).items():
+        default = DEFAULT_KEYS.get(action)
+        if default is None or key == default:
+            continue
+        try:
+            new, old = k.key.key_code(key), k.key.key_code(default)
+        except ValueError:
+            continue                                  # a name this pygame does not know: leave the default
+        if m.get(old) == action:
+            del m[old]
+        m[new] = action
     return m
 
 
@@ -181,7 +193,7 @@ def draw_frame(pygame, emu, screen, w: int, h: int, override=None, filt: str = "
 
 
 def draw_quit_prompt(pygame, screen, font_cache: dict):
-    """Dim the picture and draw the 'Are you sure?' box centerd on the window."""
+    """Dim the picture and draw the 'Are you sure?' box centered on the window."""
     sw, sh = screen.get_size()
     dim = pygame.Surface((sw, sh), pygame.SRCALPHA)
     dim.fill((0, 0, 0, 150))
@@ -235,7 +247,7 @@ def draw_mute_icon(pygame, screen, muted: bool):
         pygame.draw.line(box, red, (6.6 * u, cy + 2.0 * u), (8.8 * u, cy - 2.0 * u), t)
     else:
         t = max(2, size // 16)
-        for r in (1.9 * u, 3.1 * u):                  # two arcs of sound, centerd on the speaker's mouth
+        for r in (1.9 * u, 3.1 * u):                  # two arcs of sound, centered on the speaker's mouth
             pygame.draw.arc(box, white, (5.6 * u - r, cy - r, 2 * r, 2 * r), -0.9, 0.9, t)
     screen.blit(box, (sw - size - pad, pad))
 
@@ -375,8 +387,10 @@ def window_unfocused(pygame) -> bool:
 
 def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots_dir: str = ".",
                slot: int = 1, autosave: bool = True, filt: str = "nearest", pause_on_focus_loss: bool = True,
-               dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None):
-    """scale 0 = pick automatically. The window can be resized or maximised;
+               dark_screen: bool = False, ask_before_quit: bool = True, remember_no_quit_prompt=None,
+               autosave_minutes: float = 5.0, autosave_on_quit: bool = True, autosave_on_loading: bool = True,
+               custom_keys=None):
+    """scale 0 = pick automatically. The window can be resized or maximized;
     the picture keeps the phone's aspect ratio (black bars fill the rest)."""
     from .savestate import StateError, StateSlots
     make_dpi_aware()
@@ -397,8 +411,8 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
     pygame.display.set_caption(title)
     backdrop, game_window = open_backdrop(pygame, emu) if dark_screen else (None, None)
     backdrop_settles = time.monotonic() + BACKDROP_SETTLE_S   # opening it briefly takes the focus
-    emu.log(f"[frontend] window {w * scale}x{h * scale} (scale {scale}); drag the edges or maximise to resize")
-    keymap = build_keymap(pygame)
+    emu.log(f"[frontend] window {w * scale}x{h * scale} (scale {scale}); drag the edges or maximize to resize")
+    keymap = build_keymap(pygame, custom_keys)
     dirty = [True]
     emu.frame_listeners.append(lambda f: dirty.__setitem__(0, True))
     down: dict = {}
@@ -415,6 +429,10 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
     slots = StateSlots(emu)
     slots.slot = slot
     slots.autosave_enabled = autosave
+    minutes = autosave_minutes if autosave_minutes == autosave_minutes else 0.0           # nan: no timed autosave
+    slots.autosave_every_ms = int(min(max(0.0, minutes), 24 * 60.0) * 60_000)           # 0: none; a day at most
+    slots.autosave_on_quit = autosave_on_quit
+    slots.autosave_on_loading = autosave_on_loading
     toast = ["", 0.0]           # text, monotonic time it disappears
     mute_icon = [None, 0.0]     # muted or not, monotonic time the speaker icon disappears
     save_icon = [0.0]           # monotonic time the floppy disc (autosaved) disappears; 0 = not shown
@@ -557,7 +575,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                         and time.monotonic() < backdrop_settles):
                     continue                                     # the backdrop's own opening, not the player leaving
                 if ev.type == getattr(pygame, "WINDOWMINIMIZED", -1):
-                    backdrop.hide()                              # minimising the game must not leave a black screen
+                    backdrop.hide()                              # minimizing the game must not leave a black screen
                 elif ev.type == getattr(pygame, "WINDOWRESTORED", -1):
                     backdrop.show()
                     game_window.focus()
@@ -631,8 +649,11 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
                     slots.slot = order[(order.index(slots.slot) + step) % len(order)]
                     show(slots.describe(slots.slot) + "   (F5 save, F9 load)")
                 elif ev.key == pygame.K_F8:
-                    slots.autosave_enabled = not slots.autosave_enabled
-                    show("Autosave on (every 5 minutes)" if slots.autosave_enabled else "Autosave off")
+                    kinds = slots.describe_autosave()
+                    if slots.autosave_enabled or kinds:
+                        slots.autosave_enabled = not slots.autosave_enabled
+                    show(f"Autosave on ({kinds})" if slots.autosave_enabled else
+                         "Autosave off" if kinds else "Autosave is off: tick a kind on the launcher's Saves tab")
                 elif ev.mod & pygame.KMOD_SHIFT and pygame.K_0 <= ev.key <= pygame.K_9:
                     slots.slot = ev.key - pygame.K_0  # Shift+digit picks a slot (plain digits are phone keys)
                     show(slots.describe(slots.slot) + "   (F5 save, F9 load)")
@@ -700,7 +721,7 @@ def run_window(emu, scale: int = 0, title: str = "Kingdom Hearts Re:Cast", shots
         wait = 0.002 if due is None else (due - emu.clock_ms()) / 1000
         if wait > 0.001:
             time.sleep(min(wait, 0.005))
-    if emu.applet_ptr and not emu.exit_requested and played[0] and slots.autosave_enabled:
+    if emu.applet_ptr and not emu.exit_requested and played[0] and slots.autosave_enabled and slots.autosave_on_quit:
         # leaving mid-game (Esc / window close): keep one more autosave
         try:
             slots.autosave()

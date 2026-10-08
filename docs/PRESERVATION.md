@@ -43,11 +43,17 @@ theme. khvcemu bridges the gap (see the README), and appeals to anyone who
 might still have the chapter on a phone. If that's you, please don't reset the
 phone: email **khrecast@gmail.com** so the files can be dumped safely.
 
+Which phones? The game launched on February 1, 2005 with V CAST, and the launch phones were the LG VX8000,
+Samsung SCH-a890 and UTStarcom CDM8940 (all 176x220 screens, per Verizon's 2005 announcement, Wikipedia and
+Phone Scoop). The LG VX8100 and VX8300 have the same screen size. No source gives a date for chapter 2
+alone, so any Verizon phone from the V CAST years (2005 to 2012) is a candidate. The model number is
+usually printed under the battery.
+
 ## The music
 
 Composer: Ian Livingstone, credited in game as "Music and Sound by MTS -
-Mediathemes & Sound" ([KH Database][khdb]). He wrote the pieces in 2004
-without playing the game (he saw only a few screenshots) and said memory was so
+Mediathemes & Sound" ([KH Database][khdb]). They wrote the pieces in 2004
+without playing the game (they saw only a few screenshots) and said memory was so
 tight that they had to be very short ([interview in the description of 13th
 Vessel's soundtrack video][13v]).
 

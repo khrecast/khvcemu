@@ -34,7 +34,7 @@ You need Python 3.10 or newer and `ffmpeg` on your PATH (for sound effects).
   (`test_music_settings`, `test_music_mixes`, `test_playtime`, `test_shared_leaderboard`,
   `test_launcher_states`, `test_checksums`), on Linux and Windows.
 - `KH_DUMP=path/to/dump python -m unittest tests.test_game` plays the real game
-  headless (about 5 minutes). Run it when you change emulation behavior (CPU,
+  headless (about 4 minutes). Run it when you change emulation behavior (CPU,
   BREW interfaces, display, audio, save states). It is not run in CI because it
   needs the game files.
 

@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-from . import music_settings
+from . import keys, music_settings, swerve_patch
 from .paths import default_screenshot_dir, get_launcher_option, set_launcher_option
 
 
@@ -32,7 +32,7 @@ def main(argv=None):
     ap.add_argument("--scale", type=int, default=0,
                     help="window size as a multiple of the 176x220 screen (default: the largest that "
                          "fits your desktop, up to 2: the game looks best small); the window can also "
-                         "be resized or maximised")
+                         "be resized or maximized")
     ap.add_argument("--mute", action="store_true", help="no audio output")
     ap.add_argument("--soundfont", metavar="SF2",
                     help="render MIDI music with fluidsynth + this SoundFont instead of the built-in synth")
@@ -77,9 +77,23 @@ def main(argv=None):
                     help="keep playing when the window loses focus (by default the game pauses, and "
                          "time away is not counted as play time)")
     ap.add_argument("--no-autosave", action="store_true",
-                    help="don't write autosave states (every 5 min and on quit); F8 toggles in game")
+                    help="don't write autosave states at all; F8 toggles in game")
+    ap.add_argument("--autosave-every", type=float, default=5.0, metavar="MINUTES",
+                    help="minutes of play between timed autosaves (default 5; 0 turns the timed ones off; at most 1440)")
+    ap.add_argument("--no-autosave-on-quit", action="store_true",
+                    help="don't write one more autosave when the window is closed mid-game")
+    ap.add_argument("--no-autosave-on-loading", action="store_true",
+                    help="don't write an autosave a few seconds after each Loading screen")
     ap.add_argument("--load-state", metavar="SLOT",
                     help="resume a save state: 1-9, auto (newest autosave), auto2 or auto3")
+    ap.add_argument("--key", metavar="ACTION=KEY", action="append", default=[],
+                    help="use another key for one of the game's actions, for example --key UP=i (repeatable). "
+                         "Actions: " + ", ".join(f"{a} ({w.lower()})" for a, w, _k in keys.REBINDABLE) + ". Keys: letters, "
+                         "tab and ; ' / , . - = ` . The launcher's Controls tab sets these.")
+    ap.add_argument("--no-speed-patch", nargs="?", const="all", default="", metavar="NAMES",
+                    help="turn off the 3D engine speed patches (they give the same picture, faster): all of them, or "
+                         "a comma separated list of: " + ", ".join(swerve_patch.NAMES) +
+                         ". Write --no-speed-patch=NAMES, or put a bare --no-speed-patch after the game folder")
     ap.add_argument("-v", "--verbose", action="store_true", help="log every BREW call category")
     args = ap.parse_args(argv)
     try:
@@ -102,10 +116,21 @@ def main(argv=None):
     w, h = (int(x) for x in args.screen.lower().split("x"))
     notes: list = []
     data = args.data or default_data_dir(args.dump, log=notes.append)
+    try:
+        custom_keys = keys.parse_key_options(args.key)
+    except ValueError as e:
+        ap.error(str(e))
+    off = {x.strip() for x in args.no_speed_patch.split(",") if x.strip()}
+    if "all" in off:
+        off = set(swerve_patch.NAMES)
+    unknown = off - set(swerve_patch.NAMES)
+    if unknown:
+        ap.error(f"--no-speed-patch: unknown patch {', '.join(sorted(unknown))} (known: {', '.join(swerve_patch.NAMES)})")
+    speed_patches = [n for n in swerve_patch.NAMES if n not in off]
     emu = Emulator(args.dump, data, screen=(w, h), verbose=args.verbose, realtime=True,
                    audio=not args.mute, soundfont=args.soundfont,
                    skip_wonderland=not args.keep_wonderland, music=music, music_files=music_files,
-                   wonderland_volume=args.wonderland_volume)
+                   wonderland_volume=args.wonderland_volume, speed_patches=speed_patches)
     emu.leaderboard_url = args.leaderboard.strip()
     emu.font_size = args.font_size
     emu.font_name = args.font
@@ -147,6 +172,8 @@ def main(argv=None):
         run_window(emu, scale=args.scale, shots_dir=args.screenshots or default_screenshot_dir(), filt=args.filter,
                    slot=slot if args.load_state and isinstance(slot, int) else 1,
                    autosave=not args.no_autosave, pause_on_focus_loss=not args.no_focus_pause,
+                   autosave_minutes=args.autosave_every, autosave_on_quit=not args.no_autosave_on_quit,
+                   autosave_on_loading=not args.no_autosave_on_loading, custom_keys=custom_keys,
                    dark_screen=args.dark_screen, ask_before_quit=ask_quit,
                    remember_no_quit_prompt=lambda: set_launcher_option("ask_before_quit", False))
     finally:

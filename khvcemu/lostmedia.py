@@ -14,7 +14,7 @@ W, H = 176, 220
 HEADING = "Sora's adventure through Wonderland is lost media."
 CREDIT = "Screenshots from the original 2005 game."
 MESSAGE = ("If you, or someone you know, has a Verizon phone that has been sitting in a drawer "
-           "since 2007 and happens to have this level loaded, please contact game "
+           "for years and happens to have this level loaded, please contact game "
            "preservationists and send an email to")
 EMAIL = "khrecast@gmail.com"
 

@@ -1,0 +1,22 @@
+# Gradle and Android build output
+build/
+.gradle/
+.cxx/
+.externalNativeBuild/
+captures/
+local.properties
+*.apk
+*.aab
+.idea/
+
+# signing material never goes in the repo
+*.jks
+*.keystore
+keystore.properties
+
+# game files, saves and spike output stay on the user's machine
+mif/
+mod/
+wonderland/
+*.khs
+spike-output/

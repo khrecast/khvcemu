@@ -42,7 +42,7 @@ emulator to play it with its music and sound effects in context.
   effects are the phone's QCELP audio, decoded for you).
 * **The game's own saves and scores.** Load Game, save points and the
   "post your score and get a ranking" screen all work as they did on the phone.
-* Plays the surviving chapters (Obstacle Course, Island, Agrabah, Castle).
+* Plays the surviving chapters (chapter 1 with its training area and Swashbuckler's Island, Agrabah and Maleficent's Castle).
   The lost **Wonderland** episode is bridged with the game's own surviving
   screens rather than anything invented.
 
@@ -59,8 +59,20 @@ emulator to play it with its music and sound effects in context.
 * **High scores that work again.** The original ranking server is long gone, so
   khvcemu answers for it: scores are kept on your PC and, in the launcher, shared
   anonymously with a **shared leaderboard** so you can see how you rank.
-* Keyboard controls (WASD or arrows) as well as the phone keypad, a resizable
-  window and readable text.
+* **Keyboard controls** (WASD or arrows) as well as the phone keypad, a resizable
+  window and readable text; move, action, magic, status, the two softkeys and
+  Backspace (back once, title screen twice) can each be changed to whatever you
+  like on the launcher's **Controls** tab.
+* **Faster 3D, same picture.** Measured speed-ups for the game's 3D engine (checked
+  pixel for pixel against the original, not just timed), on by default; each one can be
+  switched off from the Options tab, with an explanation of what it does and when you
+  might want to.
+* **Music your way.** Tune the built-in synth with sliders and ready-made or saved
+  mixes, play a recording of your own instead of a tune, or play the whole soundtrack
+  through a General MIDI **SoundFont** with the free `fluidsynth` program.
+* **A dark screen**, a **screenshot** tool (F12) with a list, preview and quick
+  delete (asks first, with an option to stop asking) right in the launcher, and
+  three separate autosave options (by time, on quit, at loading screens).
 * **Single-file installers** for Windows (64 and 32-bit), macOS and Linux with
   everything included (see [Installers](#installers-everything-included)).
 
@@ -89,12 +101,12 @@ time (Python, ffmpeg and the wheels are downloaded and cached in `build/`).
 
 | Build | Command | Result |
 | --- | --- | --- |
-| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~56 MB) |
-| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~43 MB) |
-| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~81 MB) |
-| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~86 MB) |
-| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~105 MB) |
-| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~93 MB) |
+| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~54 MB) |
+| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~41 MB) |
+| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~77 MB) |
+| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~82 MB) |
+| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~100 MB) |
+| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~89 MB) |
 
 **Windows:** double-click the exe. It asks once, installs for the current user only (no
 administrator rights), adds Start Menu and desktop shortcuts and an entry under
@@ -153,7 +165,7 @@ Questions, bug reports and preservation leads are welcome: open an
 [issue](https://github.com/khrecast/khvcemu/issues) or email
 **[khrecast@gmail.com](mailto:khrecast@gmail.com)**.
 
-**Do you have a Verizon phone from 2005-2007 with *Kingdom Hearts* on it?** If
+**Do you have a Verizon phone from the V CAST years (2005 to 2012) with *Kingdom Hearts* on it?** If
 the Wonderland chapter is still installed, please don't reset it and email us:
 see [Wonderland (lost media)](#wonderland-lost-media).
 
@@ -181,18 +193,24 @@ include everything). The launcher:
   appears within five seconds and the highlight moves to the newest save until you pick a
   row yourself) and lets you **Start at world**: Island,
   Agrabah or Castle, after warning you that it replaces your current save
-  (which is backed up first);
-* **Options**: window size, text size, mute, smooth hi-res text, the picture
-  filter, autosave, whether the game pauses when its window loses focus, whether Esc or the window's X
-  asks before quitting, the folder F12 screenshots go to, a **dark screen** (the rest of the monitor goes black behind the game
-  window), and whether to share high scores (and where). **Restore default
-  settings** puts all of these back if one was changed by mistake (your saves, game
-  folder and the Sound tab are not touched). "Auto" window size picks the largest
+  (which is backed up first). Under the list sit the **Autosave** settings, three separate kinds: every N
+  minutes of play (the number is yours to type), when you quit, and at loading screens;
+* **Options**, in grouped boxes: **Window** (size, text size, picture filter, smooth hi-res text, a
+  **dark screen** that blacks out the rest of the monitor behind the game); **While playing** (mute, whether the
+  game pauses when you click away, whether Esc or the window's X asks before quitting);
+  **Screenshots (F12)** (the folder, chosen with the folder icon; a list of the pictures in it by the time they
+  were taken, newest first; a preview of the one selected; and icons to open it, open the folder, or delete it (a red x: on Windows it goes to the Recycle Bin, after a question that has a box to stop asking; Restore default settings brings the question back); double-click opens one); **Online scores** (whether to share high scores, and
+  where); and a **Speed enhancements...** button, which opens a small window with a switch and an info bubble
+  for each of the 3D engine's speed-ups (all on by default; each draws exactly the same picture, and the bubble
+  says when you might turn it off). **Restore default
+  settings** puts the settings on this tab back if one was changed by mistake (only this tab: your saves,
+  the Saves tab's autosave settings, the game folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
   choose 3 or 4 for bigger;
 * **Sound** tunes the built-in music synth with sliders: a volume for each
   family of instruments (piano, strings, brass, harp and guitar, bells, flutes,
-  pads, bass, drums) and the music as a whole, plus piano hammer, piano tail,
+  pads, bass, drums; "harp and guitar" also sets the bright, picked koto/banjo voice
+  of Agrabah's rhythm part) and the music as a whole, plus piano hammer, piano tail,
   horn note length, bass cut and high-note softening. Pick a tune and press
   **Play** to hear it; while it plays, letting go of a slider plays the change. 100% everywhere is
   the sound as tuned (the **As tuned** mix, or double-click a percentage to reset one slider).
@@ -208,7 +226,8 @@ include everything). The launcher:
   so the game's timing and looping are unchanged (a recording of the same MIDI that starts at
   the same moment should loop seamlessly), it is played at the game's 22.05 kHz mono, and its
   volume and Music volume apply (the synth sliders do not). The
-  game uses all of this the next time it starts. **Advanced...** opens a window for a
+  game uses all of this the next time it starts. **Advanced...** opens a window with **Clear cached
+  music** (the tunes the game rendered and kept, a few MB; they are made again the next time it starts) and a
   **SoundFont** (a bank of instrument samples, `.sf2`) to play the music through instead of
   the built-in synth, with an explanation of how to use one; it needs the free `fluidsynth`
   program, which the installers do not include. A SoundFont and a recording used in the game
@@ -296,25 +315,34 @@ to allow one score per address every ten minutes and deletes it after ten minute
 so treat a shared rank as a rough comparison rather than a competitive ranking.
 
 **Website counters.** The project website counts, anonymously and per day, how often its pages are
-opened and which buttons are clicked (downloads per platform, source and issue links). No cookies, and the project's
-server keeps no address or other detail about the visitor, only a day, a name and a number; browsers that send
-Do Not Track or Global Privacy Control are not counted ([details](server/README.md#website-counters)). Cloudflare,
-which hosts the site, keeps its usual server logs. The emulator itself sends nothing to the website.
+opened, which parts of the main page are scrolled to and which buttons are clicked (downloads per platform,
+source and issue links), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
+location of the connection), the kind of computer (Windows, Mac, Linux, phone) and the website that linked to it
+(its name only, from a short fixed list). No cookies, and the project's server keeps no address, browser string or
+anything else about the visitor, only a day, a name and a number; the tallies are kept apart and never stored per visit, though on a very quiet day (a visit or two) the counts could still be matched up by eye. Browsers that send Do Not Track or Global Privacy Control are not counted
+([details](server/README.md#website-counters)). Cloudflare, which hosts the site, keeps its usual server logs.
+The emulator itself sends nothing to the website. `tools/show_site_stats.bat` (or `python tools/site_stats.py --open`)
+shows the totals as a page in your browser.
 
 Other options:
 
 | Option | What it does |
 | --- | --- |
-| `--scale N` | Sets the window size as a multiple of the 176×220 screen. The game was built for tiny flip-phone screens (176×220), so it looks its best in a small window. By default it picks the largest that fits your desktop, up to 2 (use `--scale 3` or `4` for bigger). You can also drag the window edges or maximise it; the picture keeps its shape. |
+| `--scale N` | Sets the window size as a multiple of the 176×220 screen. The game was built for tiny flip-phone screens (176×220), so it looks its best in a small window. By default it picks the largest that fits your desktop, up to 2 (use `--scale 3` or `4` for bigger). You can also drag the window edges or maximize it; the picture keeps its shape. |
 | `--font-size N` | Sets the text size in phone pixels (default 11). Try 10 for smaller, 12 for bigger. |
 | `--font NAME` | Picks the font for game text. The default is Verdana, else DejaVu Sans, Tahoma, Segoe UI or Arial. |
 | `--filter MODE` | How the picture is enlarged to the window: `nearest` (crisp pixel blocks, the default), `smooth` (soft), `sharp` (crisp blocks of even width, edges softened only for the last fraction; best at odd window sizes) or `scale2x` (rounds off staircase edges without blurring). F11 cycles them in game; the launcher has the same choice under **Picture**. Only the picture: hi-res text is drawn on top either way, and F12 saves the raw frame. |
 | `--hires-text` | Redraws the game's text sharply at your window's resolution. By default text is drawn at the phone's 176x220 and scales with the picture. (The launcher's **Smooth hi-res text** option.) |
 | `--leaderboard URL` | Shares high scores with a leaderboard server (see [`server/`](server/README.md)). Off by default on the command line (the launcher turns it on for the project's server). Scores stay offline too; nothing identifying is sent. |
-| `--no-autosave` | Turns off autosave states (F8 toggles it in game). |
-| `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimising the game removes it). The launcher's Options tab has a checkbox for it. |
+| `--no-autosave` | Turns off all autosave states (F8 toggles them in game). |
+| `--autosave-every MINUTES` | Minutes of play between timed autosaves (default 5; `0` turns the timed ones off). The launcher's Saves tab has the box. |
+| `--no-autosave-on-quit` | No extra autosave when the window is closed mid-game. |
+| `--no-autosave-on-loading` | No autosave a few seconds after each Loading screen. |
+| `--dark-screen` | Blacks out the rest of the monitor the game window is on, behind the window (a black backdrop window; clicking it just brings the game back to the front, and minimizing the game removes it). The launcher's Options tab has a checkbox for it. |
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
+| `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `SELECT` (action, attack), `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options), `CLR` (back; twice goes to the title screen); keys are letters, `space`, `tab`, `backspace` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
+| `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the blended pixel fill) and `matinv` (the matrix cache). The launcher's Options tab has them under **Speed enhancements...**. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
 | `--mute` | Turns off audio output. |
@@ -337,8 +365,7 @@ Other options:
 | Z, or 0 (row or numpad) | 0 | **Status**: health, magic and stats. **Next** (F1 or Q) lists your items, potions and munny. In the pause box this quits instead. |
 | 1–9 (row or numpad) | Number keys | |
 | F, `[` or numpad `*` | `*` | Cast magic |
-| `]` / numpad `/` | `#` | |
-| Backspace | CLR | |
+| Backspace | CLR | Back: in play it opens the pause box and pressing it again goes back to the title screen; on story and summary screens it moves on |
 | F10 / F12 / Esc | | Mute / screenshot (says where it was saved) / quit (F10 flashes a speaker in the corner, crossed out when muted; Esc asks "Quit the game?" first: Enter or Y quits, Esc or N resumes, D quits and never asks again; the launcher's Options tab and `--no-quit-prompt` turn the question off) |
 | F11 | | Picture filter: crisp pixels, smooth, sharp pixels, Scale2x (cycles) |
 | F5 / F9 | | Save state / load state (current slot) |
@@ -348,6 +375,14 @@ Other options:
 Z is an alias for the phone's `0` key, so it follows whatever that key is bound
 to on the game's own **Controls** screen (pause, **Options**, **Controls**).
 The launcher's **Controls** tab and the website show the main keys from this table.
+
+**Changing keys.** Ten keys can be changed: W, A, S, D (moving), Space (the action and attack key), F (magic), Z
+(status and items), Q (pause and Continue), E (back and Options) and Backspace (back: once pauses, twice goes back to
+the title screen). Change them on the launcher's **Controls** tab: click a key, then press the
+new one (Esc cancels; a key already in use is refused with a message; a changed key is marked with a star;
+**Reset game keys** puts them all back). Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used. The arrows, Enter
+(and 5) for the action, the number keys, F1, F2, `[` and `*` keep working as listed, and the F keys and Esc stay Re:Cast's. On the
+command line it is `--key UP=i` (repeatable, for example `--key UP=i --key LEFT=j`).
 
 ### Save states
 
@@ -359,9 +394,9 @@ saves, which only happen at save points.
   **Shift+1–9** jumps straight to a slot. A message at the top of the window
   shows the slot and whether it's empty. The plain number keys are still
   phone keys.
-* Autosave can be turned off with **F8** in game, `--no-autosave`, or the
-  launcher's checkbox.
-* **Autosave:** khvcemu writes one every 5 minutes of play (saving by hand does not restart that
+* Autosave can be turned off with **F8** in game (it says which kinds are on), `--no-autosave`, or the
+  Saves tab's checkboxes: the three kinds can be switched separately.
+* **Autosave:** khvcemu writes one every 5 minutes of play (or the number you set; saving by hand does not restart that
   timer), a few seconds after each "Loading..." screen when you enter a new area (not within 30
   seconds of the last autosave), and when you quit mid-game (Esc or the window's close button). A
   small floppy disc shows in the bottom-left corner when one is written, so it never covers the
@@ -370,6 +405,10 @@ saves, which only happen at save points.
   `auto1`–`auto3`; **Shift+0** then **F9** loads the newest.
 * **At startup:** `python -m khvcemu <dump> --load-state 3` (or `auto`,
   `auto2`, `auto3`) resumes straight into a state.
+* **Rendered music:** the built-in synth's renderings of the game's tunes are made in the background as the game
+  starts and kept in `~/.khvcemu/<dump folder name>/audio_cache/` (about 3.5 MB), so a tune does not have to be
+  built, and the game does not pause, the first time it plays. It rebuilds itself when a tune, the Sound tab
+  settings or the synth change; you can delete the folder at any time.
 * States are stored in `~/.khvcemu/<dump folder name>/states/` as
   `slotN.khs` / `autoN.khs` (under 1 MB each) with a `.png` thumbnail.
 * Loading a state never touches the game's own save files on disk.
@@ -453,7 +492,21 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   million ARM instructions per frame. The game asks for 25 fps; 3D scenes ran
   at about real-time speed on the machine this was built on, so slower PCs
   will get fewer frames. The game reads the clock each frame, so it should
-  mostly drop frames rather than slow down.
+  mostly drop frames rather than slow down. Two things dominate: the per-pixel
+  fill of a polygon row (about half of the instructions in some scenes), and a
+  4x4 matrix inversion the 3D engine repeats hundreds of times a frame on a few
+  hundred different matrices. Re:Cast speeds these up in memory (never in the
+  game files), only when the module is byte for byte the known one: a tighter
+  fill loop, and a cache of the inversion's answers (the key is all 17 input
+  words, so a hit is exactly what the original would have computed). The picture
+  is identical (checked frame by frame; see `khvcemu/swerve_patch.py`). Each can
+  be turned off under Options, **Speed enhancements...**, or with `--no-speed-patch`.
+  Measured on the machine this was built on (real-time factor, 1.0 = the 25 fps
+  the game asks for), without and with them: a fight 0.70 to 0.79, Agrabah's lava
+  cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75
+  to 0.93. Agrabah's lava cave stays the slowest scene, at about 15 frames per second
+  there. Other speed-ups were built and dropped because they did not pay (see
+  `tools/gen_swerve_patch.py`): fewer instructions is not the same as faster here.
 * **Font.** The game asks for a custom font class (`0x0100a004`) that no
   firmware file provides, so text uses a host font (Verdana by default, drawn
   without smoothing). It's readable, but the shapes aren't the phone's; use
@@ -512,10 +565,12 @@ launcher's **Setup** tab says whether it was found.
 **Do you have a phone from this era?** The phones held one chapter at a time,
 and starting a new chapter deleted the old one. If someone stopped playing
 while the Wonderland chapter was installed, that phone may still hold the only
-copy of it. If you have, or know of, a Verizon phone from 2005–2007 with
+copy of it. If you have, or know of, a Verizon phone from the V CAST years (2005 to 2012) with
 *Kingdom Hearts* on it, please don't reset it: contact a game preservation
 group (for example the Lost Media Wiki or a BREW preservation community) so
-the files can be dumped safely.
+the files can be dumped safely. The game launched on the LG VX8000, Samsung SCH-a890
+and UTStarcom CDM8940, and the LG VX8100 and VX8300 have the same 176x220 screen, so
+look for those first; any Verizon phone of the time is a candidate.
 
 ## How it works
 
@@ -535,6 +590,7 @@ khvcemu/
   resfile.py    .bar/.mif resource files;  m3g.py  M3G section reader/writer (script patching)
   chapters.py   save seeding, Wonderland stand-in world + theme
   savestate.py  save states: memory pages + HLE objects + trap table, slots and autosaves
+  swerve_patch.py  speed-ups for the 3D engine: a faster blended pixel fill and a matrix inversion cache (same picture; machine code made by tools/gen_swerve_patch.py)
   frontend.py   pygame window, keys, picture filters, real-time loop;  __main__.py  CLI
   launcher.py   the tkinter launcher;  paths.py  per-user folders, icons, bundled tools
 ```
@@ -561,6 +617,11 @@ python tools/frames.py <dump> out/ --save castle --keys 11000:DOWN,12000:SELECT,
 python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names (font not included)
 python tools/launcher_screenshots.py                        # Windows: retake the launcher screenshots for the website
 python tools/disasm.py <mod> 0x100000 <addr> [n]            # needs capstone
+python tools/bench_state.py --root <dump> --state 7         # speed from one of your save states, speed-ups on and off
+python tools/profile_state.py --root <dump> --state 9       # where that scene spends its instructions
+python tools/bench_speed_patches.py --root <dump>           # every on/off combination on the headless Island scenes
+python tools/profile_guest.py --root <dump> world           # which ARM blocks the 3D scene runs most in
+python tools/gen_swerve_patch.py                            # rebuild the speed-ups' machine code (needs keystone-engine)
 python tools/xrefs.py  <mod> 0x100000 savegame summary      # string cross-references
 python tools/build_installer.py | build_mac.py | build_linux.py   # installers, see above
 python tools/make_icon.py                                   # redraws the window icon

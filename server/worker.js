@@ -223,21 +223,31 @@ async function handleTop(db, now, q = new URLSearchParams()) {
   });
 }
 
-// Anonymous website counters. The page (site/index.html, leaderboard.html) asks `GET /hit?e=<name>`
-// when it is opened or a button is clicked; the worker adds one to today's count for that name.
-// Only these names count (anything else is ignored), so nobody can fill the table, and nothing about
-// the visitor is read or stored: no address, no cookie, no browser details. A browser that sends
-// Do Not Track never asks. Read the totals with tools/site_stats.py.
-// Each name also has a daily ceiling. It bounds the database writes the counters can cause (about
-// 42,000 a day at most, against the free plan's daily allowance, which the scores share), so
-// someone calling the address in a loop cannot use them up and stop scores being saved: past the
-// ceiling a call changes nothing. Generous for a real day of visitors.
+// Anonymous website counters. The page (site/index.html, leaderboard.html) asks `GET /hit?e=<name>` when
+// it is opened, when a section is scrolled to, or a button is clicked; the worker adds one to today's
+// count for that name. Only the names below count (anything else is ignored), so nobody can fill the
+// table. Nothing about the visitor is stored: no address, no cookie, no browser string. A browser that
+// sends Do Not Track never asks. Read the totals with tools/site_stats.py (or its dashboard button).
+//
+// For each opening of the main page the worker also adds one to a few SEPARATE tallies (kept apart and never
+// stored per visit, though on a very quiet day, a visit or two, the counts could still be matched up by eye): the hour of day, the country (Cloudflare's coarse location
+// of the connection; the address itself is neither read nor kept), the kind of computer the page says it
+// is (a short fixed list) and where the visitor came from (a short fixed list of sites, domain only).
+// Each name has a daily ceiling. They bound the database writes the counters can cause (about 57,000 a
+// day at most, against the free plan's daily allowance, which the scores share), so someone calling the
+// address in a loop cannot use them up and stop scores being saved: past a ceiling a call changes nothing.
 export const SITE_EVENTS = {
-  "view:home": 15000, "view:leaderboard": 5000,
-  "dl:win64": 2000, "dl:win32": 2000, "dl:macArm": 2000, "dl:macIntel": 2000, "dl:linux64": 2000, "dl:linuxArm": 2000,
-  "dl:sums": 2000, "click:repo": 2000, "click:issues": 2000, "click:soundtrack": 2000, "click:email": 2000,
+  "view:home": 8000, "view:leaderboard": 1500,
+  "dl:win64": 600, "dl:win32": 600, "dl:macArm": 600, "dl:macIntel": 600, "dl:linux64": 600, "dl:linuxArm": 600,
+  "dl:sums": 600, "click:repo": 600, "click:issues": 600, "click:soundtrack": 600, "click:email": 600,
+  "sec:about": 1000, "sec:features": 1000, "sec:screens": 1000, "sec:launcher": 1000, "sec:composer": 1000,
+  "sec:download": 1000, "sec:help": 1000, "sec:wonderland": 1000, "sec:credits": 1000,
 };
+export const SITE_OS = new Set(["windows", "mac", "linux", "android", "ios", "chromeos", "other"]);
+export const SITE_REFS = new Set(["direct", "reddit", "google", "bing", "duckduckgo", "youtube", "x", "bluesky", "facebook",
+  "discord", "khinsider", "kh13", "khwiki", "lostmedia", "archive", "github", "hackernews", "other"]);
 const SITE_HOSTS = new Set(["khrecast.com", "www.khrecast.com"]);
+const COUNT_UP = "INSERT INTO site_stats (day, name, n) VALUES (?, ?, 1) ON CONFLICT (day, name) DO UPDATE SET n = n + 1";
 
 export async function handleHit(db, params, request, now) {
   const done = new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
@@ -250,9 +260,20 @@ export async function handleHit(db, params, request, now) {
     try { if (!SITE_HOSTS.has(new URL(from).hostname)) return done; } catch { return done; }
   }
   try {
-    const day = new Date(now * 1000).toISOString().slice(0, 10);
-    await db.prepare("INSERT INTO site_stats (day, name, n) VALUES (?, ?, 1) " +
-                     "ON CONFLICT (day, name) DO UPDATE SET n = n + 1 WHERE n < ?").bind(day, name, SITE_EVENTS[name]).run();
+    const when = new Date(now * 1000);
+    const day = when.toISOString().slice(0, 10);
+    const r = await db.prepare(COUNT_UP + " WHERE n < ?").bind(day, name, SITE_EVENTS[name]).run();
+    const changed = r?.meta?.changes ?? r?.changes ?? 0;       // 0: at its ceiling for today (and if the database says nothing, assume so: never skip the limit)
+    if (name === "view:home" && changed) {
+      const extra = [`hour:${String(when.getUTCHours()).padStart(2, "0")}`];
+      const country = String(request.cf?.country || "").toUpperCase();
+      if (/^[A-Z0-9]{2}$/.test(country)) extra.push(`country:${country}`);
+      const os = params.get("o") || "";
+      if (SITE_OS.has(os)) extra.push(`os:${os}`);
+      const ref = params.get("r") || "";
+      if (SITE_REFS.has(ref)) extra.push(`ref:${ref}`);
+      for (const n of extra) await db.prepare(COUNT_UP).bind(day, n).run();   // bounded by the main name's ceiling
+    }
   } catch (err) {
     console.error("site stats error:", err && err.message);   // e.g. the table is not there yet: never hurt the page
   }

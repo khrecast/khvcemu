@@ -112,8 +112,10 @@ def _timbre(program: int) -> str:
         return "bell"            # celesta, glockenspiel, vibes, tubular bells, kalimba...
     if program < 24:
         return "pluck" if program == 15 else "organ"
-    if program < 32 or program in (45, 46) or 104 <= program <= 107:
-        return "pluck"           # guitars, pizzicato, harp, sitar, banjo, shamisen, koto
+    if 104 <= program <= 107:
+        return "twang"           # sitar, banjo, shamisen, koto: bright, quick, picked
+    if program < 32 or program in (45, 46):
+        return "pluck"           # guitars, pizzicato, harp
     if program < 40:
         return "bass"
     if program < 45 or program == 110:
@@ -146,7 +148,7 @@ def _timbre(program: int) -> str:
 PIANO_PURE = 0.3          # above 500 Hz the upper partials fade (x (500/f)^PIANO_PURE per partial): a purer tone
 PIANO_STRIKE_FMAX = 2500  # the hammer tick has no partials above this many Hz
 PIANO_STRIKE_REG = 1.0    # and is quieter above 500 Hz (x (500/f)^PIANO_STRIKE_REG)
-PIANO_MID = 1.4           # a boost, centerd on 880 Hz and fading over about an octave each way, for the melody
+PIANO_MID = 1.4           # a boost, centered on 880 Hz and fading over about an octave each way, for the melody
 
 # Brass and timpani: the Island tune's horn stabs, fitted to a SoundFont render of it. In the
 # recording the stabs have about 5 dB more low thump (the timpani under every stab) and 6 dB more
@@ -158,11 +160,21 @@ BRASS_TILT = 0.95         # each partial is this much of the one below it (1 = n
 TIMPANI_GAIN = 2.0        # the low thump under the stabs
 TIMPANI_DECAY = 2.0       # per second: lower rings longer
 
-_RELEASE = {"piano": 0.35, "bell": 0.6, "pluck": 0.25, "bass": 0.12, "organ": 0.08,
+# Banjo, koto, shamisen and sitar (GM 104 to 107). Agrabah's rhythm part ("parapa pa pa pa", landing on the bass) is a
+# koto, and as a soft harp-like pluck it was lost under the strings: the authentic recording has about 4 dB more
+# between 1.2 and 4.8 kHz, where a banjo twang lives. This voice is picked, quick and bright.
+TWANG_PARTIALS = 12
+TWANG_TILT = 0.9          # each partial is this much of the one below it: higher is brighter
+TWANG_DECAY = 5.0         # per second for the fundamental: the note is short and dry
+TWANG_DECAY_STEP = 4.0    # each partial above dies this much faster
+TWANG_PICK = 0.25         # a short bright burst at the start of every note, the pick on the string
+TWANG_LEVEL = 3.0
+
+_RELEASE = {"piano": 0.35, "bell": 0.6, "pluck": 0.25, "twang": 0.15, "bass": 0.12, "organ": 0.08,
             "bowed": 0.2, "ensemble": 0.3, "choir": 0.35, "brass": 0.04, "reed": 0.1,
             "flute": 0.12, "lead": 0.12, "pad": 0.6, "timpani": 0.5}
 # voices that ring on their own and ignore how long the key is held
-_RINGS = {"bell": 1.6, "pluck": 1.2, "timpani": 1.2}
+_RINGS = {"bell": 1.6, "pluck": 1.2, "twang": 1.0, "timpani": 1.2}
 
 
 def _harmonics(ph, freq, weights, decays=None, t=None):
@@ -238,6 +250,15 @@ def _voice(program: int, freq: float, dur: float, vel: float, bend=None, s=None)
                        [2.0 + 2.5 * k for k in range(8)], t)
         env = np.exp(-t * 1.6) * np.clip(t / 0.002, 0, 1)
         w *= min(freq / 500.0, 1.0) ** (0.2 * s["bass_cut"])   # low harp/guitar notes a little lighter
+    elif kind == "twang":
+        k = np.arange(TWANG_PARTIALS)
+        w = _harmonics(ph, freq, list(TWANG_TILT ** k), list(TWANG_DECAY + TWANG_DECAY_STEP * k), t) * (0.5 * TWANG_LEVEL)
+        env = np.clip(t / 0.001, 0, 1)
+        if TWANG_PICK:
+            nb = min(n, int(0.03 * RATE))
+            burst = np.diff(np.random.default_rng(int(freq * 10)).standard_normal(nb + 1))     # tilted to the highs
+            strike = np.zeros(n)
+            strike[:nb] = burst * np.exp(-np.arange(nb) / RATE * 120.0) * (0.25 * TWANG_PICK * TWANG_LEVEL)
     elif kind == "bass":
         w = _harmonics(ph, freq, [1, 0.5, 0.25, 0.12, 0.06], [1.5, 3, 5, 7, 9], t)
         env = _env(n, 0.004, 0.5, 0.35, dur, release)
