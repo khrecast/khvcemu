@@ -80,7 +80,10 @@ export function splash(wrong = false) {
   button { padding: 12px 20px; border-radius: 10px; border: 0; background: var(--blue); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
   button:hover { background: #4693ff; }
   .err { color: #ff8a8a; min-height: 1.4em; }
-  .note { margin-top: 26px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 8px; background: var(--panel); font-size: 13px; text-align: left; }
+  .search { margin-top: 22px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 8px; background: var(--panel); font-size: 14px; text-align: left; }
+  .search strong { color: var(--text); }
+  .search a { color: #7db6ff; }
+  .note { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 8px; background: var(--panel); font-size: 13px; text-align: left; }
 </style></head><body><main>
 <img class="logo" src="/assets/recast_logo_lowres_hardpixels.png" alt="Kingdom Hearts Re:Cast">
 <h1>Coming soon</h1>
@@ -90,6 +93,7 @@ export function splash(wrong = false) {
   <button type="submit">Enter</button>
 </form>
 <p class="err" role="alert">${wrong ? "That is not the password." : ""}</p>
+<p class="search"><strong>Looking for the lost Wonderland chapter.</strong> Re:Cast plays the 2005 Verizon V CAST Kingdom Hearts game, but its second chapter, Alice in Wonderland, has never been recovered. If you still have a Verizon phone from that era with the game on it, please don't reset it, and email <a href="mailto:khrecast@gmail.com">khrecast@gmail.com</a>.</p>
 <p class="note">Unofficial, non-profit fan preservation project. Not affiliated with Disney, Square Enix, Superscape, Verizon or any other rights holder.</p>
 </main></body></html>`;
   return new Response(body, {

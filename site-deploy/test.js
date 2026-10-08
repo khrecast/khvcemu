@@ -27,6 +27,12 @@ await check("a visitor without the cookie only gets the splash page", async () =
   assert.ok(!(await asset.text()).includes("REAL SITE"));
 });
 
+await check("the splash page asks for the lost Wonderland chapter and gives a way to reply", async () => {
+  const body = await (await get("/")).text();
+  assert.ok(body.includes("lost Wonderland chapter") && body.includes("mailto:khrecast@gmail.com"));
+  assert.ok(!body.includes("REAL SITE"));
+});
+
 await check("only the two splash-page logos are public", async () => {
   assert.ok((await (await get("/assets/recast_icon.png")).text()).includes("REAL SITE"));
   assert.ok((await (await get("/assets/recast_logo_lowres_hardpixels.png")).text()).includes("REAL SITE"));
