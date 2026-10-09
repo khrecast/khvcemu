@@ -20,3 +20,8 @@ mod/
 wonderland/
 *.khs
 spike-output/
+
+# Spike 0 (Termux) bundle contents and results
+game/
+spike_results*.txt
+*.iml

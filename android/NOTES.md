@@ -3,13 +3,46 @@
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
 section. Nothing here has run on Android yet.
 
-## Status (2026-10-06, step 1: planning)
+## Status (updated 2026-10-09: chunk 1, the Spike 0 kit, is built; waiting for the phone's numbers)
 
-- No Android toolchain on the development PC, no device attached. Nothing installed, nothing committed.
+- No Android toolchain on the development PC yet (approved, see Decisions), no device attached. Nothing run on a phone.
 - Desktop baseline measured (below). The cost is the guest's own ARM code (the Swerve renderer)
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
-  Kotlin front end. Waiting for the user: which phone(s), and approval of the install list.
+  Kotlin front end. Waiting for the user: the Termux results from the phone (Chunk 1 below).
+
+## Decisions (2026-10-09, the user's answers to the up-front questions)
+
+- Test phone: a **Samsung Galaxy S23 Ultra** (Snapdragon 8 Gen 2 for Galaxy: 1 x 3.36 GHz Cortex-X3, 2 x 2.8 GHz
+  A715, 2 x 2.8 GHz A710, 3 x 2.0 GHz A510, arm64-v8a only, 8 or 12 GB RAM depending on the unit, Android 13 at launch). It is among the fastest
+  phone cores of its generation, so its numbers are a best case: a pass here does NOT mean a mid-range phone
+  passes. Samsung's Auto Blocker (Settings, Security) can refuse sideloaded apps and USB installs: switch it off
+  for testing if an install is refused (not verified on this phone).
+- First stretch: **Spike 0 in Termux, then the toolchain** (Spike 1), the toolchain only after the Termux
+  numbers are in and are marginal or better.
+- The toolchain install is **approved, under `C:\Android`** (JDK 17, SDK, NDK 28.2, CMake 3.31, Gradle via the
+  wrapper; section 7). Environment variables per command only. The SDK licenses are the user's to accept.
+- Goal: a **playable app** (boots the game, draws it, touch controls, sound, saves, a file picker for the game
+  files). Save states, the Sound tab and leaderboard sharing come after that.
+- Working method: the khvcemu-workflow skill, section 10 (chunks; commits on this branch only).
+
+## Chunk 1: Spike 0 kit (2026-10-09)
+
+Goal: get the phone's own speed numbers with no toolchain. Files: `android/spike/make_spike_zip.py` (PC: packs
+the core, the benchmark, the script and the user's game files into `build/spike/recast_spike.zip`, ignored by
+git), `android/spike/termux_spike.sh` (phone: installs Termux packages, builds Unicorn for ARM from source,
+runs `bench_headless.py boot`, `world`, `audio`, writes `~/spike_results.txt`).
+Checked on the PC: the zip unpacks and `bench_headless.py boot` reaches the title from the unpacked folder
+(1.548x, 275 frames, 0 faults). **Not run on a phone**; the script's Unicorn steps (tag `2.1.4`, `-DUNICORN_ARCH=arm`,
+the binding used from the source tree with `LIBUNICORN_PATH`) come from the docs and are untried.
+
+On the phone, in order: (1) install **Termux from F-Droid or its GitHub releases** (the Play Store copy is
+outdated); (2) on the PC run `python android/spike/make_spike_zip.py` and copy `build/spike/recast_spike.zip` to
+the phone's Downloads (USB cable, cloud drive, or a messaging app to yourself); (3) in Termux: `termux-setup-storage`
+(allow), then `cp ~/storage/downloads/recast_spike.zip ~ && cd ~ && unzip -o recast_spike.zip && cd recast_spike &&
+sh android/spike/termux_spike.sh`; (4) keep the screen on, the phone cool and charged, other apps closed; takes
+several minutes (the Unicorn build is the long part); (5) send back `cat ~/spike_results.txt`.
+Pass/fail numbers are in section 5. The zip holds the game files: it is for that phone only, never share it.
 
 ## 1. This machine (checked 2026-10-06)
 
@@ -224,8 +257,8 @@ A physical arm64 phone with Developer options and USB debugging on is required f
 
 ## 8. Open questions for the user
 
-1. Which phone(s)? Model and Android version, and which is the slowest one that should still play.
-2. Approve Spike 0 (Termux on the phone) first, or go straight to the Spike 1 install list?
-3. Approve the install list and name the folder.
-4. Distribution: sideloaded APK only. Developer verification (from 2027 globally) means either a verified
+1. ANSWERED 2026-10-09: Galaxy S23 Ultra (the slowest phone that should still play is still undecided).
+2. ANSWERED 2026-10-09: Spike 0 in Termux first, then the toolchain.
+3. ANSWERED 2026-10-09: approved, under C:\Android.
+4. OPEN. Distribution: sideloaded APK only. Developer verification (from 2027 globally) means either a verified
    developer account (identity, US$25) or users installing through Android's advanced flow or adb.
