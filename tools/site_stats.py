@@ -56,8 +56,15 @@ COUNTRIES = {
 # ------------------------------------------------------------------ reading
 def fetch_rows() -> list:
     """[(day, name, n)] from the live database (read-only SELECT)."""
-    cmd = "npx wrangler d1 execute khvcemu-leaderboard --remote --json --command \"" + QUERY + "\""
-    r = subprocess.run(cmd, cwd=os.path.join(ROOT, "server"), capture_output=True, text=True, shell=True, timeout=120)
+    # --yes: npx may need to download wrangler, and in a double-clicked window it would otherwise ask "Ok to
+    # proceed?" with its question hidden (the output is captured), and wait forever. No input is ever given.
+    cmd = "npx --yes wrangler d1 execute khvcemu-leaderboard --remote --json --command \"" + QUERY + "\""
+    try:
+        r = subprocess.run(cmd, cwd=os.path.join(ROOT, "server"), capture_output=True, text=True, shell=True,
+                           stdin=subprocess.DEVNULL, timeout=300)
+    except subprocess.TimeoutExpired:
+        raise SystemExit("wrangler did not answer in 5 minutes (no internet, or the Cloudflare login needs "
+                         "refreshing: run `npx wrangler login` in the server folder, then try again).")
     if r.returncode:
         raise SystemExit("wrangler failed:\n" + (r.stderr or r.stdout)[-600:])
     return parse(r.stdout)
@@ -285,7 +292,8 @@ def main(argv=None):
     ap.add_argument("--days", type=int, default=14, help="how many recent days to list (default 14; the page shows 30)")
     ap.add_argument("--open", action="store_true", help="write the dashboard page and open it in your browser")
     args = ap.parse_args(argv)
-    print("Reading the counters (takes a few seconds)...", flush=True)
+    print("Reading the counters (a few seconds; up to a minute or so the first time, while wrangler downloads)...",
+          flush=True)
     rows = fetch_rows()
     if args.open:
         path = write_report(rows, max(args.days, 30))
