@@ -569,6 +569,21 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **To check before release:** the privacy wording here and on the website say the same thing, and the store/install text
   names the `INTERNET` permission.
 
+## Moving the controls (2026-10-10, done in part)
+
+- **The game's menu has "Move the controls".** The d-pad, the Action/Magic/Status group and the three softkey bars can each be
+  dragged (dashed outlines show what can be grabbed; the one being dragged turns yellow). Each group stays inside the
+  free area, the positions are saved when a group is dropped (a fraction of the screen's width and height from where it
+  started, kept apart for portrait and landscape), and Back finishes ("Controls saved"). While editing, nothing presses a key.
+  **Options > Controls > "Put the controls back where they started"** clears them.
+- `GameView.layoutControls` lays out as before (`layoutBase`) and then moves each group by its offset (`applyOffsets`);
+  the touch tests use the moved rectangles, so a moved control is where it is pressed.
+- **Verified on the S23 Ultra, portrait:** dragged the d-pad and the buttons; the outlines and the hint showed; both offsets were
+  saved (`ctl_port_0`, `ctl_port_1`); the moved layout was still there after a full restart; the Reset button cleared both.
+  Each softkey bar is its own group (five groups in all), the game is held while editing, and the drag follows one finger by id.
+  **Not shown:** that a key press lands on the moved d-pad (it uses the same rectangles, but the title screen gave no
+  visible proof), moving in landscape, a two-finger test by hand, resizing a control, saved layouts, game controllers.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

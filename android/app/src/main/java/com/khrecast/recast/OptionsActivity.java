@@ -64,6 +64,20 @@ public class OptionsActivity extends Activity {
         col.addView(note("All three are on by default. Changes take effect the next time the game starts. Turn one off only to "
                 + "compare speed or to see whether it is behind a problem."));
 
+        col.addView(heading("Controls"));
+        col.addView(note("Move the touch controls from the game's menu (Back, then Move the controls)."));
+        Button resetControls = new Button(this);
+        resetControls.setText("Put the controls back where they started");
+        Labels.theme(resetControls, false);
+        resetControls.setOnClickListener(v -> {
+            Settings.resetControls(this);
+            android.widget.Toast.makeText(this, "The controls are back in their usual places",
+                    android.widget.Toast.LENGTH_SHORT).show();
+        });
+        LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        resetParams.topMargin = dp(8);
+        col.addView(resetControls, resetParams);
+
         col.addView(heading("Sound"));
         col.addView(toggle("Mute the game", Settings.muted(this), Settings::setMuted));
         Button sound = new Button(this);

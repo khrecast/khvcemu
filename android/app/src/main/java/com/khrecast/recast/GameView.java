@@ -61,6 +61,16 @@ public class GameView extends View {
     private final List<Button> buttons = new ArrayList<>();
     private final Set<String> held = new HashSet<>();
     private float padX, padY, padR, statusY;
+    // moving the controls: 0 the d-pad, 1 Action/Magic/Status, 2 the softkey bars. Offsets are fractions of the screen.
+    private final float[][] offset = new float[Settings.CONTROL_GROUPS][2];
+    private boolean offsetLandscape, offsetsLoaded;
+    private volatile boolean editing;
+    private boolean needDown;                    // after editing: ignore a finger that is still down from before
+    private int grabbed = -1, grabPointer = -1;
+    private float grabX, grabY;
+    private final float[] grabStart = new float[2];
+    private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private android.graphics.DashPathEffect dashes;
     private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
     private int pictureScale = Settings.FIT;                // see Settings: FIT, LARGEST or a whole number of pixels
     private String status = "";
@@ -188,6 +198,150 @@ public class GameView extends View {
         if (w == 0 || h == 0) {
             return;
         }
+        layoutBase(w, h);
+        boolean landscape = w > h;
+        if (!offsetsLoaded || offsetLandscape != landscape) {              // the other orientation has its own positions
+            for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
+                float[] saved = Settings.controlOffset(getContext(), landscape, g);
+                offset[g][0] = saved[0];
+                offset[g][1] = saved[1];
+            }
+            offsetLandscape = landscape;
+            offsetsLoaded = true;
+        }
+        applyOffsets(w, h);
+    }
+
+    /** The bounds of a group of controls, in pixels. */
+    private RectF groupBounds(int g) {
+        RectF r = new RectF();
+        if (g == 0) {
+            r.set(padX - padR, padY - padR, padX + padR, padY + padR);
+        } else if (g == 1) {
+            r.set(buttons.get(3).r);
+            r.union(buttons.get(4).r);
+            r.union(buttons.get(5).r);
+        } else {
+            r.set(buttons.get(g - 2).r);                                   // 2 Soft 1, 3 Back, 4 Soft 2: one bar each
+        }
+        return r;
+    }
+
+    /** Moves each group by what the player chose, keeping it inside the free area (and remembering the clamped value). */
+    private void applyOffsets(int w, int h) {
+        for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
+            if (offset[g][0] == 0f && offset[g][1] == 0f) {
+                continue;
+            }
+            RectF b = groupBounds(g);
+            float dx = offset[g][0] * w, dy = offset[g][1] * h;
+            dx = Math.max(insetLeft - b.left, Math.min(w - insetRight - b.right, dx));
+            dy = Math.max(insetTop - b.top, Math.min(h - insetBottom - b.bottom, dy));
+            offset[g][0] = dx / w;
+            offset[g][1] = dy / h;
+            if (g == 0) {
+                padX += dx;
+                padY += dy;
+            } else if (g == 1) {
+                for (int i = 3; i <= 5; i++) {
+                    buttons.get(i).r.offset(dx, dy);
+                }
+            } else {
+                buttons.get(g - 2).r.offset(dx, dy);
+            }
+        }
+    }
+
+    /** Edit mode: the controls can be dragged, and press nothing. The positions are saved as they are dropped. */
+    public void setEditing(boolean on) {
+        if (on) {
+            releaseAll();
+        }
+        if (editing && !on) {
+            needDown = true;                                               // a finger still down must not press keys
+        }
+        editing = on;
+        grabbed = -1;
+        grabPointer = -1;
+        invalidate();
+    }
+
+    public boolean isEditing() {
+        return editing;
+    }
+
+    /**
+     * One finger moves one group: it is remembered by its id (a second finger landing or lifting changes nothing), and the
+     * group goes to where it started plus how far that finger has moved, so pushing against the edge and coming back
+     * keeps the group under the finger.
+     */
+    private boolean onEditTouch(MotionEvent e) {
+        int action = e.getActionMasked();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                grabbed = -1;
+                grabPointer = e.getPointerId(0);
+                float x = e.getX(), y = e.getY();
+                for (int g = Settings.CONTROL_GROUPS - 1; g >= 0 && grabbed < 0; g--) {   // later groups sit on top
+                    RectF b = groupBounds(g);
+                    b.inset(-dp(8), -dp(8));
+                    if (b.contains(x, y)) {
+                        grabbed = g;
+                    }
+                }
+                if (grabbed >= 0) {
+                    grabX = x;
+                    grabY = y;
+                    grabStart[0] = offset[grabbed][0];
+                    grabStart[1] = offset[grabbed][1];
+                }
+                break;
+            case MotionEvent.ACTION_MOVE: {
+                int at = grabbed >= 0 ? e.findPointerIndex(grabPointer) : -1;
+                if (at >= 0 && getWidth() > 0 && getHeight() > 0) {
+                    offset[grabbed][0] = grabStart[0] + (e.getX(at) - grabX) / getWidth();
+                    offset[grabbed][1] = grabStart[1] + (e.getY(at) - grabY) / getHeight();
+                    layoutControls(getWidth(), getHeight());                  // clamps the group to the free area
+                    invalidate();
+                }
+                break;
+            }
+            case MotionEvent.ACTION_POINTER_UP:
+                if (grabbed >= 0 && e.getPointerId(e.getActionIndex()) == grabPointer) {
+                    dropGrabbed();                                            // the finger that held it let go
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                dropGrabbed();
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    private void dropGrabbed() {
+        if (grabbed >= 0) {
+            Settings.setControlOffset(getContext(), offsetLandscape, grabbed, offset[grabbed][0], offset[grabbed][1]);
+        }
+        grabbed = -1;
+        grabPointer = -1;
+        invalidate();
+    }
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    /** Re-reads the saved positions (after Options reset them) and lays out again. */
+    public void reloadControlOffsets() {
+        offsetsLoaded = false;
+        layoutControls(getWidth(), getHeight());
+        invalidate();
+    }
+
+    private void layoutBase(int w, int h) {
         if (w > h) {
             layoutLandscape(w, h);
             return;
@@ -286,6 +440,31 @@ public class GameView extends View {
             text.setTextSize(Math.min(b.r.height() * 0.38f, b.r.width() * 0.26f));
             c.drawText(b.label, b.r.centerX(), b.r.centerY() + text.getTextSize() * 0.35f, text);
         }
+        if (editing) {
+            outline.setStyle(Paint.Style.STROKE);
+            outline.setStrokeWidth(dp(2));
+            if (dashes == null) {
+                dashes = new android.graphics.DashPathEffect(new float[]{dp(8), dp(6)}, 0);
+            }
+            outline.setPathEffect(dashes);
+            for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
+                outline.setColor(g == grabbed ? 0xFFFFD54F : 0xFFE6EEFB);
+                RectF b = groupBounds(g);
+                b.inset(-dp(6), -dp(6));
+                c.drawRoundRect(b, dp(12), dp(12), outline);
+            }
+            String hint = "Drag the controls. Press Back when done.";
+            float size = Math.max(getHeight() * 0.018f, dp(13));
+            text.setTextSize(size);
+            while (text.measureText(hint) > getWidth() * 0.92f && size > dp(9)) {      // shrink until it fits the width
+                size -= 1f;
+                text.setTextSize(size);
+            }
+            text.setColor(0xFFFFD54F);
+            c.drawText(hint, getWidth() / 2f, statusY - dp(6), text);
+            text.setColor(Color.WHITE);
+            return;
+        }
         text.setTextSize(getHeight() * 0.014f);
         text.setColor(0xFF8EA4BF);
         c.drawText(status, dst.centerX(), statusY, text);
@@ -308,7 +487,16 @@ public class GameView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
+        if (editing) {
+            return onEditTouch(e);
+        }
         int action = e.getActionMasked();
+        if (needDown) {
+            if (action != MotionEvent.ACTION_DOWN) {
+                return true;                                               // still the finger from editing
+            }
+            needDown = false;
+        }
         trackTap(e, action);
         Set<String> now = new HashSet<>();
         if (action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL) {
@@ -361,6 +549,9 @@ public class GameView extends View {
 
     /** Lets go of every key (the app left the foreground). */
     public void releaseAll() {
+        if (editing) {
+            dropGrabbed();                                     // the app is leaving in the middle of a drag: keep where it got to
+        }
         for (String k : new ArrayList<>(held)) {
             send(k, false);
         }

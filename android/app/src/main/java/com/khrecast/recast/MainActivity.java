@@ -140,11 +140,18 @@ public class MainActivity extends Activity {
             finish();
             return;
         }
+        if (view.isEditing()) {                        // Back while moving the controls: done (they were saved as dropped)
+            view.setEditing(false);
+            applyLifecycle();                              // the game goes on
+            Toast.makeText(this, "Controls saved", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (menuOpen) {
             return;
         }
         final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Take a screenshot", "Options...", "Quit and go to the Re:Cast menu"};
+                "Load a saved game...", "Take a screenshot", "Move the controls", "Options...",
+                "Quit and go to the Re:Cast menu"};
         menuOpen = true;
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
@@ -167,10 +174,14 @@ public class MainActivity extends Activity {
                             takeScreenshot();
                             break;
                         case 6:
+                            view.setEditing(true);
+                            applyLifecycle();                  // hold the game while the controls are arranged
+                            break;
+                        case 7:
                             inner = true;
                             startActivity(new Intent(this, OptionsActivity.class));
                             break;
-                        case 7:
+                        case 8:
                             stopGame();                // now, not only when the system gets round to destroying the screen
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
@@ -374,7 +385,10 @@ public class MainActivity extends Activity {
             return;
         }
         final int scale = Settings.pictureScale(this);
-        runOnUiThread(() -> view.setPictureScale(scale));      // (this may run on the thread that starts the game)
+        runOnUiThread(() -> {
+            view.setPictureScale(scale);
+            view.reloadControlOffsets();                       // the controls may have been reset in Options
+        });      // (this may run on the thread that starts the game)
         muted = Settings.muted(this);
         final boolean autosave = Settings.autosave(this), onLoading = Settings.autosaveOnLoading(this),
                 onQuit = Settings.autosaveOnQuit(this);
@@ -392,7 +406,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean active() {
-        return resumed && !menuOpen;
+        return resumed && !menuOpen && !(view != null && view.isEditing());   // the game is held while the controls are moved
     }
 
     /** Tells the core whether the app is in the foreground. Queued on the input thread, and the flag is read when the

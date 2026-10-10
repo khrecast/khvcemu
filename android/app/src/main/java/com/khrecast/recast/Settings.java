@@ -129,6 +129,43 @@ final class Settings {
         prefs(c).edit().putBoolean("share_scores", v).apply();
     }
 
+    /** The groups of touch controls that can be moved: 0 the d-pad, 1 Action/Magic/Status, 2 Soft 1, 3 Back, 4 Soft 2. */
+    static final int CONTROL_GROUPS = 5;
+
+    /** Where the player moved a group of touch controls, as a fraction of the screen's width and height from the default
+     *  place; kept apart for portrait and landscape. */
+    static float[] controlOffset(Context c, boolean landscape, int group) {
+        String v = prefs(c).getString("ctl_" + (landscape ? "land" : "port") + "_" + group, "");
+        String[] parts = v.split(",");
+        try {
+            if (parts.length == 2) {
+                float x = Float.parseFloat(parts[0]), y = Float.parseFloat(parts[1]);
+                if (Float.isFinite(x) && Float.isFinite(y)) {                  // "NaN" must not hide a control for good
+                    return new float[]{x, y};
+                }
+            }
+        } catch (NumberFormatException e) {
+            // a damaged value is the default place
+        }
+        return new float[]{0f, 0f};
+    }
+
+    static void setControlOffset(Context c, boolean landscape, int group, float x, float y) {
+        prefs(c).edit().putString("ctl_" + (landscape ? "land" : "port") + "_" + group,
+                String.format(java.util.Locale.US, "%.4f,%.4f", x, y)).apply();
+    }
+
+    /** Puts every touch control back where it started (both orientations). */
+    static void resetControls(Context c) {
+        SharedPreferences.Editor e = prefs(c).edit();
+        for (String o : new String[]{"port", "land"}) {
+            for (int g = 0; g < CONTROL_GROUPS; g++) {
+                e.remove("ctl_" + o + "_" + g);
+            }
+        }
+        e.apply();
+    }
+
     static void restoreDefaults(Context c) {
         prefs(c).edit().clear().apply();
     }
