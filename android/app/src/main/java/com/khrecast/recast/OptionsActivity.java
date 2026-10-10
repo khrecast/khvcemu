@@ -65,9 +65,10 @@ public class OptionsActivity extends Activity {
                 + "compare speed or to see whether it is behind a problem."));
 
         col.addView(heading("Controls"));
-        col.addView(note("Move the touch controls from the game's menu (Back, then Move the controls)."));
+        col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
+                + "move it, pinch it with two fingers to make it bigger or smaller."));
         Button resetControls = new Button(this);
-        resetControls.setText("Put the controls back where they started");
+        resetControls.setText("Put the controls back to the default");
         Labels.theme(resetControls, false);
         resetControls.setOnClickListener(v -> {
             Settings.resetControls(this);

@@ -63,6 +63,10 @@ public class GameView extends View {
     private float padX, padY, padR, statusY;
     // moving the controls: 0 the d-pad, 1 Action/Magic/Status, 2 the softkey bars. Offsets are fractions of the screen.
     private final float[][] offset = new float[Settings.CONTROL_GROUPS][2];
+    private final float[] scale = new float[Settings.CONTROL_GROUPS];      // 1 = the default size
+    private int pinchPointer = -1;
+    private float pinchStartDist, pinchStartScale;
+    private final RectF resetRect = new RectF();
     private boolean offsetLandscape, offsetsLoaded;
     private volatile boolean editing;
     private boolean needDown;                    // after editing: ignore a finger that is still down from before
@@ -97,6 +101,7 @@ public class GameView extends View {
         buttons.add(new Button("SELECT", "Action", true));
         buttons.add(new Button("STAR", "Magic", true));
         buttons.add(new Button("0", "Status", true));
+        java.util.Arrays.fill(scale, 1f);
         setBackgroundColor(Color.BLACK);
     }
 
@@ -205,6 +210,7 @@ public class GameView extends View {
                 float[] saved = Settings.controlOffset(getContext(), landscape, g);
                 offset[g][0] = saved[0];
                 offset[g][1] = saved[1];
+                scale[g] = Settings.controlScale(getContext(), landscape, g);
             }
             offsetLandscape = landscape;
             offsetsLoaded = true;
@@ -217,22 +223,41 @@ public class GameView extends View {
         RectF r = new RectF();
         if (g == 0) {
             r.set(padX - padR, padY - padR, padX + padR, padY + padR);
-        } else if (g == 1) {
-            r.set(buttons.get(3).r);
-            r.union(buttons.get(4).r);
-            r.union(buttons.get(5).r);
         } else {
-            r.set(buttons.get(g - 2).r);                                   // 2 Soft 1, 3 Back, 4 Soft 2: one bar each
+            r.set(buttons.get(buttonOf(g)).r);                             // every other group is one button
         }
         return r;
     }
 
-    /** Moves each group by what the player chose, keeping it inside the free area (and remembering the clamped value). */
+    /** The index in `buttons` of a group above 0: 1 Action, 2 Magic, 3 Status (buttons 3 to 5), 4 Soft 1, 5 Back, 6 Soft 2. */
+    private static int buttonOf(int group) {
+        return group <= 3 ? group + 2 : group - 4;
+    }
+
+    /**
+     * Applies what the player chose to each control: first its size (about its default centre, never bigger than the free
+     * area), then its position (kept inside the free area). The values actually used are written back, so what is saved
+     * and what is shown agree.
+     */
     private void applyOffsets(int w, int h) {
+        float freeW = Math.max(1f, w - insetLeft - insetRight), freeH = Math.max(1f, h - insetTop - insetBottom);
         for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
-            if (offset[g][0] == 0f && offset[g][1] == 0f) {
-                continue;
+            RectF b = groupBounds(g);
+            float floor = Math.max(0.5f, Math.min(1f, dp(44) / Math.max(1f, Math.min(b.width(), b.height()))));   // thumb-sized
+            float s = Math.max(floor, Math.min(2f, scale[g]));
+            s = Math.min(s, Math.min(freeW / Math.max(1f, b.width()), freeH / Math.max(1f, b.height())));
+            scale[g] = s;
+            if (Math.abs(s - 1f) > 0.0005f) {
+                if (g == 0) {
+                    padR *= s;
+                } else {
+                    RectF r = buttons.get(buttonOf(g)).r;
+                    float cx = r.centerX(), cy = r.centerY(), hw = r.width() / 2f * s, hh = r.height() / 2f * s;
+                    r.set(cx - hw, cy - hh, cx + hw, cy + hh);
+                }
             }
+        }
+        for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {                // (always: a bigger control may need pulling in)
             RectF b = groupBounds(g);
             float dx = offset[g][0] * w, dy = offset[g][1] * h;
             dx = Math.max(insetLeft - b.left, Math.min(w - insetRight - b.right, dx));
@@ -242,12 +267,8 @@ public class GameView extends View {
             if (g == 0) {
                 padX += dx;
                 padY += dy;
-            } else if (g == 1) {
-                for (int i = 3; i <= 5; i++) {
-                    buttons.get(i).r.offset(dx, dy);
-                }
             } else {
-                buttons.get(g - 2).r.offset(dx, dy);
+                buttons.get(buttonOf(g)).r.offset(dx, dy);
             }
         }
     }
@@ -271,17 +292,27 @@ public class GameView extends View {
     }
 
     /**
-     * One finger moves one group: it is remembered by its id (a second finger landing or lifting changes nothing), and the
-     * group goes to where it started plus how far that finger has moved, so pushing against the edge and coming back
-     * keeps the group under the finger.
+     * One finger moves one control (it is remembered by its id): the control goes to where it started plus how far that
+     * finger has moved. A second finger on the screen resizes it: the control grows and shrinks with the distance between the
+     * two fingers. The "Put the controls back" button resets every control.
      */
     private boolean onEditTouch(MotionEvent e) {
         int action = e.getActionMasked();
         switch (action) {
-            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_DOWN: {
                 grabbed = -1;
+                pinchPointer = -1;
                 grabPointer = e.getPointerId(0);
                 float x = e.getX(), y = e.getY();
+                updateResetRect();
+                if (resetRect.contains(x, y)) {
+                    new android.app.AlertDialog.Builder(getContext())
+                            .setTitle("Put the controls back?")
+                            .setMessage("Every control returns to its default place and size, in portrait and landscape.")
+                            .setPositiveButton("Put them back", (d, w) -> resetControlsNow())
+                            .setNegativeButton("Cancel", null).show();
+                    return true;
+                }
                 for (int g = Settings.CONTROL_GROUPS - 1; g >= 0 && grabbed < 0; g--) {   // later groups sit on top
                     RectF b = groupBounds(g);
                     b.inset(-dp(8), -dp(8));
@@ -295,22 +326,57 @@ public class GameView extends View {
                     grabStart[0] = offset[grabbed][0];
                     grabStart[1] = offset[grabbed][1];
                 }
+                invalidate();
+                break;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN:
+                if (grabbed >= 0 && pinchPointer < 0) {
+                    int first = e.findPointerIndex(grabPointer), second = e.getActionIndex();
+                    if (first >= 0 && first != second) {
+                        pinchPointer = e.getPointerId(second);
+                        pinchStartDist = (float) Math.hypot(e.getX(first) - e.getX(second), e.getY(first) - e.getY(second));
+                        pinchStartScale = scale[grabbed];
+                    }
+                }
                 break;
             case MotionEvent.ACTION_MOVE: {
                 int at = grabbed >= 0 ? e.findPointerIndex(grabPointer) : -1;
                 if (at >= 0 && getWidth() > 0 && getHeight() > 0) {
                     offset[grabbed][0] = grabStart[0] + (e.getX(at) - grabX) / getWidth();
                     offset[grabbed][1] = grabStart[1] + (e.getY(at) - grabY) / getHeight();
-                    layoutControls(getWidth(), getHeight());                  // clamps the group to the free area
+                    int other = pinchPointer >= 0 ? e.findPointerIndex(pinchPointer) : -1;
+                    if (other >= 0 && pinchStartDist > dp(20)) {
+                        float d = (float) Math.hypot(e.getX(at) - e.getX(other), e.getY(at) - e.getY(other));
+                        scale[grabbed] = Math.max(0.5f, Math.min(2f, pinchStartScale * d / pinchStartDist));
+                    }
+                    layoutControls(getWidth(), getHeight());                  // clamps what was asked to the free area
                     invalidate();
                 }
                 break;
             }
-            case MotionEvent.ACTION_POINTER_UP:
-                if (grabbed >= 0 && e.getPointerId(e.getActionIndex()) == grabPointer) {
-                    dropGrabbed();                                            // the finger that held it let go
+            case MotionEvent.ACTION_POINTER_UP: {
+                int id = e.getPointerId(e.getActionIndex());
+                if (grabbed >= 0 && id == pinchPointer) {
+                    pinchPointer = -1;                                        // the resizing finger let go: keep the size
+                    saveGrabbed();
+                } else if (grabbed >= 0 && id == grabPointer) {
+                    if (pinchPointer >= 0) {                                  // hand the control over to the other finger
+                        saveGrabbed();
+                        grabPointer = pinchPointer;
+                        pinchPointer = -1;
+                        int now = e.findPointerIndex(grabPointer);
+                        if (now >= 0) {
+                            grabX = e.getX(now);
+                            grabY = e.getY(now);
+                            grabStart[0] = offset[grabbed][0];
+                            grabStart[1] = offset[grabbed][1];
+                        }
+                    } else {
+                        dropGrabbed();
+                    }
                 }
                 break;
+            }
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 dropGrabbed();
@@ -321,13 +387,41 @@ public class GameView extends View {
         return true;
     }
 
-    private void dropGrabbed() {
+    private void saveGrabbed() {
         if (grabbed >= 0) {
             Settings.setControlOffset(getContext(), offsetLandscape, grabbed, offset[grabbed][0], offset[grabbed][1]);
+            Settings.setControlScale(getContext(), offsetLandscape, grabbed, scale[grabbed]);
         }
+    }
+
+    private void dropGrabbed() {
+        saveGrabbed();
         grabbed = -1;
         grabPointer = -1;
+        pinchPointer = -1;
         invalidate();
+    }
+
+    /** Every control back to its default place and size (the player's choices are forgotten, in both orientations). */
+    private void resetControlsNow() {
+        Settings.resetControls(getContext());
+        java.util.Arrays.fill(scale, 1f);
+        for (float[] o : offset) {
+            o[0] = 0f;
+            o[1] = 0f;
+        }
+        offsetsLoaded = false;
+        layoutControls(getWidth(), getHeight());
+        android.widget.Toast.makeText(getContext(), "Controls back to the default", android.widget.Toast.LENGTH_SHORT).show();
+        invalidate();
+    }
+
+    /** The "put the controls back" button, drawn over the top of the game picture while the controls are being arranged. */
+    private void updateResetRect() {
+        float w = Math.min(getWidth() * 0.8f, dp(300)), h = dp(44);
+        float cx = (dst.left + dst.right) / 2f;
+        float top = dst.top + dp(10);
+        resetRect.set(cx - w / 2f, top, cx + w / 2f, top + h);
     }
 
     private int dp(int v) {
@@ -388,9 +482,10 @@ public class GameView extends View {
      */
     private void placeButtons(float ax, float ay, float big, float mx, float my, float sx, float sy) {
         float small = big * 0.72f;
-        setCircle(buttons.get(3), ax, ay, big);                                // Action
-        float[] magic = towards(ax, ay, mx, my, big + small);
-        float[] status = towards(ax, ay, sx, sy, big + small);
+        float action = big * 1.15f;                                            // Action is the one that is pressed most: a bit bigger
+        setCircle(buttons.get(3), ax, ay, action);                             // Action
+        float[] magic = towards(ax, ay, mx, my, action + small);
+        float[] status = towards(ax, ay, sx, sy, action + small);
         setCircle(buttons.get(4), magic[0], magic[1], small);                  // Magic
         setCircle(buttons.get(5), status[0], status[1], small);                // Status
     }
@@ -453,7 +548,14 @@ public class GameView extends View {
                 b.inset(-dp(6), -dp(6));
                 c.drawRoundRect(b, dp(12), dp(12), outline);
             }
-            String hint = "Drag the controls. Press Back when done.";
+            updateResetRect();
+            fill.setStyle(Paint.Style.FILL);
+            fill.setColor(0xFF1C5FD1);
+            c.drawRoundRect(resetRect, dp(10), dp(10), fill);
+            text.setTextSize(dp(15));
+            text.setColor(Color.WHITE);
+            c.drawText("Put the controls back", resetRect.centerX(), resetRect.centerY() + dp(5), text);
+            String hint = "Drag to move, pinch to resize. Back when done.";
             float size = Math.max(getHeight() * 0.018f, dp(13));
             text.setTextSize(size);
             while (text.measureText(hint) > getWidth() * 0.92f && size > dp(9)) {      // shrink until it fits the width

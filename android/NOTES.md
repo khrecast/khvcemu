@@ -584,6 +584,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   **Not shown:** that a key press lands on the moved d-pad (it uses the same rectangles, but the title screen gave no
   visible proof), moving in landscape, a two-finger test by hand, resizing a control, saved layouts, game controllers.
 
+## Controls: separate boxes, pinch to resize, a reset (2026-10-10, pinch NOT tried)
+
+- **Every control is its own group now** (seven: the d-pad, Action, Magic, Status, Soft 1, Back, Soft 2), each with a dashed
+  box in "Move the controls". **Action is 15% bigger by default** (Magic and Status keep their size and are placed touching it).
+- **Pinch to resize:** with one finger on a control, a second finger anywhere changes its size with the distance between the
+  fingers (half to double; never bigger than the free area); letting go of either finger keeps the size, and if the first finger
+  lifts the second takes over the drag. Sizes are saved per control and per orientation (`ctlscale_*`; positions moved to
+  `ctl2_*` when the groups changed).
+- **"Put the controls back" button** on the edit screen (over the top of the picture) resets every control, and the
+  Options button does the same.
+- **Verified on the S23 Ultra, portrait:** the seven boxes and the bigger Action show; Magic dragged alone (saved on its own);
+  the edit-screen reset cleared every saved value. **Not verified:** the pinch itself (`adb` cannot send two fingers: the code
+  was only read and reviewed), landscape, and a key press landing on a resized or moved control.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

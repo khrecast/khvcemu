@@ -129,13 +129,14 @@ final class Settings {
         prefs(c).edit().putBoolean("share_scores", v).apply();
     }
 
-    /** The groups of touch controls that can be moved: 0 the d-pad, 1 Action/Magic/Status, 2 Soft 1, 3 Back, 4 Soft 2. */
-    static final int CONTROL_GROUPS = 5;
+    /** The touch controls that can be moved and resized, each on its own: 0 the d-pad, 1 Action, 2 Magic, 3 Status, 4 Soft 1,
+     *  5 Back, 6 Soft 2. */
+    static final int CONTROL_GROUPS = 7;
 
     /** Where the player moved a group of touch controls, as a fraction of the screen's width and height from the default
      *  place; kept apart for portrait and landscape. */
     static float[] controlOffset(Context c, boolean landscape, int group) {
-        String v = prefs(c).getString("ctl_" + (landscape ? "land" : "port") + "_" + group, "");
+        String v = prefs(c).getString("ctl2_" + (landscape ? "land" : "port") + "_" + group, "");
         String[] parts = v.split(",");
         try {
             if (parts.length == 2) {
@@ -151,8 +152,26 @@ final class Settings {
     }
 
     static void setControlOffset(Context c, boolean landscape, int group, float x, float y) {
-        prefs(c).edit().putString("ctl_" + (landscape ? "land" : "port") + "_" + group,
+        prefs(c).edit().putString("ctl2_" + (landscape ? "land" : "port") + "_" + group,
                 String.format(java.util.Locale.US, "%.4f,%.4f", x, y)).apply();
+    }
+
+    /** How much bigger (above 1) or smaller (below 1) the player made a control; 1 is the default size. */
+    static float controlScale(Context c, boolean landscape, int group) {
+        try {
+            float v = Float.parseFloat(prefs(c).getString("ctlscale_" + (landscape ? "land" : "port") + "_" + group, "1"));
+            if (Float.isFinite(v)) {
+                return Math.max(0.5f, Math.min(2f, v));
+            }
+        } catch (NumberFormatException e) {
+            // a damaged value is the default size
+        }
+        return 1f;
+    }
+
+    static void setControlScale(Context c, boolean landscape, int group, float v) {
+        prefs(c).edit().putString("ctlscale_" + (landscape ? "land" : "port") + "_" + group,
+                String.format(java.util.Locale.US, "%.3f", v)).apply();
     }
 
     /** Puts every touch control back where it started (both orientations). */
@@ -160,7 +179,8 @@ final class Settings {
         SharedPreferences.Editor e = prefs(c).edit();
         for (String o : new String[]{"port", "land"}) {
             for (int g = 0; g < CONTROL_GROUPS; g++) {
-                e.remove("ctl_" + o + "_" + g);
+                e.remove("ctl2_" + o + "_" + g);
+                e.remove("ctlscale_" + o + "_" + g);
             }
         }
         e.apply();
