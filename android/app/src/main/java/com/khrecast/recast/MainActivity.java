@@ -108,7 +108,7 @@ public class MainActivity extends Activity {
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath(), world == null ? "" : world, Settings.speedOff(this),
                     Settings.frameLock(this), Settings.music(this),
-                    Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "").toInt();
+                    Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "", Settings.textSize(this)).toInt();
             app = module;
             String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {
@@ -387,6 +387,7 @@ public class MainActivity extends Activity {
         final int scale = Settings.pictureScale(this);
         runOnUiThread(() -> {
             view.setPictureScale(scale);
+            view.setFilter(Settings.pictureFilter(MainActivity.this));
             view.reloadControlOffsets();                       // the controls may have been reset in Options
         });      // (this may run on the thread that starts the game)
         muted = Settings.muted(this);

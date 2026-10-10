@@ -15,6 +15,7 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -51,6 +52,44 @@ public class OptionsActivity extends Activity {
         sizes.setOnCheckedChangeListener((g, id) -> Settings.setPictureScale(this, (Integer) g.findViewById(id).getTag()));
         col.addView(sizes);
         col.addView(note("Whole-number sizes keep every pixel the same size. Sizes too big for the screen use the largest that fits."));
+
+        col.addView(heading("Picture filter"));
+        RadioGroup filters = new RadioGroup(this);
+        String[] filterNames = {"Pixels (crisp)", "Smooth", "Sharp pixels", "Scale2x (rounded edges)"};
+        for (int i = 0; i < filterNames.length; i++) {
+            addSize(filters, filterNames[i], i, Settings.pictureFilter(this));
+        }
+        filters.setOnCheckedChangeListener((g, id) -> Settings.setPictureFilter(this, (Integer) g.findViewById(id).getTag()));
+        col.addView(filters);
+        col.addView(note("How the picture is enlarged. Crisp: every game pixel a sharp block. Smooth: softened. Sharp pixels: "
+                + "crisp blocks with only the last fraction softened. Scale2x: rounds off the staircase edges without blurring."));
+
+        col.addView(heading("Text size"));
+        TextView textValue = text("The game's own text: " + Settings.textSize(this) + " pixels", 16, Color.WHITE);
+        col.addView(textValue);
+        SeekBar textBar = new SeekBar(this);
+        textBar.setMax(8);                                     // 8 to 16
+        textBar.setProgress(Settings.textSize(this) - 8);
+        textBar.setContentDescription("Text size");
+        textBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar b, int progress, boolean fromUser) {
+                textValue.setText("The game's own text: " + (progress + 8) + " pixels");
+                if (fromUser) {
+                    Settings.setTextSize(OptionsActivity.this, progress + 8);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar b) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar b) {
+            }
+        });
+        col.addView(textBar);
+        col.addView(note("11 is the usual size. Applies the next time the game starts."));
 
         col.addView(heading("Speed"));
         col.addView(toggle("Steady frame rate", Settings.frameLock(this), Settings::setFrameLock));

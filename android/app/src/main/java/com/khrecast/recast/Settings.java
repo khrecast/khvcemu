@@ -186,6 +186,28 @@ final class Settings {
         e.apply();
     }
 
+    /** How the picture is enlarged (the desktop's four filters): 0 crisp pixels, 1 smooth, 2 sharp pixels, 3 Scale2x. */
+    static final int FILTER_PIXELS = 0, FILTER_SMOOTH = 1, FILTER_SHARP = 2, FILTER_SCALE2X = 3;
+
+    static int pictureFilter(Context c) {
+        int v = prefs(c).getInt("filter", FILTER_PIXELS);
+        return v >= 0 && v <= 3 ? v : FILTER_PIXELS;
+    }
+
+    static void setPictureFilter(Context c, int v) {
+        prefs(c).edit().putInt("filter", v).apply();
+    }
+
+    /** The size of the game's own text in pixels (8 to 16, 11 as on the desktop); read when the game starts. */
+    static int textSize(Context c) {
+        int v = prefs(c).getInt("font_size", 11);
+        return Math.max(8, Math.min(16, v));
+    }
+
+    static void setTextSize(Context c, int v) {
+        prefs(c).edit().putInt("font_size", Math.max(8, Math.min(16, v))).apply();
+    }
+
     static void restoreDefaults(Context c) {
         prefs(c).edit().clear().apply();
     }

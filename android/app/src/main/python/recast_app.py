@@ -97,7 +97,7 @@ class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
     def __init__(self, native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-                 leaderboard=""):
+                 leaderboard="", font_size=11):
         _prepare_unicorn(native_lib_dir)
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         from khvcemu.keys import AVK
@@ -122,6 +122,7 @@ class _Game:
                 chapters.install_save(self.emu, start_world)
             except (SystemExit, OSError) as e:
                 self._log("start at %s failed: %s" % (start_world, e))
+        self.emu.font_size = max(8, min(16, int(font_size)))          # the game's own text size (Options)
         self.emu.leaderboard_url = str(leaderboard or "").strip()     # "": scores stay on the phone (the player's choice)
         self.stop_flag = False
         self.session = 0               # set by start_game
@@ -396,7 +397,7 @@ _sessions = 0                       # counts the games started; a screen stops o
 
 
 def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-               leaderboard=""):
+               leaderboard="", font_size=11):
     """Start the game thread (once). Returns the session number of the game that is running. start_world: seed the
     game save from that world's starting save first (chapters.install_save), so Load Game continues from there."""
     global _game, _sessions
@@ -407,7 +408,8 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
                 print("[core] the earlier game is still closing; the starting save may be overwritten", flush=True)
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
-            game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music, leaderboard)
+            game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music, leaderboard,
+                         font_size)
             _sessions += 1
             game.session = _sessions
             game.thread.start()

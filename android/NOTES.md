@@ -621,6 +621,18 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the pages and back at 25 fps after; both pages fit the screen. **Not reached:** the real Wonderland splash (it needs a finished
   Island), so the splash flag, the Continue press that follows and the clock catch-up were tested only with the flag.
 
+## Picture filters and text size (2026-10-10, done)
+
+- **Options > Picture filter** has the desktop's four filters: Pixels (crisp), Smooth (bilinear; the desktop's is bicubic, so
+  slightly softer here), Sharp pixels (the largest whole-number size drawn crisp into a reusable bitmap, then one soft step to
+  the rest) and Scale2x (EPX done in Java on the 176 x 220 picture: doubled while twice the size still fits, at most twice, then a
+  soft step; under 2x it is just smooth. The desktop has no cap on the doublings, so above 8x it differs). They take effect at once; all four ran at 24 to 25 fps on the S23 Ultra.
+- **Options > Text size** is the game's own text size, 8 to 16 pixels (11 is the usual), sent to the core
+  (`emu.font_size`) when the game starts. Size 15 visibly enlarged the title menu text on the phone.
+- **Verified on the S23 Ultra:** the same title screen under each filter (four different looks, compared side by side) and
+  text size 15. **Not compared:** the Java EPX against the desktop's pygame `scale2x` pixel by pixel; hi-res text (the
+  desktop's smooth text drawn at window resolution) is not built.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

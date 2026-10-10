@@ -76,6 +76,11 @@ public class GameView extends View {
     private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
     private android.graphics.DashPathEffect dashes;
     private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
+    private int filter = Settings.FILTER_PIXELS;
+    private final Paint smoothPaint = new Paint(Paint.FILTER_BITMAP_FLAG);   // bilinear: for the soft last step of a filter
+    private Bitmap work;                                    // the picture enlarged by a whole number (Sharp, Scale2x)
+    private Canvas workCanvas;
+    private int[] pixelsIn, pixelsA, pixelsB;
     private int pictureScale = Settings.FIT;                // see Settings: FIT, LARGEST or a whole number of pixels
     private String status = "";
     private KeySink sink;
@@ -107,6 +112,127 @@ public class GameView extends View {
 
     public void setKeySink(KeySink sink) {
         this.sink = sink;
+    }
+
+    /** How the picture is enlarged (Settings.FILTER_*): takes effect at once. */
+    public void setFilter(int f) {
+        if (f != filter) {
+            filter = f;
+            postInvalidate();
+        }
+    }
+
+    private boolean epxPending;                                   // Scale2x: the pixels are copied under the lock, the work is not
+    private final Rect workRect = new Rect();
+
+    /** Draws the game's picture into `dst` with the chosen filter. Called with `frame` locked, so it only copies for Scale2x. */
+    private void drawPicture(Canvas c) {
+        epxPending = false;
+        if (filter == Settings.FILTER_SMOOTH) {
+            c.drawBitmap(frame, src, dst, smoothPaint);
+        } else if (filter == Settings.FILTER_SHARP) {
+            // crisp blocks of the largest whole size that fits, then a soft step for the last fraction
+            int n = Math.max(1, Math.min((int) (dst.width() / W), (int) (dst.height() / H)));
+            if (n == 1) {
+                c.drawBitmap(frame, src, dst, smoothPaint);
+            } else {
+                ensureWork(W * n, H * n);
+                workRect.set(0, 0, W * n, H * n);
+                workCanvas.drawBitmap(frame, src, workRect, pixels);
+                c.drawBitmap(work, null, dst, smoothPaint);
+            }
+        } else if (filter == Settings.FILTER_SCALE2X) {
+            if (scale2xTimes() == 0) {
+                c.drawBitmap(frame, src, dst, smoothPaint);          // under 2x there is nothing to double
+            } else {
+                if (pixelsIn == null) {
+                    pixelsIn = new int[W * H];
+                }
+                frame.getPixels(pixelsIn, 0, W, 0, 0, W, H);        // the rest happens after the lock is let go
+                epxPending = true;
+            }
+        } else {
+            c.drawBitmap(frame, src, dst, pixels);
+        }
+    }
+
+    /** How many times Scale2x doubles the picture: while twice the size still fits in both directions, twice at most. */
+    private int scale2xTimes() {
+        int times = 0;
+        while (times < 2 && (W << (times + 1)) <= dst.width() && (H << (times + 1)) <= dst.height()) {
+            times++;
+        }
+        return times;
+    }
+
+    /** Scale2x (EPX) on the pixels copied by drawPicture, then a soft step to the picture's size. Not under the frame lock. */
+    private void finishScale2x(Canvas c) {
+        int times = scale2xTimes();
+        int w = W, h = H;
+        int[] from = pixelsIn;
+        for (int i = 0; i < times; i++) {
+            int[] to = i == 0 ? bufferA(w * 2 * h * 2) : bufferB(w * 2 * h * 2);
+            epx(from, w, h, to);
+            from = to;
+            w *= 2;
+            h *= 2;
+        }
+        ensureWork(w, h);
+        work.setPixels(from, 0, w, 0, 0, w, h);
+        c.drawBitmap(work, null, dst, smoothPaint);
+    }
+
+    private int[] bufferA(int n) {
+        if (pixelsA == null || pixelsA.length < n) {
+            pixelsA = new int[n];
+        }
+        return pixelsA;
+    }
+
+    private int[] bufferB(int n) {
+        if (pixelsB == null || pixelsB.length < n) {
+            pixelsB = new int[n];
+        }
+        return pixelsB;
+    }
+
+    private void ensureWork(int w, int h) {
+        if (work == null || work.getWidth() != w || work.getHeight() != h) {
+            work = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            workCanvas = new Canvas(work);
+        }
+    }
+
+    /** Scale2x (EPX): every pixel becomes four, each taking a neighbor's color where two neighbors agree at a corner. */
+    private static void epx(int[] in, int w, int h, int[] out) {
+        int ow = w * 2;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int p = in[y * w + x];
+                int a = y > 0 ? in[(y - 1) * w + x] : p;           // up
+                int b = x < w - 1 ? in[y * w + x + 1] : p;         // right
+                int cc = x > 0 ? in[y * w + x - 1] : p;            // left
+                int d = y < h - 1 ? in[(y + 1) * w + x] : p;       // down
+                int p1 = p, p2 = p, p3 = p, p4 = p;
+                if (cc == a && cc != d && a != b) {
+                    p1 = a;
+                }
+                if (a == b && a != cc && b != d) {
+                    p2 = b;
+                }
+                if (d == cc && d != b && cc != a) {
+                    p3 = cc;
+                }
+                if (b == d && b != a && d != cc) {
+                    p4 = d;
+                }
+                int o = y * 2 * ow + x * 2;
+                out[o] = p1;
+                out[o + 1] = p2;
+                out[o + ow] = p3;
+                out[o + ow + 1] = p4;
+            }
+        }
     }
 
     /** Picture size (Settings.FIT, Settings.LARGEST or 1, 2, 3...): takes effect at once. */
@@ -507,10 +633,14 @@ public class GameView extends View {
     @Override
     protected void onDraw(Canvas c) {
         c.drawColor(Color.BLACK);
+        epxPending = false;
         synchronized (frame) {
             if (hasFrame) {
-                c.drawBitmap(frame, src, dst, pixels);
+                drawPicture(c);
             }
+        }
+        if (epxPending) {
+            finishScale2x(c);
         }
         // the direction pad
         fill.setStyle(Paint.Style.FILL);
