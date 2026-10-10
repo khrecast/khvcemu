@@ -80,3 +80,74 @@ def build_screens(pygame, font_names: str, size: int = 9) -> list:
     y = _text(s2, MESSAGE, 6, 4 + pic.get_height() + 5, W - 12, font)
     _text(s2, EMAIL, 6, y + 3, W - 12, bold, color=(20, 60, 160))
     return [s1, s2]
+
+
+def to_rgb565(img):
+    """A Pillow image as a (height, width) uint16 array in the 565 layout the core's frames use."""
+    import numpy as np
+    a = np.asarray(img.convert("RGB"), dtype=np.uint16)
+    return ((a[..., 0] >> 3) << 11) | ((a[..., 1] >> 2) << 5) | (a[..., 2] >> 3)
+
+
+def build_screens_pil(font_names: str = "", size: int = 9) -> list:
+    """The same two pages drawn with Pillow instead of pygame (the Android app has no pygame): two (220, 176) uint16
+    arrays in the core's 565 layout. Raises RuntimeError if no font can be loaded."""
+    from PIL import Image, ImageDraw
+    from . import hostgfx
+    font = hostgfx.load_font(font_names, size)
+    bold = hostgfx.load_font(font_names, size, True)
+    if font is None or bold is None:
+        raise RuntimeError("no font for the Wonderland pages")
+
+    def line_height(f):
+        return f.ascent + f.descent
+
+    def wrap(text, f, width):
+        lines, cur = [], ""
+        for word in text.split(" "):
+            trial = (cur + " " + word).strip()
+            if f.size(trial)[0] <= width or not cur:             # (a first word wider than the page stays on its own line)
+                cur = trial
+            else:
+                lines.append(cur)
+                cur = word
+        return lines + [cur]
+
+    def draw_text(draw, text, x, y, width, f, color=(0, 0, 0), gap=2):
+        for line in wrap(text, f, width):
+            draw.text((x, y), line, font=f.font, fill=color)
+            y += line_height(f) + gap
+        return y
+
+    def page():
+        img = Image.new("RGB", (W, H), (255, 255, 255))
+        d = ImageDraw.Draw(img)
+        d.fontmode = "1"                                           # no smoothing, like the game's own text
+        box = (3, 197, 3 + 62, 197 + 20)
+        d.rounded_rectangle(box, radius=5, fill=(36, 34, 52), outline=(150, 148, 170))
+        label = "Continue"
+        lw, lh = font.size(label)
+        d.text(((box[0] + box[2] - lw) // 2, (box[1] + box[3] - lh) // 2), label, font=font.font, fill=(255, 255, 255))
+        return img, d
+
+    def fit(path, w, h):
+        img = Image.open(path).convert("RGB")
+        k = min(w / img.width, h / img.height)
+        return img.resize((max(1, int(img.width * k)), max(1, int(img.height * k))), Image.LANCZOS)
+
+    img1, d1 = page()
+    pic = fit(os.path.join(ASSETS, "wonderland_1.png"), 150, 118)
+    img1.paste(pic, ((W - pic.width) // 2, 8))
+    y = draw_text(d1, HEADING, 6, 132, W - 12, bold)
+    draw_text(d1, CREDIT, 6, y + 3, W - 12, font)
+
+    img2, d2 = page()
+    lh2 = line_height(font) + 2
+    need = len(wrap(MESSAGE, font, W - 12)) * lh2 + line_height(bold) + 8
+    pic_h = max(36, min(70, 190 - need - 10))
+    pic = fit(os.path.join(ASSETS, "wonderland_2.png"), 90, pic_h)
+    img2.paste(pic, ((W - pic.width) // 2, 4))
+    y = draw_text(d2, MESSAGE, 6, 4 + pic.height + 5, W - 12, font)
+    draw_text(d2, EMAIL, 6, y + 3, W - 12, bold, color=(20, 60, 160))
+    return [to_rgb565(img1), to_rgb565(img2)]
+

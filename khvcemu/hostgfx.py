@@ -82,6 +82,7 @@ class PilFont:
         ascent, descent = font.getmetrics()
         self.ascent, self.descent = ascent, abs(descent)      # pygame's convention below makes the descent negative
         self._masks: dict = {}                                 # text -> mask: a screen redraws the same strings every frame
+        self._widths: dict = {}                                # text -> drawn width
 
     def get_ascent(self) -> int:
         return self.ascent
@@ -90,7 +91,22 @@ class PilFont:
         return -self.descent
 
     def size(self, text: str):
-        return (math.ceil(self.font.getlength(text)), self.ascent + self.descent)
+        """(width, height) of the text as it is drawn. Drawn without smoothing (the hinted bitmap mode) a string can come
+        out wider than the font's own advance says (a measured 14% for a 9 pixel font), so the width is what is drawn."""
+        w = self._widths.get(text)
+        if w is None:
+            from PIL import Image, ImageDraw
+            advance = math.ceil(self.font.getlength(text))
+            img = Image.new("L", (advance * 2 + 16, self.ascent + self.descent + 4), 0)
+            draw = ImageDraw.Draw(img)
+            draw.fontmode = "1"
+            draw.text((0, 0), text, font=self.font, fill=255)
+            box = img.getbbox()
+            w = max(advance, box[2] if box else 0)
+            if len(self._widths) >= 600:
+                self._widths.clear()
+            self._widths[text] = w
+        return (w, self.ascent + self.descent)
 
     def mask(self, text: str) -> np.ndarray:
         """(height, width) bool array: where the glyphs are. The same array comes back for the same text: do not

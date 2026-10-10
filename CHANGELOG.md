@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+- **The two Wonderland screenshots were WebP files named .png.** pygame reads either, but a Pillow without WebP support (the
+  Android app's) could not, so they are now real PNG files with identical pixels. A test checks every `.png` in the assets.
+
 ### New
 - **Android app (in development, sideloaded; not released).** The game runs on a phone with touch controls, saves and
   save states that move between the PC and the phone (the same `.khs` files), an Options screen, and a first-start question
