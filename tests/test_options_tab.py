@@ -160,7 +160,7 @@ class OptionsTabTests(unittest.TestCase):
     def test_the_speed_enhancements_window(self):
         from khvcemu import swerve_patch
         root, app = self.make_app({"speed_patches_off": ["matinv"]})
-        self.assertEqual(app.speed_summary.cget("text"), "1 of %d off" % len(swerve_patch.NAMES))
+        self.assertEqual(app.speed_summary.cget("text"), "1 of %d off" % len(L.SPEED_ITEMS))
         tips = []
         real = app.tooltip
         app.tooltip = lambda widget, text: tips.append(text)
@@ -174,14 +174,22 @@ class OptionsTabTests(unittest.TestCase):
                     checks.append(str(c.cget("text")))
                 walk(c)
         walk(app.speed_win)
-        self.assertEqual(checks, [swerve_patch.LABELS[n] for n in swerve_patch.NAMES], "one switch each, in order")
-        for n in swerve_patch.NAMES:
-            self.assertIn(swerve_patch.HINTS[n], tips, "an info bubble for each")
-            self.assertIn("Why turn it off?", swerve_patch.HINTS[n])
+        self.assertEqual(checks, [L.SPEED_LABELS[n] for n in L.SPEED_ITEMS], "one switch each, in order")
+        self.assertEqual(L.SPEED_ITEMS, swerve_patch.NAMES + ("framelock",), "the steady frame rate comes last")
+        for n in L.SPEED_ITEMS:
+            self.assertIn(L.SPEED_HINTS[n], tips, "an info bubble for each")
+            self.assertIn("Why turn it off?", L.SPEED_HINTS[n])
+        self.assertNotIn("--no-frame-lock", L.build_command("dump", app.opts()), "on unless switched off")
         app.speed_vars["span"].set(False)
         self.assertIn("2 of", app.speed_summary.cget("text"))
         cmd = L.build_command("dump", app.opts())
         self.assertEqual(set(cmd[cmd.index("--no-speed-patch") + 1].split(",")), {"span", "matinv"})
+        app.speed_vars["framelock"].set(False)
+        cmd = L.build_command("dump", app.opts())
+        self.assertIn("--no-frame-lock", cmd)
+        self.assertEqual(set(cmd[cmd.index("--no-speed-patch") + 1].split(",")), {"span", "matinv"},
+                         "the frame rate is not a patch name")
+        app.speed_vars["framelock"].set(True)
         app.open_speed_window()                                   # a second click brings the same window forward
         app.close_speed_window()
         self.assertIsNone(app.speed_win)

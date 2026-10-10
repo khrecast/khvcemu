@@ -94,6 +94,10 @@ def main(argv=None):
                     help="turn off the 3D engine speed patches (they give the same picture, faster): all of them, or "
                          "a comma separated list of: " + ", ".join(swerve_patch.NAMES) +
                          ". Write --no-speed-patch=NAMES, or put a bare --no-speed-patch after the game folder")
+    ap.add_argument("--no-frame-lock", action="store_true",
+                    help="turn off the steady frame rate: the game's clock is held still while it draws a frame, "
+                         "which lets it run at its own 25 frames a second whenever the PC keeps up (otherwise the time "
+                         "a frame takes is added to its delay). For comparing or troubleshooting")
     ap.add_argument("-v", "--verbose", action="store_true", help="log every BREW call category")
     args = ap.parse_args(argv)
     try:
@@ -130,7 +134,8 @@ def main(argv=None):
     emu = Emulator(args.dump, data, screen=(w, h), verbose=args.verbose, realtime=True,
                    audio=not args.mute, soundfont=args.soundfont,
                    skip_wonderland=not args.keep_wonderland, music=music, music_files=music_files,
-                   wonderland_volume=args.wonderland_volume, speed_patches=speed_patches)
+                   wonderland_volume=args.wonderland_volume, speed_patches=speed_patches,
+                   frame_locked_clock=not args.no_frame_lock)
     emu.leaderboard_url = args.leaderboard.strip()
     emu.font_size = args.font_size
     emu.font_name = args.font

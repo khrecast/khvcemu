@@ -201,8 +201,8 @@ include everything). The launcher:
   **Screenshots (F12)** (the folder, chosen with the folder icon; a list of the pictures in it by the time they
   were taken, newest first; a preview of the one selected; and icons to open it, open the folder, or delete it (a red x: on Windows it goes to the Recycle Bin, after a question that has a box to stop asking; Restore default settings brings the question back); double-click opens one); **Online scores** (whether to share high scores, and
   where); and a **Speed enhancements...** button, which opens a small window with a switch and an info bubble
-  for each of the 3D engine's speed-ups (all on by default; each draws exactly the same picture, and the bubble
-  says when you might turn it off). **Restore default
+  for each speed-up: the 3D engine's two (they draw exactly the same picture) and the steady frame rate
+  (all on by default; the bubble says when you might turn one off). **Restore default
   settings** puts the settings on this tab back if one was changed by mistake (only this tab: your saves,
   the Saves tab's autosave settings, the game folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
@@ -342,6 +342,7 @@ Other options:
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
 | `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `SELECT` (action, attack), `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options), `CLR` (back; twice goes to the title screen); keys are letters, `space`, `tab`, `backspace` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
+| `--no-frame-lock` | Turns off the steady frame rate (see [Steady frame rate](#known-issues--limitations)): the game's clock is no longer held still while it draws a frame, so the time a frame takes is added to its delay again. For comparing or troubleshooting. The launcher's Options tab has it under **Speed enhancements...**. |
 | `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the blended pixel fill) and `matinv` (the matrix cache). The launcher's Options tab has them under **Speed enhancements...**. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
@@ -504,9 +505,21 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   Measured on the machine this was built on (real-time factor, 1.0 = the 25 fps
   the game asks for), without and with them: a fight 0.70 to 0.79, Agrabah's lava
   cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75
-  to 0.93. Agrabah's lava cave stays the slowest scene, at about 15 frames per second
-  there. Other speed-ups were built and dropped because they did not pay (see
+  to 0.93. Other speed-ups were built and dropped because they did not pay (see
   `tools/gen_swerve_patch.py`): fewer instructions is not the same as faster here.
+* **Steady frame rate.** The game sets the timer for its next frame as the very last thing it does in a frame,
+  so on a real clock the time a frame took is added to its 30 to 40 millisecond delay: a PC that could draw 33
+  frames a second showed about 16. (The benchmarks above run on a virtual clock that stands still while the game
+  works, which is why they never showed it.) Re:Cast now holds the game's clock still while it runs a frame, the
+  same way, and lets it run in real time in between, so the frame period is the larger of 40 ms and the time the
+  PC needs. The game still sees real elapsed time from one frame to the next, so its speed does not change.
+  Real-time frames per second on the machine this was built on, without and with it (with the speed-ups on):
+  the title screen 15.8 to 24.6, the Obstacle Course 15.5 to 24.6, a Castle room 16.6 to 24.9, a fight 11.2 to
+  18.5, Agrabah's lava cave 11.9 to 19.0 (the two busiest scenes have the PC fully busy, so they are limited by
+  speed again). The game's speed does not depend on the frame rate: walking forward in the Obstacle Course for six
+  seconds at 25, 16 and 14 frames per second ends in the same place (the final pictures differ in under 1% of
+  their pixels). It is on by default; **Speed enhancements...** under Options has a switch, and
+  `--no-frame-lock` turns it off. `tools/bench_realtime.py` measures it.
 * **Font.** The game asks for a custom font class (`0x0100a004`) that no
   firmware file provides, so text uses a host font (Verdana by default, drawn
   without smoothing). It's readable, but the shapes aren't the phone's; use

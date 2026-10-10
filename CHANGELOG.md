@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### New
+- **A steady frame rate.** The game sets the timer for its next frame as the last thing it does in a frame, so on a
+  real clock the time a frame took was added to its 30 to 40 ms delay: a PC that could draw 33 frames a second
+  showed about 16 (the benchmarks never saw it: they run on a virtual clock that stands still while the game works).
+  Re:Cast now holds the game's clock still while it runs a frame and lets it run in real time in between, so the
+  frame period is the larger of 40 ms and the PC's own time per frame, and the game's speed is unchanged. Real-time
+  frames per second on the development PC, without and with it: title screen 15.8 to 24.6, the Obstacle Course 15.5
+  to 24.6, a Castle room 16.6 to 24.9, a fight 11.2 to 18.5, Agrabah's lava cave 11.9 to 19.0 (the game's speed does
+  not depend on the frame rate: the same six-second walk ends in the same place at 25, 16 and 14 fps). On by default; a switch
+  in **Speed enhancements...** under Options, `--no-frame-lock` on the command line, and `tools/bench_realtime.py` to
+  measure it (it can also run with the speed-ups off).
 - **Change the game's keys.** The Controls tab's keys (W, A, S, D, Space for the action, F, Z, Q, E and Backspace) are now buttons: click one, press the
   new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
   puts them back. Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used; the arrows, Enter and 5 (the action), number keys, F1, F2,
