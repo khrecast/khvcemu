@@ -76,6 +76,9 @@ public class GameView extends View {
     private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
     private android.graphics.DashPathEffect dashes;
     private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
+    private Runnable editEnded;                  // told when the layout (not the player) ends the controls editor
+    private boolean flipMode;
+    private FlipPhone flip;
     private int filter = Settings.FILTER_PIXELS;
     private final Paint smoothPaint = new Paint(Paint.FILTER_BITMAP_FLAG);   // bilinear: for the soft last step of a filter
     private Bitmap work;                                    // the picture enlarged by a whole number (Sharp, Scale2x)
@@ -112,6 +115,31 @@ public class GameView extends View {
 
     public void setKeySink(KeySink sink) {
         this.sink = sink;
+    }
+
+    /** Flip phone mode (portrait only): the game on a clamshell phone with a keypad. Takes effect at once. */
+    public void setEditEndedListener(Runnable r) {
+        editEnded = r;
+    }
+
+    public void setFlipMode(boolean on) {
+        if (on != flipMode) {
+            flipMode = on;
+            releaseAll();
+            layoutControls(getWidth(), getHeight());
+            postInvalidate();
+        }
+    }
+
+    /** True while the flip phone is what is on screen (the mode is on and the phone is upright). */
+    public boolean isFlipActive() {
+        return flipMode && getWidth() > 0 && getWidth() <= getHeight() && flip != null;
+    }
+
+    private java.util.Set<String> allDown() {
+        java.util.Set<String> all = new HashSet<>(held);
+        all.addAll(padHeld.keySet());
+        return all;
     }
 
     /** How the picture is enlarged (Settings.FILTER_*): takes effect at once. */
@@ -287,6 +315,9 @@ public class GameView extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        if (flipMode && (w <= h) != (oldw <= oldh)) {
+            releaseAll();                                           // the keys under a finger change with the layout
+        }
         layoutControls(w, h);
     }
 
@@ -328,6 +359,20 @@ public class GameView extends View {
     private void layoutControls(int w, int h) {
         if (w == 0 || h == 0) {
             return;
+        }
+        if (flipMode && w <= h) {
+            if (editing) {
+                setEditing(false);                                  // the editor's boxes are not drawn in the flip phone
+                if (editEnded != null) {
+                    editEnded.run();                                // so the game is not left held
+                }
+            }
+            if (flip == null) {
+                flip = new FlipPhone(getContext());
+            }
+            flip.layout(insetLeft, insetTop, w - insetRight, h - insetBottom, dst);
+            statusY = h - insetBottom - (h - insetTop - insetBottom) * 0.004f;
+            return;                                                 // the phone has its own keys: no moved or resized controls
         }
         layoutBase(w, h);
         boolean landscape = w > h;
@@ -633,6 +678,10 @@ public class GameView extends View {
     @Override
     protected void onDraw(Canvas c) {
         c.drawColor(Color.BLACK);
+        boolean flipping = isFlipActive();
+        if (flipping && flip != null) {
+            flip.drawBody(c);
+        }
         epxPending = false;
         synchronized (frame) {
             if (hasFrame) {
@@ -641,6 +690,14 @@ public class GameView extends View {
         }
         if (epxPending) {
             finishScale2x(c);
+        }
+        if (flipping && flip != null) {
+            flip.drawKeys(c, allDown());
+            text.setTextSize(getHeight() * 0.012f);
+            text.setColor(0xFF8EA4BF);
+            c.drawText(status, getWidth() / 2f, statusY, text);
+            text.setColor(Color.WHITE);
+            return;
         }
         // the direction pad
         fill.setStyle(Paint.Style.FILL);
@@ -837,6 +894,10 @@ public class GameView extends View {
     }
 
     private void keysAt(float x, float y, Set<String> out) {
+        if (isFlipActive() && flip != null) {
+            flip.keysAt(x, y, out);
+            return;
+        }
         for (Button b : buttons) {
             RectF r = b.r;
             if (b.round) {                                                  // a circle, with a little slack for a thumb

@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         view = new GameView(this);
+        view.setEditEndedListener(() -> runOnUiThread(this::applyLifecycle));
         view.setKeySink((name, down) -> input.execute(() -> {
             PyObject a = app;
             if (a != null) {
@@ -257,6 +258,11 @@ public class MainActivity extends Activity {
                             takeScreenshot();
                             break;
                         case 6:
+                            if (view.isFlipActive()) {
+                                Toast.makeText(this, "The flip phone has fixed keys: turn it off in Options to move the controls",
+                                        Toast.LENGTH_LONG).show();
+                                break;
+                            }
                             view.setEditing(true);
                             applyLifecycle();                  // hold the game while the controls are arranged
                             break;
@@ -472,6 +478,7 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             view.setPictureScale(scale);
             view.setFilter(Settings.pictureFilter(MainActivity.this));
+            view.setFlipMode(Settings.flipPhone(MainActivity.this));
             view.reloadControlOffsets();                       // the controls may have been reset in Options
         });      // (this may run on the thread that starts the game)
         muted = Settings.muted(this);

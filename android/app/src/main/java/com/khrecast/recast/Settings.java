@@ -251,6 +251,15 @@ final class Settings {
         prefs(c).edit().putString("music_mixes", sb.toString()).apply();
     }
 
+    /** Flip phone mode: the game on a clamshell phone drawn round it (portrait only). */
+    static boolean flipPhone(Context c) {
+        return prefs(c).getBoolean("flip_phone", false);
+    }
+
+    static void setFlipPhone(Context c, boolean v) {
+        prefs(c).edit().putBoolean("flip_phone", v).apply();
+    }
+
     static void restoreDefaults(Context c) {
         String mixes = prefs(c).getString("music_mixes", "");           // the player's own saved mixes are not a setting
         prefs(c).edit().clear().putString("music_mixes", mixes).apply();

@@ -683,6 +683,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   GPLv2 against this project's GPL-3.0 question, the privacy wording against the website, naming the INTERNET permission in the
   install text, and the owner's own passes with a finger, a real controller and the pinch.
 
+## Flip phone mode (2026-10-10, a mock-up; done in part)
+
+- **What it is:** Options > Controls > "Flip phone look (upright only)". The game appears on the screen of a clamshell phone drawn
+  round it (`FlipPhone.java`): speaker slot, black bezel, hinge, then the lower half with Soft 1 / Soft 2, a navigation ring with a
+  center button, a green Call and a red End key, and a 12-key keypad. Held keys light up. It replaces the usual controls while on.
+- **Keys:** 2, 4, 6, 8 send Up, Left, Right, Down and 5 sends Select (the game is steered with directions and Select, which the
+  desktop's arrows and Enter send; the desktop's digit keys send digits, and whether the game also reads those is not checked); the ring does the same; * is Magic, 0 is Status; Soft 1 and Soft 2 as usual; End is
+  Back; Call sends the phone's Send key, which the game ignores. 1, 3, 7, 9 and # send their keys, which the game also ignores.
+- **Upright only:** sideways it falls back to the usual landscape layout. "Move the controls" says the flip phone has fixed keys.
+- **Verified on the S23 Ultra:** the layout draws and the game runs in it; tapping 8 twice moved the title highlight from
+  New Game to Options and the ring's center button opened it. **Not tried:** landscape fall-back on the device, the other keys
+  (softkeys, Call, End, * and 0), multi-finger presses, other screen sizes. The picture is smaller than in the usual layout (it is about
+  a third of the phone's height, since the keypad needs the rest).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
