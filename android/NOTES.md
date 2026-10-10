@@ -303,6 +303,30 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   "Back" bar returned to the title. Not tried by hand with a finger; shops and the Save screens not tried.
 - Tests: `tests/test_tapmap.py` (11, one against the real game's title, intro, pause and Options screens).
 
+## Chunk 9: the first-run flow, game files without adb (2026-10-10, done)
+
+- `SetupActivity` is now the app's front door: it explains what is needed, opens Android's folder picker
+  (`ACTION_OPEN_DOCUMENT_TREE`), and when the game files are installed it goes straight on to the game. "Remove the game
+  files" deletes the copy (saves and settings are kept). Open it with the game installed from adb:
+  `adb shell am start -n com.khrecast.recast/.SetupActivity --ez auto false`.
+- `GameInstaller` looks for the folder holding `mif` and `mod` (the picked folder or up to 3 levels below it), copies
+  `mif/`, `mod/` and any `savegame(*).dat` next to them through `ContentResolver` into `files/game_new`, runs
+  `khvcemu/gamefiles.py` (`problems`, tested on the desktop) on the copy, then swaps it in as `files/game` and writes the
+  marker `files/game/.installed`. A wrong folder leaves nothing behind and names what is wrong. Off the main thread.
+- `MainActivity` sends you to Setup when there are no game files (a copy made with adb before this chunk still plays).
+- Verified on the S23 Ultra through the real picker: from no game files, a wrong folder ("This is not the game folder: it
+  has no mif and mod folders inside"), then the folder one level above the game: copied, checked, "The game files are
+  installed", Play ran at 23 to 26 fps with 0 faults; Remove deleted the copy.
+- Hardening after review: names from the picker that could leave the folder (`..`, a path, a NUL, empty) are skipped; the
+  old copy is kept as `game_old` until the new one is in place and the marker is written, then restored if that fails;
+  `.mif`/`.mod`/`.sig` file names are lower-cased (the module scan is case-sensitive); the Setup screen survives
+  dark-mode and language changes mid-copy (`configChanges`).
+- **Setup can only be reopened with adb once the game is installed** (the command above), until chunk 10's home screen
+  adds the route. "Remove the game files" runs on the main thread (a few MB: fine for now).
+- Android 11+ will not let an app pick the root or the Download folder itself ("Can't use this folder"), only folders
+  inside them; the screen says so. There is no progress bar yet (a text line counts files); that comes with the Compose
+  screens in chunk 10. Not tried: a very large folder, a phone with an SD card, a picker other than Samsung's.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

@@ -1,6 +1,7 @@
 package com.khrecast.recast;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
@@ -35,6 +36,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!GameInstaller.isInstalled(this) && !new File(new File(getFilesDir(), "game"), "mod").isDirectory()) {
+            startActivity(new Intent(this, SetupActivity.class));      // no game files yet: ask for them first
+            finish();
+            return;
+        }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         view = new GameView(this);
         view.setKeySink((name, down) -> input.execute(() -> {
@@ -177,7 +183,9 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         resumed = false;
-        view.releaseAll();
+        if (view != null) {
+            view.releaseAll();
+        }
         applyLifecycle();
     }
 
@@ -206,6 +214,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         running = false;
+        if (view == null) {                            // onCreate went to the setup screen
+            super.onDestroy();
+            return;
+        }
         if (pump != null) {
             pump.interrupt();
         }

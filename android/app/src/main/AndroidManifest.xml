@@ -5,17 +5,23 @@
         android:allowBackup="false"
         android:label="Re:Cast"
         android:theme="@android:style/Theme.Material.NoActionBar">
-        <!-- the game -->
+        <!-- first run: pick the game folder (the app opens here and goes on to the game once the files are installed) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SetupActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode|locale|layoutDirection|density|fontScale"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- the game -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait" />
         <!-- the speed spike (start it with: adb shell am start -n com.khrecast.recast/.BenchActivity) -->
         <activity
             android:name=".BenchActivity"
