@@ -102,12 +102,18 @@ class _Pickler(pickle.Pickler):
 
 
 class _CompatUnpickler(pickle.Unpickler):
-    """Maps classes pickled under the old package name (khemu.*) to khvcemu.*."""
+    """Maps classes pickled under the old package name (khemu.*) to khvcemu.*, and numpy 2's module names (numpy._core)
+    to numpy 1's (numpy.core), so a state made on a computer with numpy 2 loads where numpy 1 is installed (the phone)."""
 
     def find_class(self, module, name):
         if module == "khemu" or module.startswith("khemu."):
             module = "khvcemu" + module[len("khemu"):]
-        return super().find_class(module, name)
+        try:
+            return super().find_class(module, name)
+        except ModuleNotFoundError:
+            if module == "numpy._core" or module.startswith("numpy._core."):
+                return super().find_class("numpy.core" + module[len("numpy._core"):], name)
+            raise
 
 
 class _Unpickler(_CompatUnpickler):
@@ -304,9 +310,14 @@ def load_state(emu, path: str) -> dict:
     for ptr, (cls, _) in payload["objects"].items():
         cur = emu.objects.get(ptr)
         instances[ptr] = cur if type(cur) is cls else cls.__new__(cls)
-    states = {ptr: _Unpickler(io.BytesIO(blob), emu, instances).load()
-              for ptr, (_, blob) in payload["objects"].items()}
-    emu_fields = _Unpickler(io.BytesIO(payload["emu"]), emu, instances).load()
+    try:
+        states = {ptr: _Unpickler(io.BytesIO(blob), emu, instances).load()
+                  for ptr, (_, blob) in payload["objects"].items()}
+        emu_fields = _Unpickler(io.BytesIO(payload["emu"]), emu, instances).load()
+    except StateError:
+        raise
+    except Exception as e:                                   # nothing has changed yet: say so, do not crash the game
+        raise StateError(f"this state cannot be read here ({e})") from None
 
     # ---- commit
     emu.audio.stop_all()

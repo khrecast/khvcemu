@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### New
+- **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
+  being read (a damaged file, or one made by a different setup), the game keeps running with nothing changed and says
+  "this state cannot be read here". States made on a computer with numpy 2 also load where numpy 1 is installed
+  (needed for the Android app; a state made on the phone already loaded on the PC).
 - **A steady frame rate.** The game sets the timer for its next frame as the last thing it does in a frame, so on a
   real clock the time a frame took was added to its 30 to 40 ms delay: a PC that could draw 33 frames a second
   showed about 16 (the benchmarks never saw it: they run on a virtual clock that stands still while the game works).
