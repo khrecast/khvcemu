@@ -163,10 +163,15 @@ def _write_thumbnail(emu, path: str):
     if emu.last_frame is None:
         return
     try:
-        import pygame
         f = emu.last_frame.astype(np.uint32)
         rgb = np.stack([((f >> 11) & 31) * 255 // 31, ((f >> 5) & 63) * 255 // 63,
                         (f & 31) * 255 // 31], -1).astype(np.uint8)
+        try:
+            import pygame
+        except ImportError:                    # no pygame (Android): Pillow writes the PNG
+            from PIL import Image
+            Image.fromarray(rgb).save(path, "PNG")
+            return
         pygame.image.save(pygame.surfarray.make_surface(rgb.transpose(1, 0, 2)), path)
     except Exception:
         pass        # a thumbnail is a nicety; never fail a save over it

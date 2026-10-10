@@ -331,20 +331,26 @@ class Display(HleObject):
         font_id = font_id if font_id in (AEE_FONT_NORMAL, AEE_FONT_BOLD, AEE_FONT_LARGE) else AEE_FONT_NORMAL
         f = cache.get((font_id, mult))
         if f is None:
+            size = getattr(self.emu, "font_size", None) or self.FONT_SIZE
+            names = getattr(self.emu, "font_name", None) or self.FONT_CANDIDATES
+            bold = font_id in (AEE_FONT_BOLD, AEE_FONT_LARGE)
+            if font_id == AEE_FONT_LARGE:
+                size += 3
             try:
                 import pygame
                 pygame.font.init()
-                size = getattr(self.emu, "font_size", None) or self.FONT_SIZE
-                names = getattr(self.emu, "font_name", None) or self.FONT_CANDIDATES
-                bold = font_id in (AEE_FONT_BOLD, AEE_FONT_LARGE)
-                if font_id == AEE_FONT_LARGE:
-                    size += 3
                 if pygame.font.match_font(names) is None:
                     # pygame's built-in font is heavy and wide: go a size down
                     f = pygame.font.Font(None, (size + 2) * mult)
                     f.set_bold(False)
                 else:
                     f = pygame.font.SysFont(names, size * mult, bold=bold)
+            except ImportError:                   # no pygame (Android): a Pillow font with the same few methods
+                try:
+                    from .hostgfx import load_font
+                    f = load_font(names, size * mult, bold) or False
+                except Exception:
+                    f = False
             except Exception:
                 f = False
             cache[(font_id, mult)] = f
@@ -404,11 +410,14 @@ class Display(HleObject):
             y = rect[1] + (rect[3] - sum(self._height(font_id))) // 2
         if not f or not text:
             return SUCCESS
-        import pygame
-        surf = f.render(text, False, (255, 255, 255))
-        mask = pygame.surfarray.array_alpha(surf).T if surf.get_flags() & pygame.SRCALPHA else \
-            (pygame.surfarray.array3d(surf).sum(axis=2).T > 0)
-        mask = mask > 0
+        if hasattr(f, "mask"):                     # the Pillow font used where pygame is missing
+            mask = f.mask(text)
+        else:
+            import pygame
+            surf = f.render(text, False, (255, 255, 255))
+            mask = pygame.surfarray.array_alpha(surf).T if surf.get_flags() & pygame.SRCALPHA else \
+                (pygame.surfarray.array3d(surf).sum(axis=2).T > 0)
+            mask = mask > 0
         arr = dst.pixels()
         h, w = mask.shape
         x0, y0 = max(0, x), max(0, y)
@@ -511,7 +520,7 @@ class Display(HleObject):
         s = cache.get(key)
         if s is None:
             f = self._font(it["font_id"], mult)
-            if not f:
+            if not f or not hasattr(f, "render"):          # (the Pillow font has no smooth hi-res text)
                 return None
             fg = it["fg"]
             rgb = (((fg >> 11) & 31) * 255 // 31, ((fg >> 5) & 63) * 255 // 63, (fg & 31) * 255 // 31)

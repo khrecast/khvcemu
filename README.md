@@ -583,6 +583,7 @@ khvcemu/
   display.py    IDisplay, IBitmap/IDIB (RGB565), raster ops, text
   graphics.py   IGraphics (UI polygons, dialog boxes)
   image.py      IImage (BMP/PNG via pygame)
+  hostgfx.py    Pillow fallbacks for images and text where pygame is missing (the Android port)
   files.py      IFileMgr/IFile + VFS (dump read-only, writes to an overlay)
   media.py      IMedia -> audio.py (mixer), midi_synth.py (built-in synth), pmd.py (CMX/QCELP)
   web.py        IWeb/IWebResp/ISource: the game's HTTP calls;  leaderboard.py  offline score table behind them
