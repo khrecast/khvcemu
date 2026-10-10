@@ -8,6 +8,7 @@ Two uses:
   frame_count()/frame_bytes() to draw the picture, sends key(name, down) for touches, and pulls sound with
   audio_read(frames) (the core mixes into a khvcemu.pcmmixer.PcmMixer; an Android AudioTrack plays what it returns).
 """
+import collections
 import contextlib
 import importlib
 import io
@@ -114,6 +115,8 @@ class _Game:
         self.want_paused = False
         self.paused_at = None          # monotonic time the loop paused the game clock, else None
         self.error = ""
+        self.taps = collections.deque()      # (x, y) taps on the game's picture, in game pixels, from the Java side
+        self.key_script = []                 # [due (monotonic), "down" or "up", avk]: key presses a tap asked for
         self.thread = threading.Thread(target=self._run, name="recast-core", daemon=True)
 
     @staticmethod
@@ -160,8 +163,11 @@ class _Game:
                         self.mixer.paused = False
                         self._log("resumed after %.1f s; game clock %d ms" % (held, emu.clock_ms()))
                 if self.paused_at is not None:
+                    self.taps.clear()
+                    self.key_script.clear()
                     time.sleep(0.02)
                     continue
+                self._handle_taps()
                 emu.run_due()
                 due = emu.next_due()
                 wait = 0.002 if due is None else (due - emu.clock_ms()) / 1000
@@ -177,6 +183,37 @@ class _Game:
                 emu.playtime.save()
             except Exception:
                 pass
+
+
+    def _handle_taps(self):
+        """On the core thread, so what the game has drawn is not changing underneath: turn each tap on the picture into
+        the keys the tapped button stands for (khvcemu/tapmap.py), and press them a little apart."""
+        from khvcemu import tapmap
+        emu = self.emu
+        while self.taps:
+            x, y = self.taps.popleft()
+            display = emu.display
+            if emu.last_frame is not None:
+                display.build_overlay(emu.last_frame)        # keeps only the strings still on screen
+            items = display.__dict__.get("text_items", [])
+            keys = tapmap.resolve_tap(x, y, items, emu.last_frame)
+            self._log("tap (%d, %d) -> %s" % (x, y, keys or "nothing"))
+            due = time.monotonic()
+            for k in keys:
+                avk = self.AVK[k]
+                self.key_script.append([due, "down", avk])
+                self.key_script.append([due + 0.08, "up", avk])
+                due += 0.16
+        if self.key_script:
+            now = time.monotonic()
+            pressed = set()                              # a key's release waits for the next pass, so the game sees it held
+            for step in [s for s in self.key_script if s[0] <= now]:
+                if step[1] == "up" and step[2] in pressed:
+                    continue
+                self.key_script.remove(step)
+                if step[1] == "down":
+                    pressed.add(step[2])
+                (emu.key_down if step[1] == "down" else emu.key_up)(step[2])
 
 
 _game = None
@@ -244,6 +281,12 @@ def audio_read(frames):
         print("[audio] %d blocks, loudest sample in the last 100: %d" % (_game.audio_blocks, _game.audio_peak), flush=True)
         _game.audio_peak = 0
     return block
+
+
+def tap(x, y):
+    """A tap on the game's picture (game pixels, 176 x 220): handled on the core thread (see _Game._handle_taps)."""
+    if _game is not None and _game.paused_at is None and not _game.want_paused and _game.thread.is_alive():
+        _game.taps.append((float(x), float(y)))
 
 
 def pause():

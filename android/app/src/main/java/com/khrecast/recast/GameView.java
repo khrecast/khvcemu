@@ -5,11 +5,14 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.WindowInsets;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -20,7 +23,9 @@ import java.util.Set;
 /**
  * The game's 176x220 picture (enlarged with the nearest pixel, like the desktop's "crisp pixels") and, under it,
  * the phone's keys as touch controls: a pad for the four directions (diagonals work), Action, Magic, Status, the
- * two softkeys and Back. Several fingers at once are fine.
+ * two softkeys and Back. Several fingers at once are fine. A tap on the picture itself is passed on to the game
+ * (in game pixels), which turns it into the keys of whatever button it landed on (khvcemu/tapmap.py). Everything is
+ * laid out inside the area the system bars leave free, so nothing is hidden behind the navigation bar.
  */
 public class GameView extends View {
     public static final int W = 176, H = 220;
@@ -28,6 +33,11 @@ public class GameView extends View {
     /** Called for every key that goes down or up (phone key names such as UP, SELECT, STAR, 0, SOFT1). */
     public interface KeySink {
         void key(String name, boolean down);
+    }
+
+    /** Called for a tap on the picture, in game pixels (0 to 176, 0 to 220). */
+    public interface TapSink {
+        void tap(float x, float y);
     }
 
     private static class Button {
@@ -50,13 +60,21 @@ public class GameView extends View {
     private final RectF dst = new RectF();
     private final List<Button> buttons = new ArrayList<>();
     private final Set<String> held = new HashSet<>();
-    private float padX, padY, padR;
+    private float padX, padY, padR, statusY;
+    private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
     private String status = "";
     private KeySink sink;
+    private TapSink tapSink;
     private boolean hasFrame;
+    private final float slop;
+    // a possible tap on the picture: where and when the finger went down, and which finger
+    private int tapPointer = -1;
+    private float tapX, tapY;
+    private long tapTime;
 
     public GameView(Context context) {
         super(context);
+        slop = ViewConfiguration.get(context).getScaledTouchSlop();
         pixels.setFilterBitmap(false);
         pixels.setAntiAlias(false);
         text.setColor(Color.WHITE);
@@ -73,6 +91,10 @@ public class GameView extends View {
 
     public void setKeySink(KeySink sink) {
         this.sink = sink;
+    }
+
+    public void setTapSink(TapSink sink) {
+        this.tapSink = sink;
     }
 
     /** New picture: 176*220 little-endian RGB565 pixels. Called from a worker thread. */
@@ -92,32 +114,59 @@ public class GameView extends View {
         postInvalidate();
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
+        // the navigation bar, the gesture area and the status bar: nothing of ours may sit behind them
+        insetTop = insets.getSystemWindowInsetTop();
+        insetBottom = insets.getSystemWindowInsetBottom();
+        insetLeft = insets.getSystemWindowInsetLeft();
+        insetRight = insets.getSystemWindowInsetRight();
+        layoutControls(getWidth(), getHeight());
+        invalidate();
+        return super.onApplyWindowInsets(insets);
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        // the picture at the top, as large as the width allows but at most 58 percent of the height
-        float gh = Math.min(w * (float) H / W, h * 0.58f);
+        layoutControls(w, h);
+    }
+
+    /** The picture at the top of the free area, the softkeys under it, the pad and buttons in what is left. */
+    private void layoutControls(int w, int h) {
+        if (w == 0 || h == 0) {
+            return;
+        }
+        float left = insetLeft, right = w - insetRight, width = right - left;
+        float top = insetTop, bottom = h - insetBottom, free = bottom - top;
+        float gh = Math.min(width * (float) H / W, free * 0.60f);      // as large as the width allows, at most 60%
         float gw = gh * W / H;
-        float gx = (w - gw) / 2f;
-        dst.set(gx, h * 0.03f, gx + gw, h * 0.03f + gh);
+        float gx = left + (width - gw) / 2f;
+        dst.set(gx, top + free * 0.01f, gx + gw, top + free * 0.01f + gh);
 
-        float top = dst.bottom + h * 0.012f;
-        float soft = h * 0.055f;
-        float third = w / 3f;
-        float pad = w * 0.02f;
-        buttons.get(0).r.set(pad, top, third - pad, top + soft);                    // SOFT1
-        buttons.get(1).r.set(third + pad, top, 2 * third - pad, top + soft);        // CLR
-        buttons.get(2).r.set(2 * third + pad, top, w - pad, top + soft);            // SOFT2
+        float softTop = dst.bottom + free * 0.012f;
+        float soft = free * 0.055f;
+        float third = width / 3f;
+        float pad = width * 0.02f;
+        buttons.get(0).r.set(left + pad, softTop, left + third - pad, softTop + soft);                // SOFT1
+        buttons.get(1).r.set(left + third + pad, softTop, left + 2 * third - pad, softTop + soft);    // CLR
+        buttons.get(2).r.set(left + 2 * third + pad, softTop, right - pad, softTop + soft);           // SOFT2
 
-        float area = h - (top + soft) - h * 0.02f;
-        float cy = top + soft + h * 0.01f + area / 2f;
-        padR = Math.min(w * 0.24f, area * 0.46f);
-        padX = w * 0.27f;
+        // the status line sits at the bottom of the free area; the pad and buttons end above it, a little higher
+        // than the bare edge, so a thumb resting on them never touches the gesture area
+        statusY = bottom - free * 0.008f;
+        float areaTop = softTop + soft + free * 0.012f;
+        float areaBottom = bottom - free * 0.04f;
+        float area = areaBottom - areaTop;
+        float cy = areaTop + area / 2f;
+        padR = Math.min(width * 0.24f, area * 0.46f);
+        padX = left + width * 0.27f;
         padY = cy;
-        float big = Math.min(w * 0.13f, area * 0.27f);
+        float big = Math.min(width * 0.13f, area * 0.27f);
         float small = big * 0.72f;
-        setCircle(buttons.get(3), w * 0.77f, cy + area * 0.12f, big);               // Action
-        setCircle(buttons.get(4), w * 0.60f, cy - area * 0.17f, small);             // Magic
-        setCircle(buttons.get(5), w * 0.88f, cy - area * 0.22f, small);             // Status
+        setCircle(buttons.get(3), left + width * 0.75f, cy + area * 0.16f, big);       // Action
+        setCircle(buttons.get(4), left + width * 0.61f, cy - area * 0.21f, small);     // Magic
+        setCircle(buttons.get(5), left + width * 0.89f, cy - area * 0.27f, small);     // Status
     }
 
     private static void setCircle(Button b, float cx, float cy, float r) {
@@ -157,7 +206,7 @@ public class GameView extends View {
         }
         text.setTextSize(getHeight() * 0.014f);
         text.setColor(0xFF8EA4BF);
-        c.drawText(status, getWidth() / 2f, getHeight() - getHeight() * 0.008f, text);
+        c.drawText(status, getWidth() / 2f, statusY, text);
         text.setColor(Color.WHITE);
     }
 
@@ -166,7 +215,7 @@ public class GameView extends View {
         float s = padR * 0.26f;
         c.save();
         c.rotate(deg, x, y);
-        android.graphics.Path p = new android.graphics.Path();
+        Path p = new Path();
         p.moveTo(x, y - s);
         p.lineTo(x + s, y + s * 0.8f);
         p.lineTo(x - s, y + s * 0.8f);
@@ -178,6 +227,7 @@ public class GameView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         int action = e.getActionMasked();
+        trackTap(e, action);
         Set<String> now = new HashSet<>();
         if (action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL) {
             int skip = action == MotionEvent.ACTION_POINTER_UP ? e.getActionIndex() : -1;
@@ -202,12 +252,38 @@ public class GameView extends View {
         return true;
     }
 
+    /** A short touch on the picture that does not move is a tap on whatever the game drew there. */
+    private void trackTap(MotionEvent e, int action) {
+        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
+            int i = e.getActionIndex();
+            if (tapPointer == -1 && dst.contains(e.getX(i), e.getY(i))) {
+                tapPointer = e.getPointerId(i);
+                tapX = e.getX(i);
+                tapY = e.getY(i);
+                tapTime = e.getEventTime();
+            }
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+            int i = e.getActionIndex();
+            if (tapPointer != -1 && e.getPointerId(i) == tapPointer) {
+                float x = e.getX(i), y = e.getY(i);
+                boolean still = Math.hypot(x - tapX, y - tapY) <= slop * 2;
+                if (still && e.getEventTime() - tapTime < 500 && tapSink != null && dst.contains(x, y)) {
+                    tapSink.tap((x - dst.left) / dst.width() * W, (y - dst.top) / dst.height() * H);
+                }
+                tapPointer = -1;
+            }
+        } else if (action == MotionEvent.ACTION_CANCEL) {
+            tapPointer = -1;
+        }
+    }
+
     /** Lets go of every key (the app left the foreground). */
     public void releaseAll() {
         for (String k : new ArrayList<>(held)) {
             send(k, false);
         }
         held.clear();
+        tapPointer = -1;
         postInvalidate();
     }
 
@@ -220,8 +296,12 @@ public class GameView extends View {
     private void keysAt(float x, float y, Set<String> out) {
         for (Button b : buttons) {
             RectF r = b.r;
-            float grow = b.round ? r.width() * 0.12f : 0f;                  // a little slack around a thumb
-            if (x >= r.left - grow && x <= r.right + grow && y >= r.top - grow && y <= r.bottom + grow) {
+            if (b.round) {                                                  // a circle, with a little slack for a thumb
+                float radius = r.width() / 2f * 1.1f;
+                if (Math.hypot(x - r.centerX(), y - r.centerY()) <= radius) {
+                    out.add(b.key);
+                }
+            } else if (r.contains(x, y)) {
                 out.add(b.key);
             }
         }

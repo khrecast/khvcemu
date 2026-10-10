@@ -47,6 +47,16 @@ public class MainActivity extends Activity {
                 }
             }
         }));
+        view.setTapSink((x, y) -> input.execute(() -> {
+            PyObject a = app;
+            if (a != null) {
+                try {
+                    a.callAttr("tap", x, y);
+                } catch (Throwable t) {
+                    Log.w(TAG, "tap failed: " + t);
+                }
+            }
+        }));
         setContentView(view);
         view.setStatus("starting...");
         new Thread(this::startGame, "recast-start").start();

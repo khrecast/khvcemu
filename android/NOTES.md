@@ -285,6 +285,24 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the Wonderland lost-media pages (`lostmedia.py`, pygame); landscape; a settings screen; smooth hi-res text;
   mute and volume controls (the phone's own volume keys work); a release build and signing.
 
+## Chunk 8: controls inside the safe area, and tapping the game's own buttons (2026-10-10, done)
+
+- **Layout** (`GameView.java`): reads the window insets, keeps the pad, buttons and status line inside the safe area
+  (above the navigation bar), and caps the picture at 60% of the free height so the controls stay on screen. The Action,
+  Magic and Status buttons keep the earlier size, are spaced so they do not touch, and hit-test as circles. Checked on the
+  S23 Ultra (screenshots in `C:\Android\shots`, outside the repo).
+- **Tapping the picture** (`khvcemu/tapmap.py`, core, pure and tested): a tap on the game's picture becomes keys. A label in
+  a bottom corner is a softkey (Soft 1 left, Soft 2 right), only where the game drew a label. A run of at least three
+  strings at a regular spacing is a menu: the highlighted entry is the one whose text color and background differ, tapping
+  another entry sends Up or Down as many times as needed, tapping the highlighted one sends Action. Anything unclear
+  (a paragraph, a list of two) does nothing rather than guess.
+- **Plumbing:** `MainActivity` passes a short, still touch to `recast_app.tap(x, y)` in game pixels; the core thread
+  resolves it against `Display.text_items` (`_Game._handle_taps`) and presses the keys 0.16 s apart. The log line is
+  `[core] tap (x, y) -> keys`.
+- **Verified on the phone (adb taps):** title menu (two taps on Options open it; "Help" sent Down x3), Options, the right
+  "Back" bar returned to the title. Not tried by hand with a finger; shops and the Save screens not tried.
+- Tests: `tests/test_tapmap.py` (11, one against the real game's title, intro, pause and Options screens).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
