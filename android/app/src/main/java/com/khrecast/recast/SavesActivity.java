@@ -41,7 +41,6 @@ public class SavesActivity extends Activity {
         int pad = dp(16);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(pad, dp(40), pad, pad);
         TextView title = text("save".equals(mode) ? "Save to a slot" : "Load a saved game", 24, Color.WHITE);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         col.addView(title);
@@ -57,6 +56,7 @@ public class SavesActivity extends Activity {
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(col);
         setContentView(scroll);
+        Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
         fill();
     }
 

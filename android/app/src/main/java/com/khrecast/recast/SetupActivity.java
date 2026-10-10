@@ -40,7 +40,6 @@ public class SetupActivity extends Activity {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
-        col.setPadding(pad, dp(48), pad, pad);
 
         TextView title = text("Re:Cast", 30, Color.WHITE);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -73,6 +72,7 @@ public class SetupActivity extends Activity {
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(col);
         setContentView(scroll);
+        Edge.pad(scroll, col, pad, dp(24), pad, dp(32));
     }
 
     @Override

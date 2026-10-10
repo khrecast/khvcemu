@@ -344,7 +344,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **The game's menu.** The system Back button or the back swipe opens it (Android 13+ through
   `OnBackInvokedCallback`, because the old `onBackPressed` is not called at target SDK 36; older phones keep
   `onBackPressed`). Items: Resume, Quick save (slot 1), Quick load (slot 1), Save to a slot, Load a saved game, Game
-  files (the Setup screen), Quit the game. The game and its sound are held while the menu is up.
+  files (the Setup screen), Quit and go to the Re:Cast menu. The game and its sound are held while the menu is up.
 - **Core** (`recast_app.py`, on the core thread): `request_state(op, slot)` runs `StateSlots.save/load`; the clock is held
   while a file is written (as `frontend.py` does); a failed save or load says "Failed: ..." and never ends the game.
   Autosaves follow the desktop's rules (every 5 min of play, a few seconds after a loading screen, one more on quit),
@@ -413,11 +413,11 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the home screen and the Saves screen work without starting the game or Python. The Python `states_json` and
   `delete_state` were removed. Saves and Home share the slot names the core takes ("1".."9", "auto", "auto2", "auto3").
 - **Loading from Home:** `MainActivity` takes an extra (`HomeActivity.EXTRA_LOAD`) and queues the load as soon as the game is
-  up. "Quit the game" in the game's menu returns to Home.
+  up. "Quit and go to the Re:Cast menu" in the game's menu returns to Home.
 - **Setup changed:** it is opened from Home or the game's menu, no longer forwards to the game by itself, finishes (back to
   Home) after a successful install, and has "Done" instead of "Play".
 - **Verified on the S23 Ultra:** Home shows the Continue card for the real autosave left by playing earlier today (the
-  Obstacle Course); tapping it loaded that autosave into the game at 25 fps; "Quit the game" returned to Home; Game files,
+  Obstacle Course); tapping it loaded that autosave into the game at 25 fps; "Quit and go to the Re:Cast menu" returned to Home; Game files,
   Remove, Home asking for the files, picking the folder again, and Home coming back with the Continue card (the saves
   survive removing the game files).
 - After review: the load request is removed from the intent once queued (a recreated activity must not load it again);

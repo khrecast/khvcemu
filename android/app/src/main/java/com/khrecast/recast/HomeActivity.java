@@ -37,12 +37,12 @@ public class HomeActivity extends Activity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
         int pad = dp(24);
-        col.setPadding(pad, dp(40), pad, pad);
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
         scroll.setFillViewport(true);
         scroll.addView(col);
         setContentView(scroll);
+        Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
     }
 
     @Override

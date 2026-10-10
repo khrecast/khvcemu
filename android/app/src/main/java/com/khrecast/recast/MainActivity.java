@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
             return;
         }
         final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Options...", "Quit the game"};
+                "Load a saved game...", "Options...", "Quit and go to the Re:Cast menu"};
         menuOpen = true;
         applyLifecycle();
         menu = new AlertDialog.Builder(this)

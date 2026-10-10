@@ -34,7 +34,6 @@ public class OptionsActivity extends Activity {
         int pad = dp(20);
         col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(pad, dp(40), pad, pad);
         TextView title = text("Options", 26, Color.WHITE);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         col.addView(title);
@@ -101,6 +100,7 @@ public class OptionsActivity extends Activity {
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(col);
         setContentView(scroll);
+        Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
     }
 
     private void addSize(RadioGroup group, String label, int value, int current) {
