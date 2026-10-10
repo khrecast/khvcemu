@@ -3,6 +3,7 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
         android:label="Re:Cast"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <!-- first run: pick the game folder (the app opens here and goes on to the game once the files are installed) -->

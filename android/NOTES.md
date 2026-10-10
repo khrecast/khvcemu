@@ -327,6 +327,18 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   inside them; the screen says so. There is no progress bar yet (a text line counts files); that comes with the Compose
   screens in chunk 10. Not tried: a very large folder, a phone with an SD card, a picker other than Samsung's.
 
+## Chunk 10, part 1: the app icon (2026-10-10, done; the rest of chunk 10 is not started)
+
+- The launcher icon is the Re:Cast heart (`khvcemu/assets/recast_icon.png`) on dark navy, as an adaptive icon (heart in the
+  middle 56%, so no mask clips it): `res/mipmap-*/ic_launcher_foreground.png` (made with Pillow at the five densities),
+  `mipmap-anydpi-v26/ic_launcher.xml`, `values/ic_launcher_background.xml`. The app label was already "Re:Cast".
+  Checked in the built APK (`aapt2 dump badging`: label Re:Cast, adaptive icon) and as a rendered preview; not looked at
+  on the phone's own launcher. APK 39.5 MB, unchanged.
+- **Held back: the Home screen, the shared settings module and Compose.** A Home screen has nothing to show until saves
+  and options exist, so saves (chunk 11) come first, and the screens stay plain `View`s for now (no Compose: it would add to
+  the APK for no gain yet; revisit when there are enough screens to justify it). The settings JSON and the move of the
+  option defaults out of `launcher.py` touch the desktop launcher, so they wait for chunk 12 where the options are used.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
