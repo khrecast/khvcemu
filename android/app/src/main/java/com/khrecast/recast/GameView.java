@@ -62,6 +62,7 @@ public class GameView extends View {
     private final Set<String> held = new HashSet<>();
     private float padX, padY, padR, statusY;
     private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
+    private int pictureScale = Settings.FIT;                // see Settings: FIT, LARGEST or a whole number of pixels
     private String status = "";
     private KeySink sink;
     private TapSink tapSink;
@@ -91,6 +92,15 @@ public class GameView extends View {
 
     public void setKeySink(KeySink sink) {
         this.sink = sink;
+    }
+
+    /** Picture size (Settings.FIT, Settings.LARGEST or 1, 2, 3...): takes effect at once. */
+    public void setPictureScale(int scale) {
+        if (scale != pictureScale) {
+            pictureScale = scale;
+            layoutControls(getWidth(), getHeight());
+            postInvalidate();
+        }
     }
 
     public void setTapSink(TapSink sink) {
@@ -140,6 +150,10 @@ public class GameView extends View {
         float left = insetLeft, right = w - insetRight, width = right - left;
         float top = insetTop, bottom = h - insetBottom, free = bottom - top;
         float gh = Math.min(width * (float) H / W, free * 0.60f);      // as large as the width allows, at most 60%
+        if (pictureScale != Settings.FIT) {                            // a whole number of screen pixels per game pixel
+            int most = Math.max(1, (int) Math.floor(gh / H));          // the largest that fits
+            gh = H * (pictureScale == Settings.LARGEST ? most : Math.min(pictureScale, most));
+        }
         float gw = gh * W / H;
         float gx = left + (width - gw) / 2f;
         dst.set(gx, top + free * 0.01f, gx + gw, top + free * 0.01f + gh);

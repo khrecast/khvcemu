@@ -366,6 +366,23 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   folder, the autosave switches (chunk 12's Options), a Continue card (chunk 10's Home), a state made with the speed
   patches on loaded with them off (and the reverse), a long play session, the thumbnail's world name.
 
+## Chunk 12, part 1: Options (picture size, mute, autosave switches) (2026-10-10, done in part)
+
+- **Options screen** (`OptionsActivity`, from the game's menu; `Settings.java` keeps the choices in SharedPreferences
+  "recast"; every change is saved at once and the game picks it up when it resumes): **Picture size** (Fit the screen,
+  default; Sharp = the largest whole-number scale that fits; or exactly 6x, 5x ... 1x, with 1x the original 176 x 220
+  pixels), **Mute the game** (the core keeps running; the app writes silence), **Autosave** (master switch, at loading
+  screens, when leaving the game, and every 0/2/5/10/15 minutes of play), and Restore the default settings.
+- **Core:** `recast_app.configure(autosave, minutes, on_loading, on_quit)` sets the `StateSlots` fields.
+- **Picture size in `GameView`:** whole-number sizes are clamped to what fits (60% of the free height, the full width), the
+  picture is centered, the controls take the room that is left, and taps use the picture's actual rectangle.
+- **Verified on the S23 Ultra:** the screen opens from the menu; 1x shows the picture at 176 x 220 pixels; Sharp gave 5x
+  (880 x 1100); Fit was restored; the settings file holds the choice. **Not verified:** mute (nobody here can hear), the
+  autosave switches changing behavior or the minutes-to-milliseconds conversion in `configure` (read and checked, not exercised on the phone), the other whole-number sizes, landscape.
+- **Not done in chunk 12:** picture filters (smooth, Scale2x), text size and hi-res text, screenshots, "Back button asks
+  before quitting", sharing scores (and the INTERNET permission), the Speed enhancements window and its frame lock, the
+  Sound tab (chunk 13). The settings are not yet in one JSON file shared with the desktop launcher (chunk 10).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

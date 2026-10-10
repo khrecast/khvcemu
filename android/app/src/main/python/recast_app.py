@@ -360,6 +360,16 @@ def tap(x, y):
         _game.taps.append((float(x), float(y)))
 
 
+def configure(autosave, minutes, on_loading, on_quit):
+    """The Options screen's autosave switches (khvcemu's StateSlots fields): safe to call from the Java thread."""
+    if _game is not None:
+        slots = _game.slots
+        slots.autosave_enabled = bool(autosave)
+        slots.autosave_every_ms = int(max(0, min(int(minutes), 24 * 60)) * 60_000)
+        slots.autosave_on_loading = bool(on_loading)
+        slots.autosave_on_quit = bool(on_quit)
+
+
 def request_state(op, name):
     """Save ("save") or load ("load") a slot ("1".."9", "auto", "auto2", "auto3") on the core thread. The result comes
     back through take_message()."""

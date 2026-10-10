@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
     private volatile boolean resumed = false;      // the activity is in the foreground
     private volatile boolean inner = false;        // one of our own screens (Saves, Setup) was opened from the game
     private AlertDialog menu;
+    private volatile boolean muted = false;
     private volatile boolean menuOpen = false;     // our menu is up: the game is held, like when the app is in the background
     private static final int REQ_SAVES = 1;
     private Thread pump;
@@ -95,6 +96,7 @@ public class MainActivity extends Activity {
             module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath());
             app = module;
+            applySettings();
             applyLifecycle();                          // the user may have left while the game was still starting
         } catch (Throwable t) {
             Log.e(TAG, "could not start the game", t);
@@ -123,7 +125,7 @@ public class MainActivity extends Activity {
             return;
         }
         final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Game files...", "Quit the game"};
+                "Load a saved game...", "Options...", "Game files...", "Quit the game"};
         menuOpen = true;
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
@@ -144,9 +146,13 @@ public class MainActivity extends Activity {
                             break;
                         case 5:
                             inner = true;
-                            startActivity(new Intent(this, SetupActivity.class).putExtra("auto", false));
+                            startActivity(new Intent(this, OptionsActivity.class));
                             break;
                         case 6:
+                            inner = true;
+                            startActivity(new Intent(this, SetupActivity.class).putExtra("auto", false));
+                            break;
+                        case 7:
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
                         default:
@@ -212,6 +218,9 @@ public class MainActivity extends Activity {
                     track.play();
                 }
                 byte[] block = app.callAttr("audio_read", frames).toJava(byte[].class);
+                if (muted) {
+                    java.util.Arrays.fill(block, (byte) 0);    // the core keeps running; only what we hear is silenced
+                }
                 track.write(block, 0, block.length);
                 if (++blocks % 100 == 0) {
                     Log.i(TAG, "audio underruns so far: " + track.getUnderrunCount());
@@ -282,12 +291,35 @@ public class MainActivity extends Activity {
         applyLifecycle();
     }
 
-    /** Tells the core whether the app is in the foreground. Queued on the input thread, and the flag is read when the
-     *  task runs, so the last state always wins whatever the order of onPause, onResume and the game starting. */
+    /** Picks up the Options screen's choices: the picture size and mute here, the autosave switches in the core. */
+    private void applySettings() {
+        if (view == null) {
+            return;
+        }
+        final int scale = Settings.pictureScale(this);
+        runOnUiThread(() -> view.setPictureScale(scale));      // (this may run on the thread that starts the game)
+        muted = Settings.muted(this);
+        final boolean autosave = Settings.autosave(this), onLoading = Settings.autosaveOnLoading(this),
+                onQuit = Settings.autosaveOnQuit(this);
+        final int minutes = Settings.autosaveMinutes(this);
+        input.execute(() -> {
+            PyObject a = app;
+            if (a != null) {
+                try {
+                    a.callAttr("configure", autosave, minutes, onLoading, onQuit);
+                } catch (Throwable t) {
+                    Log.w(TAG, "configure failed: " + t);
+                }
+            }
+        });
+    }
+
     private boolean active() {
         return resumed && !menuOpen;
     }
 
+    /** Tells the core whether the app is in the foreground. Queued on the input thread, and the flag is read when the
+     *  task runs, so the last state always wins whatever the order of onPause, onResume and the game starting. */
     private void applyLifecycle() {
         input.execute(() -> {
             PyObject a = app;
@@ -310,6 +342,7 @@ public class MainActivity extends Activity {
         super.onResume();
         resumed = true;
         inner = false;
+        applySettings();
         applyLifecycle();
     }
 
