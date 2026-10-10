@@ -3,7 +3,7 @@
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
 section. Spike results and the first app run on the phone are in section 6 and Chunk 3.
 
-## Status (updated 2026-10-10: chunks 1 to 5 done; the game runs on the phone but has no text yet: next is chunk 6)
+## Status (updated 2026-10-10: chunks 1 to 6 done; the game runs on the phone with its text and pictures; next is sound)
 
 - Toolchain installed under C:\Android (Chunk 2). The test phone is connected over adb. Spike 0 passed on it
   (section 6) and a probe APK at target SDK 36 runs Unicorn on it (Chunk 3).
@@ -11,7 +11,7 @@ section. Spike results and the first app run on the phone are in section 6 and C
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
   Kotlin front end. Chunk 4 proved it: the core boots to the title inside the app on the phone at about 1.7 to 1.8x real time.
-  Chunk 5 draws the frames and takes touch input; next is the text and image backend (chunk 6).
+  Chunks 5 and 6 draw the frames, take touch input and give the game its text and images; next is sound (chunk 7).
 
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
@@ -185,7 +185,7 @@ app leaves the foreground.
   on screen in the status line (`ERROR ...`). Reopening the app starts a fresh core (after waiting up to 5 s for a core that was told to stop). Key events come from the input
   thread while the core thread runs: they only append to the core's event list and its held-key set, which is fine
   under the interpreter lock, but it is new compared with the single-threaded desktop front end.
-- **What is missing, and why (chunk 6):** every word and every host-decoded image is blank. The core asks pygame to
+- **What was missing in chunk 5, fixed in chunk 6:** every word and every host-decoded image was blank. The core asks pygame to
   draw text (`display.py`) and to decode the game's PNG/BMP images (`image.py`), and there is no pygame on Android:
   the log fills with `[image] decode failed: No module named 'pygame'`. So the menu entries have no labels, and the
   intro page is a white screen with an empty softkey bar. The picture the game draws itself (the 3D, its sprites)
@@ -194,9 +194,37 @@ app leaves the foreground.
   full desktop test suite.
 - **Checked only with `adb shell input tap`:** single taps on the pad and Action. Multi-finger play, diagonals and how
   the controls feel under real thumbs are unverified.
-- **Not done:** text and images (above), sound, save states and game saves (the data folder `files/data` is used, but
+- **Not done (text and images were fixed in chunk 6):** sound, save states and game saves (the data folder `files/data` is used, but
   there is no way to see or back it up), the file picker for the game files, landscape, the lava scene, heat.
   The status line is drawn at the very bottom, over the area of the navigation bar (cosmetic).
+
+## Chunk 6: the game's text and images on the phone (2026-10-10, done)
+
+Goal: give the core what pygame gives it on the desktop (it draws the game's text and decodes its images) without
+pygame. This changed `khvcemu/`: the desktop path is untouched, the new code runs only where `import pygame` fails.
+
+- **New module `khvcemu/hostgfx.py`:** `decode_image(raw)` (Pillow: PNG and BMP to the core's RGB565 plus an alpha mask),
+  and `load_font(names, size, bold)` returning a `PilFont` with the few font methods the core uses (`get_ascent`,
+  `get_descent`, `size`) plus `mask(text)`, the text as a 1-bit coverage array (glyphs not anti-aliased, like
+  pygame's `render(text, False, ...)`). Fonts come from system folders by family name; on Android that is
+  `/system/fonts/DroidSans.ttf` (and `DroidSans-Bold.ttf`), then Roboto and Noto Sans.
+- **Three small hooks, each only on `ImportError`:** `image.decode_image`, `Display._font` and `Display.DrawText`
+  (`display.py`; hi-res text overlay returns nothing without pygame), and the save-state thumbnail (`savestate.py`,
+  Pillow writes the PNG). `Display._font` used to swallow the missing pygame and return "no font", which is why text
+  silently never appeared.
+- **Tests (`tests/test_hostgfx.py`, 9, skipped without Pillow or pygame):** the Pillow decoder equals the pygame
+  decoder on synthetic RGBA, RGB, transparent-palette and BMP images and on all 6 of the game's own PNGs (colours
+  where visible, alpha everywhere); the font gives sensible metrics and masks; the core picks the Pillow font and the
+  Pillow decoder when `import pygame` is made to fail.
+- **App:** `pip { install("Pillow==11.0.0") }` (Chaquopy's arm64 wheel for Python 3.12). Debug APK now 39.5 MB
+  (was 26.9 MB): 39,470,460 bytes, still under the 60 MB bar.
+- **Seen on the phone:** the title menu shows New Game, Load Game, Options, Score, Quit; New Game shows Jiminy's journal page
+  with his picture and the story text and a Continue softkey. Faults 0. The text is DroidSans where the desktop uses
+  Verdana: letter shapes and line breaks differ from the desktop's (the number of journal pages can differ too).
+- **Not done:** sound; save states and game saves are not reachable (no menu for them); the file picker for the game
+  files; the Wonderland lost-media pages (`lostmedia.py`, pygame) are not wired, so after the Island the stand-in's
+  pages would fail (untested: the Island has not been played to its end on the phone); landscape; settings screen;
+  smooth hi-res text; the hi-res Pillow path; heat; a slower phone.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 

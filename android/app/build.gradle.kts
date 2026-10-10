@@ -81,6 +81,8 @@ chaquopy {
         }
         pip {
             install("numpy==1.26.2")
+            // draws the game's text and decodes its images where pygame is missing (khvcemu/hostgfx.py)
+            install("Pillow==11.0.0")
         }
         // These packages build file paths from their own location (Unicorn's loader, the core's data files), so they
         // are unpacked to real files at startup instead of being read from inside the APK.
