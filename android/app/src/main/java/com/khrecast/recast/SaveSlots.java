@@ -1,12 +1,17 @@
 package com.khrecast.recast;
 
 import android.content.Context;
+import android.net.Uri;
 
 import org.json.JSONObject;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,6 +76,91 @@ final class SaveSlots {
             }
         }
         return best;
+    }
+
+    /** True when the stream starts like a khvcemu state file: the magic, then a sane header length. */
+    static boolean looksLikeState(InputStream in) throws IOException {
+        byte[] head = new byte[MAGIC.length + 4];
+        int got = 0;
+        while (got < head.length) {
+            int n = in.read(head, got, head.length - got);
+            if (n < 0) {
+                return false;
+            }
+            got += n;
+        }
+        for (int i = 0; i < MAGIC.length; i++) {
+            if (head[i] != MAGIC[i]) {
+                return false;
+            }
+        }
+        int len = (head[8] & 0xFF) | (head[9] & 0xFF) << 8 | (head[10] & 0xFF) << 16 | (head[11] & 0xFF) << 24;
+        return len > 0 && len <= 64 * 1024;
+    }
+
+    /** The biggest state file we accept (a real one is a few tens of megabytes at most). */
+    static final long MAX_STATE_BYTES = 256L * 1024 * 1024;
+
+    /**
+     * Copies a state file picked by the player into slot 1 to 9 (replacing what was there); false if it is not a state.
+     * The file is copied once into a temporary file (stopping at MAX_STATE_BYTES), checked there, then moved into place.
+     * Only states made by this version are accepted (the desktop's older "KHEMUSS" files are not).
+     */
+    static boolean importInto(Context context, Uri uri, String slotName) throws IOException {
+        File dir = folder(context);
+        if (!dir.isDirectory() && !dir.mkdirs()) {
+            throw new IOException("cannot create " + dir);
+        }
+        File tmp = new File(dir, "import_new.khs");
+        boolean moved = false;
+        try {
+            try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+                if (in == null) {
+                    throw new IOException("cannot read that file");
+                }
+                try (OutputStream out = new FileOutputStream(tmp)) {
+                    copy(in, out, MAX_STATE_BYTES);
+                }
+            }
+            try (InputStream check = new FileInputStream(tmp)) {
+                if (!looksLikeState(check)) {
+                    return false;
+                }
+            }
+            File target = new File(dir, "slot" + slotName + ".khs");
+            java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            moved = true;
+            new File(dir, "slot" + slotName + ".png").delete();    // the old picture belongs to the old state
+            return true;
+        } finally {
+            if (!moved) {
+                tmp.delete();
+            }
+        }
+    }
+
+    /** Writes a slot's state file to a place the player chose. */
+    static void exportTo(Context context, Slot s, Uri uri) throws IOException {
+        try (InputStream in = new FileInputStream(s.file);
+             OutputStream out = context.getContentResolver().openOutputStream(uri, "wt")) {    // "wt": truncate
+            if (out == null) {
+                throw new IOException("cannot write there");
+            }
+            copy(in, out, MAX_STATE_BYTES);
+        }
+    }
+
+    private static void copy(InputStream in, OutputStream out, long limit) throws IOException {
+        byte[] buf = new byte[64 * 1024];
+        long total = 0;
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > limit) {
+                throw new IOException("that file is too big to be a state");
+            }
+            out.write(buf, 0, n);
+        }
     }
 
     /** Deletes a slot's state and its picture. */

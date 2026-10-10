@@ -7,15 +7,18 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 
@@ -30,9 +33,13 @@ import java.util.Date;
 public class SavesActivity extends Activity {
     static final String EXTRA_MODE = "mode";          // "save" or "load"
     static final String EXTRA_SLOT = "slot";          // the result: "1".."9", "auto", "auto2", "auto3"
+    static final String EXTRA_IMPORT = "import";      // offer Import (only when the game is not running)
+
+    private static final int REQ_IMPORT = 10, REQ_EXPORT = 11;
 
     private String mode = "load";
     private LinearLayout list;
+    private String exportSlot;                        // the slot waiting for the player to choose where to write it
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,9 +53,22 @@ public class SavesActivity extends Activity {
         col.addView(title);
         TextView hint = text("save".equals(mode)
                 ? "Tap a slot to save the game there. The autosaves can only be loaded."
-                : "Tap a slot to load it. Press and hold a slot to delete it.", 14, 0xFF8EA4BF);
+                : "Tap a slot to load it. Press and hold a slot to export or delete it.", 14, 0xFF8EA4BF);
         hint.setPadding(0, dp(4), 0, dp(12));
         col.addView(hint);
+        Button importButton = new Button(this);
+        importButton.setText("Import a state file...");
+        importButton.setAllCaps(false);
+        importButton.setOnClickListener(v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_IMPORT));
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+        blp.bottomMargin = dp(12);
+        if (getIntent().getBooleanExtra(EXTRA_IMPORT, false)) {      // not while the game is running: it owns the slots
+            col.addView(importButton, blp);
+        }
+        if (savedInstanceState != null) {
+            exportSlot = savedInstanceState.getString("exportSlot");
+        }
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         col.addView(list);
@@ -58,6 +78,12 @@ public class SavesActivity extends Activity {
         setContentView(scroll);
         Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
         fill();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putString("exportSlot", exportSlot);                       // the picker may outlive this screen
     }
 
     private void fill() {
@@ -119,17 +145,86 @@ public class SavesActivity extends Activity {
         }
         if (exists) {
             row.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(this).setTitle("Delete " + s.label + "?")
-                        .setMessage("This cannot be undone.")
-                        .setPositiveButton("Delete", (d, w) -> {
-                            SaveSlots.delete(this, name);
-                            fill();
-                        })
-                        .setNegativeButton("Cancel", null).show();
+                new AlertDialog.Builder(this).setTitle(s.label)
+                        .setItems(new String[]{"Export to a file...", "Delete..."}, (d, which) -> {
+                            if (which == 0) {
+                                exportSlot = name;
+                                startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                                        .addCategory(Intent.CATEGORY_OPENABLE).setType("application/octet-stream")
+                                        .putExtra(Intent.EXTRA_TITLE, "recast_" + (s.isAuto() ? name : "slot" + name) + ".khs"),
+                                        REQ_EXPORT);
+                            } else {
+                                new AlertDialog.Builder(this).setTitle("Delete " + s.label + "?")
+                                        .setMessage("This cannot be undone.")
+                                        .setPositiveButton("Delete", (d2, w) -> {
+                                            SaveSlots.delete(this, name);
+                                            fill();
+                                        })
+                                        .setNegativeButton("Cancel", null).show();
+                            }
+                        }).show();
                 return true;
             });
         }
         return row;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        Uri uri = data.getData();
+        if (requestCode == REQ_EXPORT) {
+            boolean found = false;
+            for (SaveSlots.Slot s : SaveSlots.all(this)) {
+                if (s.name.equals(exportSlot)) {
+                    found = true;
+                    try {
+                        SaveSlots.exportTo(this, s, uri);
+                        Toast.makeText(this, "Saved to the file you chose", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Could not write the file: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+            if (!found) {
+                Toast.makeText(this, "Could not tell which save to export, try again", Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == REQ_IMPORT) {
+            chooseSlotForImport(uri);
+        }
+    }
+
+    /** The picked file goes into a slot from 1 to 9: the player chooses which (filled ones say so). */
+    private void chooseSlotForImport(Uri uri) {
+        try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null || !SaveSlots.looksLikeState(in)) {
+                Toast.makeText(this, "That is not a Re:Cast state file (.khs)", Toast.LENGTH_LONG).show();
+                return;
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Could not read that file: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            return;
+        }
+        java.util.List<SaveSlots.Slot> slots = SaveSlots.all(this);
+        String[] items = new String[9];
+        for (int i = 0; i < 9; i++) {
+            items[i] = slots.get(i).label + (slots.get(i).exists ? " (replace)" : " (empty)");
+        }
+        new AlertDialog.Builder(this).setTitle("Import into which slot?").setItems(items, (d, which) -> {
+            try {
+                if (SaveSlots.importInto(this, uri, String.valueOf(which + 1))) {
+                    Toast.makeText(this, "Imported into " + slots.get(which).label, Toast.LENGTH_SHORT).show();
+                    fill();
+                } else {
+                    Toast.makeText(this, "That is not a Re:Cast state file (.khs)", Toast.LENGTH_LONG).show();
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "Could not import: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }).setNegativeButton("Cancel", null).show();
     }
 
     private void choose(String name) {

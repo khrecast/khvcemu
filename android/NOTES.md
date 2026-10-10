@@ -432,6 +432,23 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Not done:** the shared settings JSON for the desktop launcher and the app, Compose, a "Start at world" entry, a world
   name on the card, a progress bar while the files are copied, the home screen in landscape (it scrolls; not looked at).
 
+## Chunk 11, part 2: export and import of state files (2026-10-10, written and built, NOT exercised on the phone)
+
+- **Saved games screen:** an "Import a state file..." button (Android's file picker) copies a `.khs` into slot 1 to 9, which
+  the player chooses (filled slots say "replace"); the file is checked first (the `KHVCEMU\x01` magic and a sane header
+  length) and written through a temporary file. A press and hold on a filled slot now offers **Export to a file...** (Android's
+  "create file" picker; the name defaults to `recast_slotN.khs`) and Delete.
+- **Same format as the desktop,** so a state moves both ways between the PC's `states` folder and the phone. A state made with
+  other game files, other speed patches or another screen size is refused by the game when loaded, with its message.
+- After review: Import is offered only when the Saved games screen is opened from Home (the running game owns the
+  slots), the copy is made once into a temporary file, capped at 256 MB, checked there and moved over the slot with
+  `Files.move(REPLACE_EXISTING)` (the temporary file is deleted on any failure), export truncates (`"wt"`), the slot chosen for
+  export survives the screen being recreated, and the desktop's older `KHEMUSS` state files are refused.
+- **Why not tested:** the pickers list the phone's Download and Recent files, which are personal, so they were not driven
+  through screenshots. The copy code is plain stream copying and the magic check is the one `Home` already uses for dates.
+  Worth one manual try: export a slot, import it into another, load it.
+- **Not done:** the game's own saves (the in-game Save / Load Game files), "Start at world", exporting all slots at once.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

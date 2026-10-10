@@ -78,7 +78,8 @@ public class HomeActivity extends Activity {
         col.addView(button("Play from the title screen", newest == null,
                 v -> startActivity(new Intent(this, MainActivity.class))));
         col.addView(button("Saved games", false, v -> startActivityForResult(
-                new Intent(this, SavesActivity.class).putExtra(SavesActivity.EXTRA_MODE, "load"), REQ_SAVES)));
+                new Intent(this, SavesActivity.class).putExtra(SavesActivity.EXTRA_MODE, "load")
+                        .putExtra(SavesActivity.EXTRA_IMPORT, true), REQ_SAVES)));
         col.addView(button("Options", false, v -> startActivity(new Intent(this, OptionsActivity.class))));
         col.addView(button("Game files", false, v -> startActivity(new Intent(this, SetupActivity.class))));
         TextView hint = text("In the game, the phone's Back button opens its menu.", 13, 0xFF8EA4BF);
