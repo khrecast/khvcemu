@@ -3,14 +3,15 @@
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
 section. Spike results and the first app run on the phone are in section 6 and Chunk 3.
 
-## Status (updated 2026-10-10: chunks 1 to 3 done; next is chunk 4, Python inside the app)
+## Status (updated 2026-10-10: chunks 1 to 4 done; next is drawing the picture and touch input)
 
 - Toolchain installed under C:\Android (Chunk 2). The test phone is connected over adb. Spike 0 passed on it
   (section 6) and a probe APK at target SDK 36 runs Unicorn on it (Chunk 3).
 - Desktop baseline measured (below). The cost is the guest's own ARM code (the Swerve renderer)
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
-  Kotlin front end. Next: add Chaquopy and boot the core to the title inside the app (chunk 4).
+  Kotlin front end. Chunk 4 proved it: the core boots to the title inside the app on the phone at about 1.7 to 1.8x real time.
+  Next: show the frames on screen and take touch input (chunk 5).
 
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
@@ -96,6 +97,64 @@ Goal: show that an APK can load Unicorn and run ARM code on the phone (the `exec
   inside a larger command: check that `jniLibs` exists before building.
 - Not done: an x86_64 build for the emulator (no x86_64 Unicorn library yet); 16 KB-page device or emulator test;
   Python (Chaquopy) inside the app, the next chunk.
+
+## Chunk 4: the Python core inside the app (2026-10-10, done)
+
+Goal: boot the unmodified `khvcemu/` core to the title screen inside the APK, on the phone, with the real stack
+(Chaquopy, its numpy, the NDK app, native Unicorn).
+
+- **Versions:** Chaquopy 17.0.0 (its changelog lists Android Gradle Plugin 9.0 to 9.2, so the project went down from
+  AGP 9.4.1 to **9.2.1**; Gradle 9.6.0 is fine), Python **3.12.12**, **numpy 1.26.2** (Chaquopy's own wheel; the core
+  needs numpy >= 1.22). Python 3.13 and 3.14 have few wheels; numpy 2.x has no Android wheel (section 3).
+- **Build Python:** Chaquopy needs a Python 3.12 on the PC to fetch packages. Gradle did not find the `py` launcher, so
+  the path is given on the command line and kept out of the repo:
+  `.\gradlew.bat assembleDebug --no-daemon "-Precast.buildPython=<path to a Python 3.12 python.exe>"`.
+  Order of a clean build: `. .\android\env.ps1`, `.\android\fetch_unicorn.ps1`, then the Gradle command.
+- **How the code gets in:** a Gradle copy task (`stagePython`) stages the repository's `khvcemu/` package and
+  `android/spike/bench_headless.py` into `app/build/python-stage` (no duplicate in git, audio recordings excluded);
+  `fetch_unicorn.ps1` also copies Unicorn's pure-Python binding into `app/src/main/python/unicorn/` (ignored by git);
+  `extractPackages("unicorn", "khvcemu")` unpacks both at startup; `useLegacyPackaging = true` installs
+  `libunicorn.so` as a real file (the binding loads it by path). `app/src/main/python/recast_app.py` is the app's own
+  glue: it runs `bench_headless.py <mode>` and returns its output (also copied to logcat as it is produced).
+- **Two things that had to be worked around:** (1) the Unicorn binding calls `importlib.resources.files("unicorn")`
+  and wraps it in `pathlib.Path`, which fails on Chaquopy's `AssetPath`; `recast_app._prepare_unicorn` answers
+  that one question with a real folder (the vendored binding is not edited). (2) Gradle needs the explicit dependency
+  from Chaquopy's `*PythonSources` tasks on `stagePython`.
+- **Game files** go into the app's private storage only: `adb push` mif/, mod/ and `savegame(island).dat` to
+  `/data/local/tmp/recast_game`, then `adb shell "run-as com.khrecast.recast sh -c 'mkdir -p files/game; cp -r
+  /data/local/tmp/recast_game/. files/game/'"` (the debug APK allows `run-as`), then delete the temporary folder.
+  The files are never in the repo or the APK. If a run stalls for 40 s the app writes the Python thread stacks to
+  `files/stall_<mode>.txt` (read with `run-as`; an empty file means no stall).
+- **The stall that was not a bug:** an early run sat idle at 0% CPU for minutes. The phone's screen was off and
+  locked, the activity was stopped (`WindowStopped`, display state dozing), and Android froze the backgrounded app.
+  Keep the phone unlocked with the screen on (Developer options, Stay awake) while a benchmark runs. A real player
+  keeps the game in the foreground; pausing when the screen turns off is the right behavior and must be designed in.
+
+Results (first run), Galaxy S23 Ultra, Android 16, same device and benchmark as Spike 0:
+
+| Measure | In the app (Chaquopy, Python 3.12, numpy 1.26.2) | Termux (Python 3.14, numpy 2.4.4) | Pass bar |
+| --- | --- | --- | --- |
+| Boot to title | 1.80x real time (6.1 s for 11 s of game; 1.73x on a second run), 0 faults | 1.39x | >= 1.0x |
+| 3D scene, loading (scene a) | 1.004x | 0.876x | |
+| 3D scene, steady (scene b) | 1.058x (37.8 ms per frame, 26 fps capacity) | 0.92x | >= 0.6x |
+| Nine tunes rendered | 6.4 s (peak 204 MB process RSS) | 12.0 s | < 60 s |
+| Memory after the run | 164.7 MB PSS in total (45 MB of it the window's graphics buffers) | | < 300 MB |
+| Debug APK | 26.9 MB (26,923,466 bytes): Python, numpy, Unicorn, the core | | < 60 MB |
+| Python start | 0.3 to 2 s | | |
+
+A second run of the final build (after the stall-file fix) gave boot 1.73x, loading scene 0.85x, steady 3D 1.04x,
+tunes 6.4 s (peak RSS 190 MB) and the same two frame fingerprints: the loading scene varies by about 15 percent
+from run to run, the others by a few percent.
+The frame fingerprints equal Termux's (boot `250a782cb28866d9`, 3D scene `a138121676d59659`): the same pixels
+on a different Python, numpy and packaging. That is evidence the core behaves identically here, within what these
+two scenes exercise. The app is faster than Termux most likely because of Python 3.12 against 3.14 and
+Chaquopy's builds (not investigated). `ResourceWarning: unclosed file` lines appear for the core's `open(...).read()`
+calls: harmless, but Chaquopy turns warnings on.
+
+Not done (next chunks): the picture is not drawn (the benchmark runs headless), no touch input, no sound, no saves or
+file picker, no pause on leaving the app; heat over a long session; the Agrabah lava scene; an x86_64 build for an
+emulator; a 16 KB-page device (Chaquopy 17 supports them, but this numpy wheel may not load there: use Python 3.13
+if needed); a release build and signing; the Unicorn library still comes from Termux.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
@@ -290,7 +349,7 @@ installed (so no host-drawn text), the speed patches `span` and `matinv` on (the
 | Guest instructions per second in 3D | not counted on the phone; about 150 M estimated (168 M per game second on the desktop x 0.92; fewer with the patches) | >= 100 M | 140 to 145 M | pass (estimate) |
 | Synth render of the nine tunes | 11.99 s (training 2.97 s the longest), peak 48.6 MiB | < 60 s | 6.3 s | pass |
 | Peak memory (the Python process) | 58.8 to 60.6 MiB RSS | < 300 MB (PSS in the real app is still to be measured) | 64 MB | pass |
-| APK size | 0.9 MB for the probe app, without Python or numpy (the real size is open until Chaquopy is added) | < 60 MB | | open |
+| APK size (in Chunk 4, with Python) | 26.9 MB debug APK with Python, numpy, Unicorn and the core | < 60 MB | | pass |
 
 What this says: on this phone the unmodified Python core with an ARM-only Unicorn built by Termux's clang runs the
 game at about 0.9x real time in the busiest scene tried, as fast as the development PC. It reaches 25 fps in the
