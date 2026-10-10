@@ -547,6 +547,28 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   in the game" (needs a decoder for FLAC and MP3 without ffmpeg: Android's `MediaCodec`), the SoundFont option and clearing the
   music cache.
 
+## Sharing high scores (2026-10-10, done; no score was posted)
+
+- **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is
+  sent (the world, the score, the time, and the Munny, EXP and level behind it; no name, account or device ID) and that
+  scores are always kept on the phone too. Two answers, "Share my scores" and "Keep scores on this phone"; it cannot be
+  dismissed without answering, and nothing is sent or saved before the answer. The default until answered is not to share
+  (the desktop launcher's box is ticked by default; here the player was asked to be asked).
+- **Options > Online scores** has the switch (applies the next time the game starts) and **Test the connection**, which
+  fetches the leaderboard's top list (a read request; nothing is posted) and says in words whether it answered.
+- **Core and manifest:** the `INTERNET` permission (the only one the app asks for) was added; `start_game(..., leaderboard)`
+  sets `emu.leaderboard_url` like `khvcemu/__main__.py` does, empty when not sharing. The address is
+  `Settings.LEADERBOARD_URL`; `tests/test_android_assets.py` keeps it equal to the launcher's.
+- **Verified on the S23 Ultra:** the question appears before the game starts and nothing is saved until it is answered;
+  answering "Keep scores on this phone" saved `share_scores=false` and the game started at 25 fps; Test the connection
+  reached `https://scores.khrecast.com` over HTTPS and got 405 bytes (so the app's Python can use TLS). **Not done, on purpose:**
+  posting a score (it would add a real row to the live board). So the full path from finishing a world to a posted score
+  on the phone is untested; it is the desktop's `web.py` code, which the desktop tests cover.
+- "Restore the default settings" clears the answer too, so the question comes back at the next game start (and the
+  switch shows off until answered): no sharing without a fresh yes.
+- **To check before release:** the privacy wording here and on the website say the same thing, and the store/install text
+  names the `INTERNET` permission.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

@@ -112,6 +112,23 @@ final class Settings {
         prefs(c).edit().putString("music", text).apply();
     }
 
+    /** The project's leaderboard (the same address as LEADERBOARD_URL in khvcemu/launcher.py; a test keeps them equal). */
+    static final String LEADERBOARD_URL = "https://scores.khrecast.com";
+
+    /** Whether the player has been asked about sharing high scores yet (they are asked once, when the game first starts). */
+    static boolean shareAsked(Context c) {
+        return prefs(c).contains("share_scores");
+    }
+
+    /** Share high scores with the leaderboard: false until the player says yes. */
+    static boolean shareScores(Context c) {
+        return prefs(c).getBoolean("share_scores", false);
+    }
+
+    static void setShareScores(Context c, boolean v) {
+        prefs(c).edit().putBoolean("share_scores", v).apply();
+    }
+
     static void restoreDefaults(Context c) {
         prefs(c).edit().clear().apply();
     }

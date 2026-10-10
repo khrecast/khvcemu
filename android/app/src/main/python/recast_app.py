@@ -96,7 +96,8 @@ AUDIO_RATE = 22050          # the core's own rate (khvcemu.midi_synth.RATE): mon
 class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
-    def __init__(self, native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music=""):
+    def __init__(self, native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
+                 leaderboard=""):
         _prepare_unicorn(native_lib_dir)
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         from khvcemu.keys import AVK
@@ -121,6 +122,7 @@ class _Game:
                 chapters.install_save(self.emu, start_world)
             except (SystemExit, OSError) as e:
                 self._log("start at %s failed: %s" % (start_world, e))
+        self.emu.leaderboard_url = str(leaderboard or "").strip()     # "": scores stay on the phone (the player's choice)
         self.stop_flag = False
         self.session = 0               # set by start_game
         self.want_paused = False
@@ -304,7 +306,8 @@ _start_lock = threading.Lock()
 _sessions = 0                       # counts the games started; a screen stops only the game it started
 
 
-def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music=""):
+def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
+               leaderboard=""):
     """Start the game thread (once). Returns the session number of the game that is running. start_world: seed the
     game save from that world's starting save first (chapters.install_save), so Load Game continues from there."""
     global _game, _sessions
@@ -315,7 +318,7 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
                 print("[core] the earlier game is still closing; the starting save may be overwritten", flush=True)
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
-            game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music)
+            game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music, leaderboard)
             _sessions += 1
             game.session = _sessions
             game.thread.start()
@@ -379,6 +382,20 @@ def tap(x, y):
     """A tap on the game's picture (game pixels, 176 x 220): handled on the core thread (see _Game._handle_taps)."""
     if _game is not None and _game.paused_at is None and not _game.want_paused and _game.thread.is_alive():
         _game.taps.append((float(x), float(y)))
+
+
+def check_online(url):
+    """Options' "Test the connection": fetches the leaderboard's top list (a read-only request, nothing is posted) and says
+    in a sentence whether it worked."""
+    import urllib.request
+    base = str(url).strip().rstrip("/")
+    try:
+        req = urllib.request.Request(base + "/top", headers={"User-Agent": "khvcemu"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            body = r.read(200000)
+        return "Connected to %s: it answered with %d bytes." % (base, len(body))
+    except Exception as e:                                       # any failure is shown to the player in words
+        return "Could not reach %s: %s" % (base, e)
 
 
 def configure(autosave, minutes, on_loading, on_quit):

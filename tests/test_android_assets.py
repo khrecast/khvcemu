@@ -37,6 +37,21 @@ class AndroidAssetCopyTests(unittest.TestCase):
         for name, text in presets:
             self.assertEqual(ms.parse(text, strict=False), ms.changed(ms.PRESETS[name]), name)
 
+    def test_the_apps_leaderboard_address_is_the_launchers(self):
+        from khvcemu.launcher import LEADERBOARD_URL
+        path = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "khrecast", "recast", "Settings.java")
+        with open(path, encoding="utf-8") as f:
+            self.assertIn('LEADERBOARD_URL = "%s";' % LEADERBOARD_URL, f.read())
+
+    def test_the_connection_check_says_so_when_the_server_cannot_be_reached(self):
+        import importlib.util
+        path = os.path.join(ROOT, "android", "app", "src", "main", "python", "recast_app.py")
+        spec = importlib.util.spec_from_file_location("recast_app_for_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        answer = module.check_online("http://127.0.0.1:9")            # nothing listens on the discard port
+        self.assertTrue(answer.startswith("Could not reach http://127.0.0.1:9"), answer)
+
 
 if __name__ == "__main__":
     unittest.main()

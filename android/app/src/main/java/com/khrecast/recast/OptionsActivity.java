@@ -74,6 +74,19 @@ public class OptionsActivity extends Activity {
         soundParams.topMargin = dp(8);
         col.addView(sound, soundParams);
 
+        col.addView(heading("Online scores"));
+        col.addView(toggle("Share high scores", Settings.shareScores(this), Settings::setShareScores));
+        col.addView(note("Posts only the world, score, time, Munny, EXP and level to the project's leaderboard "
+                + "(scores.khrecast.com). No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are always kept on this phone too. Applies "
+                + "the next time the game starts."));
+        Button test = new Button(this);
+        test.setText("Test the connection");
+        Labels.theme(test, false);
+        test.setOnClickListener(v -> testConnection(test));
+        LinearLayout.LayoutParams testParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        testParams.topMargin = dp(8);
+        col.addView(test, testParams);
+
         col.addView(heading("Autosave"));
         col.addView(toggle("Autosave", Settings.autosave(this), Settings::setAutosave));
         col.addView(toggle("At loading screens", Settings.autosaveOnLoading(this), Settings::setAutosaveOnLoading));
@@ -119,6 +132,34 @@ public class OptionsActivity extends Activity {
         scroll.addView(col);
         setContentView(scroll);
         Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
+    }
+
+    /** Asks the leaderboard for its top list (nothing is posted) and says whether it answered. */
+    private void testConnection(Button button) {
+        button.setEnabled(false);
+        button.setText("Testing...");
+        new Thread(() -> {
+            String result;
+            try {
+                if (!com.chaquo.python.Python.isStarted()) {
+                    com.chaquo.python.Python.start(new com.chaquo.python.android.AndroidPlatform(getApplicationContext()));
+                }
+                result = com.chaquo.python.Python.getInstance().getModule("recast_app")
+                        .callAttr("check_online", Settings.LEADERBOARD_URL).toString();
+            } catch (Throwable t) {
+                result = "The test could not run: " + t;
+            }
+            final String shown = result;
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;                                            // the screen was closed while the test ran
+                }
+                button.setEnabled(true);
+                button.setText("Test the connection");
+                new android.app.AlertDialog.Builder(this).setTitle("Connection test").setMessage(shown)
+                        .setPositiveButton("OK", null).show();
+            });
+        }, "recast-online-test").start();
     }
 
     private void addSize(RadioGroup group, String label, int value, int current) {

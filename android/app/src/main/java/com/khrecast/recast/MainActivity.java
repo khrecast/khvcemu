@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     private volatile boolean resumed = false;      // the activity is in the foreground
     private volatile boolean inner = false;        // one of our own screens (Saves, Setup) was opened from the game
     private AlertDialog menu;
+    private AlertDialog scoresDialog;
     private volatile boolean muted = false;
     private volatile boolean menuOpen = false;     // our menu is up: the game is held, like when the app is in the background
     private static final int REQ_SAVES = 1;
@@ -83,7 +84,11 @@ public class MainActivity extends Activity {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
                     this::showMenu);
         }
-        new Thread(this::startGame, "recast-start").start();
+        if (Settings.shareAsked(this)) {
+            new Thread(this::startGame, "recast-start").start();
+        } else {
+            askAboutScores();                              // once; the game starts when the player has answered
+        }
     }
 
     private void startGame() {
@@ -102,7 +107,8 @@ public class MainActivity extends Activity {
             getIntent().removeExtra(HomeActivity.EXTRA_START_WORLD);    // once, and before the call: nothing may reseed the save
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath(), world == null ? "" : world, Settings.speedOff(this),
-                    Settings.frameLock(this), Settings.music(this)).toInt();
+                    Settings.frameLock(this), Settings.music(this),
+                    Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "").toInt();
             app = module;
             String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {
@@ -177,6 +183,29 @@ public class MainActivity extends Activity {
                     applyLifecycle();
                 })
                 .show();
+    }
+
+    /** The first time the game starts: may high scores be shared with the project's leaderboard? Nothing is sent before the answer. */
+    private void askAboutScores() {
+        view.setStatus("waiting for your answer...");
+        scoresDialog = new AlertDialog.Builder(this)
+                .setTitle("Share your high scores?")
+                .setMessage("When you finish a world, the game can post your score to the project's public leaderboard "
+                        + "(scores.khrecast.com) so you can see how you rank.\n\nOnly the world, the score, how long the run "
+                        + "took, and the Munny, EXP and level behind it are sent. No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are "
+                        + "always kept on this phone too.\n\nYou can change this later in Options.")
+                .setCancelable(false)
+                .setPositiveButton("Share my scores", (d, w) -> answeredScores(true))
+                .setNegativeButton("Keep scores on this phone", (d, w) -> answeredScores(false))
+                .show();
+    }
+
+    private void answeredScores(boolean share) {
+        Settings.setShareScores(this, share);                          // the answer is kept either way
+        if (isDestroyed() || isFinishing()) {
+            return;                                                    // the screen is gone: the next start asks nothing more
+        }
+        new Thread(this::startGame, "recast-start").start();
     }
 
     /** Saves the game's current picture to the gallery (Pictures/Re-Cast) and says where. */
@@ -399,6 +428,9 @@ public class MainActivity extends Activity {
         running = false;
         if (menu != null && menu.isShowing()) {
             menu.dismiss();                            // no leaked window
+        }
+        if (scoresDialog != null && scoresDialog.isShowing()) {
+            scoresDialog.dismiss();
         }
         if (view == null) {                            // onCreate went to the setup screen
             super.onDestroy();

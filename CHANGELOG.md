@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### New
+- **Android app (in development, sideloaded; not released).** The game runs on a phone with touch controls, saves and
+  save states that move between the PC and the phone (the same `.khs` files), an Options screen, and a first-start question
+  about sharing high scores (nothing is sent until the player says yes). See `android/NOTES.md`.
 - **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
   being read (a damaged file, or one made by a different setup), the game keeps running with nothing changed and says
   "this state cannot be read here". States made on a computer with numpy 2 also load where numpy 1 is installed

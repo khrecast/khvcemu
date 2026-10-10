@@ -312,7 +312,8 @@ leaderboard page, `site/leaderboard.html`, shows the top 100 of each world with 
 columns. The server uses a salted, shortened hash of the sender's address solely
 to allow one score per address every ten minutes and deletes it after ten minutes (details in
 [`server/README.md`](server/README.md)). Scores come from the player's machine,
-so treat a shared rank as a rough comparison rather than a competitive ranking.
+so treat a shared rank as a rough comparison rather than a competitive ranking. The Android app
+(in development) shares scores the same way, but asks first and starts out not sharing until you answer ("Restore the default settings" brings the question back).
 
 **Website counters.** The project website counts, anonymously and per day, how often its pages are
 opened, which parts of the main page are scrolled to and which buttons are clicked (downloads per platform,
