@@ -142,9 +142,48 @@ public class GameView extends View {
         layoutControls(w, h);
     }
 
+    /** Landscape: the picture in the middle at the full height, the pad and the softkeys at its left, the buttons and
+     *  the other softkey at its right, so both thumbs rest at the sides of the phone. */
+    private void layoutLandscape(int w, int h) {
+        float left = insetLeft, right = w - insetRight, width = right - left;
+        float top = insetTop, bottom = h - insetBottom, free = bottom - top;
+        float gh = free * 0.93f;                                       // the status line sits under the picture
+        if (pictureScale != Settings.FIT) {
+            int most = Math.max(1, (int) Math.floor(gh / H));
+            gh = H * (pictureScale == Settings.LARGEST ? most : Math.min(pictureScale, most));
+        }
+        float gw = gh * W / H;
+        float gx = left + (width - gw) / 2f;
+        dst.set(gx, top + free * 0.01f, gx + gw, top + free * 0.01f + gh);
+        statusY = bottom - free * 0.008f;
+
+        float leftW = Math.max(0f, gx - left), rightW = Math.max(0f, right - (gx + gw));
+        float lc = left + leftW / 2f, rc = gx + gw + rightW / 2f;     // the middle of each side
+        float softH = free * 0.12f, softTop = top + free * 0.04f, gap = leftW * 0.03f;
+        buttons.get(0).r.set(left + gap, softTop, lc - gap, softTop + softH);                      // SOFT1
+        buttons.get(1).r.set(lc + gap, softTop, left + leftW - gap, softTop + softH);              // CLR
+        buttons.get(2).r.set(rc - rightW * 0.45f, softTop, rc + rightW * 0.45f, softTop + softH);  // SOFT2
+
+        float areaTop = softTop + softH + free * 0.03f, areaBottom = bottom - free * 0.05f;
+        float area = areaBottom - areaTop;
+        padR = Math.min(leftW * 0.44f, area * 0.46f);
+        padX = lc;
+        padY = areaBottom - padR;
+        float big = Math.min(rightW * 0.2f, area * 0.27f);
+        float small = big * 0.72f;
+        float cy = areaTop + area / 2f;
+        setCircle(buttons.get(3), rc + rightW * 0.1f, cy + area * 0.2f, big);                      // Action
+        setCircle(buttons.get(4), rc - rightW * 0.2f, cy - area * 0.08f, small);                   // Magic
+        setCircle(buttons.get(5), rc + rightW * 0.2f, cy - area * 0.28f, small);                   // Status
+    }
+
     /** The picture at the top of the free area, the softkeys under it, the pad and buttons in what is left. */
     private void layoutControls(int w, int h) {
         if (w == 0 || h == 0) {
+            return;
+        }
+        if (w > h) {
+            layoutLandscape(w, h);
             return;
         }
         float left = insetLeft, right = w - insetRight, width = right - left;
@@ -220,7 +259,7 @@ public class GameView extends View {
         }
         text.setTextSize(getHeight() * 0.014f);
         text.setColor(0xFF8EA4BF);
-        c.drawText(status, getWidth() / 2f, statusY, text);
+        c.drawText(status, dst.centerX(), statusY, text);
         text.setColor(Color.WHITE);
     }
 

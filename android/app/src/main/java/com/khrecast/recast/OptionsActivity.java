@@ -42,7 +42,8 @@ public class OptionsActivity extends Activity {
         col.addView(heading("Picture size"));
         RadioGroup sizes = new RadioGroup(this);
         int current = Settings.pictureScale(this);
-        int most = Math.max(1, getResources().getDisplayMetrics().widthPixels / GameView.W);
+        android.util.DisplayMetrics screen = getResources().getDisplayMetrics();
+        int most = Math.max(1, Math.min(screen.widthPixels, screen.heightPixels) / GameView.W);   // the narrow side, so both orientations
         addSize(sizes, "Fit the screen (crisp pixels, any size)", Settings.FIT, current);
         addSize(sizes, "Sharp: the largest whole-number size that fits", Settings.LARGEST, current);
         for (int n = most; n >= 1; n--) {

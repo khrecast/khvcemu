@@ -383,6 +383,26 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   before quitting", sharing scores (and the INTERNET permission), the Speed enhancements window and its frame lock, the
   Sound tab (chunk 13). The settings are not yet in one JSON file shared with the desktop launcher (chunk 10).
 
+## Chunk 14, part 1: landscape (2026-10-10, done; the controls editor and game controllers are not started)
+
+- **Layout** (`GameView.layoutLandscape`, used when the view is wider than tall): the picture in the middle at the full
+  height (93% of the free height, so the status line fits under it; the Options picture sizes apply), the pad with Soft 1
+  and Back at its left, Soft 2, Action, Magic and Status at its right, all inside the system-bar insets. The same
+  `dst` rectangle serves taps and drawing.
+- **Orientation:** the activities no longer lock portrait: they follow the phone's auto-rotate setting. `MainActivity` and
+  `SetupActivity` handle orientation changes themselves (`configChanges`), so turning the phone does not restart the game.
+- **Verified on the S23 Ultra** (rotation forced with `settings put system user_rotation`, then put back to auto-rotate on
+  and portrait): the game runs at 25 fps in landscape, a tap on the picture's Options entry sends Down, Down, then Select and
+  opens the game's Options menu, and rotating back to portrait restores the portrait layout with the game running.
+- Also: `MainActivity` now handles `uiMode`, `locale`, `density`, `fontScale` and `layoutDirection` changes itself (a
+  dark-mode or font-size change used to recreate it and would have started a second game); the Saves and Options
+  screens are recreated on rotation (their state is in the intent and in Settings, so nothing is lost; an open confirm
+  dialog closes); the Options size list is based on the narrow side of the screen.
+- **Not verified:** the in-game menu, Saves, Options and Setup screens in landscape (plain scrolling views, so they should
+  work), a phone with a camera cutout on the side, the reverse landscape (rotation 3), tablets, the 1x and whole-number
+  sizes in landscape, a finger instead of adb taps.
+- **Not done:** the controls editor (move and resize the pad and buttons), game controllers.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
