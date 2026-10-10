@@ -429,6 +429,10 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   `onDestroy` of a closed game screen cannot end the game that replaced it; Quit also stops the game at once instead of
   waiting for `onDestroy`. Known and left: a very fast Continue can pick an older slot before the exit autosave lands;
   the load request can repeat if Android kills and restores the whole process.
+- The home screen shows the project logo (`khvcemu/assets/recast_logo_lowres_hardpixels.png`, wordmark included) instead of the
+  heart icon and a text title. `android/app/src/main/res/drawable-nodpi/recast_logo.png` is a byte copy of it (a test,
+  `tests/test_android_assets.py`, fails if the two drift apart); its height is capped (30% of the screen, at most 260 dp) so
+  landscape still shows the buttons. Seen on the phone in portrait; landscape not looked at.
 - **Not done:** the shared settings JSON for the desktop launcher and the app, Compose, a "Start at world" entry, a world
   name on the card, a progress bar while the files are copied, the home screen in landscape (it scrolls; not looked at).
 

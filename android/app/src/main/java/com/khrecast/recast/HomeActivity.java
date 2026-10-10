@@ -53,13 +53,16 @@ public class HomeActivity extends Activity {
 
     private void build() {
         col.removeAllViews();
-        ImageView heart = new ImageView(this);
-        heart.setImageResource(R.mipmap.ic_launcher_foreground);
-        heart.setLayoutParams(new LinearLayout.LayoutParams(dp(110), dp(110)));
-        col.addView(heart);
-        TextView title = text("Re:Cast", 30, Color.WHITE);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        col.addView(title);
+        ImageView logo = new ImageView(this);                  // the Kingdom Hearts Re:Cast logo (wordmark included)
+        logo.setImageResource(R.drawable.recast_logo);
+        logo.setAdjustViewBounds(true);
+        logo.setMaxHeight(Math.min(dp(260), Math.round(getResources().getDisplayMetrics().heightPixels * 0.3f)));   // not the whole screen in landscape
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        logo.setContentDescription("Kingdom Hearts Re:Cast");
+        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        logoParams.topMargin = dp(8);
+        col.addView(logo, logoParams);
 
         if (!GameInstaller.isInstalled(this)
                 && !new java.io.File(new java.io.File(getFilesDir(), "game"), "mod").isDirectory()) {
