@@ -403,6 +403,35 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   sizes in landscape, a finger instead of adb taps.
 - **Not done:** the controls editor (move and resize the pad and buttons), game controllers.
 
+## Chunk 10, part 2: the home screen (2026-10-10, done; the shared settings JSON and Compose are not done)
+
+- **`HomeActivity` is the launcher screen.** With game files installed: a Continue card (the picture, slot name and date of
+  the newest save, autosaves included; one tap loads it and starts the game), "Play from the title screen", "Saved games",
+  "Options", "Game files", and a line saying that Back opens the game's menu. Without game files it asks for them and
+  offers "Set up the game files". Plain `View`s, no Compose (see the part 1 note).
+- **`SaveSlots` reads the save slots in Java** (file names, the `.png`, and the date from the state's own JSON header), so
+  the home screen and the Saves screen work without starting the game or Python. The Python `states_json` and
+  `delete_state` were removed. Saves and Home share the slot names the core takes ("1".."9", "auto", "auto2", "auto3").
+- **Loading from Home:** `MainActivity` takes an extra (`HomeActivity.EXTRA_LOAD`) and queues the load as soon as the game is
+  up. "Quit the game" in the game's menu returns to Home.
+- **Setup changed:** it is opened from Home or the game's menu, no longer forwards to the game by itself, finishes (back to
+  Home) after a successful install, and has "Done" instead of "Play".
+- **Verified on the S23 Ultra:** Home shows the Continue card for the real autosave left by playing earlier today (the
+  Obstacle Course); tapping it loaded that autosave into the game at 25 fps; "Quit the game" returned to Home; Game files,
+  Remove, Home asking for the files, picking the folder again, and Home coming back with the Continue card (the saves
+  survive removing the game files).
+- After review: the load request is removed from the intent once queued (a recreated activity must not load it again);
+  the Continue card loads the newest save at the moment of the tap; the game's own stop flag is set synchronously when
+  the game screen closes; "Game files" was taken out of the in-game menu (replacing the files under a running game is
+  not safe), it lives on Home only. Known: the Continue card can briefly show the previous newest save right after a quit,
+  until the exit autosave lands; the card's date comes from the state file's own header.
+- Second review: `recast_app.start_game` returns a session number and `stop(session)` only stops that game, so a late
+  `onDestroy` of a closed game screen cannot end the game that replaced it; Quit also stops the game at once instead of
+  waiting for `onDestroy`. Known and left: a very fast Continue can pick an older slot before the exit autosave lands;
+  the load request can repeat if Android kills and restores the whole process.
+- **Not done:** the shared settings JSON for the desktop launcher and the app, Compose, a "Start at world" entry, a world
+  name on the card, a progress bar while the files are copied, the home screen in landscape (it scrolls; not looked at).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
 
     private GameView view;
     private final ExecutorService input = Executors.newSingleThreadExecutor(r -> new Thread(r, "recast-input"));
+    private volatile int session = 0;               // which game (recast_app.start_game's number) this screen started
     private volatile PyObject app;                 // the recast_app module once the game has started
     private volatile boolean running = true;
     private volatile boolean resumed = false;      // the activity is in the foreground
@@ -46,7 +47,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (!GameInstaller.isInstalled(this) && !new File(new File(getFilesDir(), "game"), "mod").isDirectory()) {
-            startActivity(new Intent(this, SetupActivity.class));      // no game files yet: ask for them first
+            if (isTaskRoot()) {                                        // no game files yet: the home screen asks for them
+                startActivity(new Intent(this, HomeActivity.class));
+            }
             finish();
             return;
         }
@@ -93,9 +96,14 @@ public class MainActivity extends Activity {
                 Python.start(new AndroidPlatform(this));
             }
             PyObject module = Python.getInstance().getModule("recast_app");
-            module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
-                    data.getAbsolutePath());
+            session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
+                    data.getAbsolutePath()).toInt();
             app = module;
+            String load = getIntent().getStringExtra(HomeActivity.EXTRA_LOAD);
+            if (load != null) {
+                getIntent().removeExtra(HomeActivity.EXTRA_LOAD);   // once: a recreated activity must not load it again
+                requestState("load", load);                // Continue or a saved game was chosen on the home screen
+            }
             applySettings();
             applyLifecycle();                          // the user may have left while the game was still starting
         } catch (Throwable t) {
@@ -125,7 +133,7 @@ public class MainActivity extends Activity {
             return;
         }
         final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Options...", "Game files...", "Quit the game"};
+                "Load a saved game...", "Options...", "Quit the game"};
         menuOpen = true;
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
@@ -149,10 +157,7 @@ public class MainActivity extends Activity {
                             startActivity(new Intent(this, OptionsActivity.class));
                             break;
                         case 6:
-                            inner = true;
-                            startActivity(new Intent(this, SetupActivity.class).putExtra("auto", false));
-                            break;
-                        case 7:
+                            stopGame();                // now, not only when the system gets round to destroying the screen
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
                         default:
@@ -164,6 +169,17 @@ public class MainActivity extends Activity {
                     applyLifecycle();
                 })
                 .show();
+    }
+
+    private void stopGame() {
+        PyObject a = app;
+        if (a != null) {
+            try {
+                a.callAttr("stop", session);           // only the game this screen started
+            } catch (Throwable t) {
+                Log.w(TAG, "stop failed: " + t);
+            }
+        }
     }
 
     private void requestState(String op, String slot) {
@@ -364,7 +380,11 @@ public class MainActivity extends Activity {
         }
         PyObject a = app;
         if (a != null && isFinishing()) {
-            input.execute(() -> a.callAttr("stop"));
+            try {
+                a.callAttr("stop", session);           // at once (a flag), so a game started right after cannot reuse this one
+            } catch (Throwable t) {
+                Log.w(TAG, "stop failed: " + t);
+            }
         }
         input.shutdown();
         super.onDestroy();

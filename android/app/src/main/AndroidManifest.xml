@@ -6,16 +6,20 @@
         android:icon="@mipmap/ic_launcher"
         android:label="Re:Cast"
         android:theme="@android:style/Theme.Material.NoActionBar">
-        <!-- first run: pick the game folder (the app opens here and goes on to the game once the files are installed) -->
+        <!-- the front door: Continue, Saved games, Options, game files -->
         <activity
-            android:name=".SetupActivity"
-            android:exported="true"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection|density|fontScale">
+            android:name=".HomeActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- pick the game folder (opened from the home screen or the game's menu) -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection|density|fontScale" />
         <!-- the game -->
         <activity
             android:name=".MainActivity"

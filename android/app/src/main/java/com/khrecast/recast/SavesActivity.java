@@ -17,10 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.chaquo.python.Python;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -65,20 +62,15 @@ public class SavesActivity extends Activity {
 
     private void fill() {
         list.removeAllViews();
-        try {
-            JSONArray slots = new JSONArray(Python.getInstance().getModule("recast_app").callAttr("states_json").toString());
-            for (int i = 0; i < slots.length(); i++) {
-                list.addView(row(slots.getJSONObject(i)));
-            }
-        } catch (Throwable t) {
-            list.addView(text("Could not read the saves: " + t, 15, 0xFFFFAB91));
+        for (SaveSlots.Slot s : SaveSlots.all(this)) {
+            list.addView(row(s));
         }
     }
 
-    private View row(JSONObject s) throws Exception {
-        final String name = s.getString("name");
-        final boolean exists = s.getBoolean("exists");
-        final boolean auto = name.startsWith("auto");
+    private View row(SaveSlots.Slot s) {
+        final String name = s.name;
+        final boolean exists = s.exists;
+        final boolean auto = s.isAuto();
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -93,9 +85,8 @@ public class SavesActivity extends Activity {
         pic.setScaleType(ImageView.ScaleType.FIT_CENTER);
         pic.setLayoutParams(new LinearLayout.LayoutParams(dp(70), dp(88)));
         pic.setBackgroundColor(Color.BLACK);
-        String thumb = s.optString("thumb", "");
-        if (!thumb.isEmpty()) {
-            Bitmap bm = BitmapFactory.decodeFile(thumb);
+        if (exists && s.hasThumb()) {
+            Bitmap bm = BitmapFactory.decodeFile(s.thumb.getAbsolutePath());
             if (bm != null) {
                 BitmapDrawable d = new BitmapDrawable(getResources(), bm);
                 d.setFilterBitmap(false);                      // crisp pixels, as in the game
@@ -107,10 +98,9 @@ public class SavesActivity extends Activity {
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
         words.setPadding(dp(14), 0, 0, 0);
-        words.addView(text(s.getString("label"), 18, exists ? Color.WHITE : 0xFF6B7A90));
-        long created = (long) (s.optDouble("created", 0) * 1000);
+        words.addView(text(s.label, 18, exists ? Color.WHITE : 0xFF6B7A90));
         words.addView(text(exists ? DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                .format(new Date(created)) : "Empty", 14, 0xFF8EA4BF));
+                .format(new Date(s.created)) : "Empty", 14, 0xFF8EA4BF));
         row.addView(words);
 
         boolean tappable = "save".equals(mode) ? !auto : exists;
@@ -118,7 +108,7 @@ public class SavesActivity extends Activity {
         if (tappable) {
             row.setOnClickListener(v -> {
                 if ("save".equals(mode) && exists) {
-                    new AlertDialog.Builder(this).setTitle("Replace " + s.optString("label") + "?")
+                    new AlertDialog.Builder(this).setTitle("Replace " + s.label + "?")
                             .setMessage("The game saved there will be lost.")
                             .setPositiveButton("Replace", (d, w) -> choose(name))
                             .setNegativeButton("Cancel", null).show();
@@ -129,14 +119,10 @@ public class SavesActivity extends Activity {
         }
         if (exists) {
             row.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(this).setTitle("Delete " + s.optString("label") + "?")
+                new AlertDialog.Builder(this).setTitle("Delete " + s.label + "?")
                         .setMessage("This cannot be undone.")
                         .setPositiveButton("Delete", (d, w) -> {
-                            try {
-                                Python.getInstance().getModule("recast_app").callAttr("delete_state", name);
-                            } catch (Throwable t) {
-                                // the list below shows whatever is still there
-                            }
+                            SaveSlots.delete(this, name);
                             fill();
                         })
                         .setNegativeButton("Cancel", null).show();

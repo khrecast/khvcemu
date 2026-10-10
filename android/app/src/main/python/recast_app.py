@@ -112,6 +112,7 @@ class _Game:
         self.emu = Emulator(game_dir, data_dir, realtime=True, audio=True, audio_mixer=self.mixer, log=self._log,
                              frame_locked_clock=True)      # 25 fps when the phone keeps up (see Emulator.__init__)
         self.stop_flag = False
+        self.session = 0               # set by start_game
         self.want_paused = False
         self.pause_for_menu = False    # held for the app's own menu, not because the app left the screen
         self.leave_pending = False     # the app left while the menu already held the game: autosave once
@@ -290,25 +291,29 @@ _game = None
 
 
 _start_lock = threading.Lock()
+_sessions = 0                       # counts the games started; a screen stops only the game it started
 
 
 def start_game(native_lib_dir, game_dir, data_dir):
-    """Start the game thread (once)."""
-    global _game
+    """Start the game thread (once). Returns the session number of the game that is running."""
+    global _game, _sessions
     with _start_lock:
         if _game is not None and _game.stop_flag:                   # told to stop (Back, then reopened quickly):
             _game.thread.join(5)                                    # let it finish saving before a new one starts
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
             game = _Game(native_lib_dir, game_dir, data_dir)
+            _sessions += 1
+            game.session = _sessions
             game.thread.start()
             _game = game
-    return True
+        return _game.session
 
 
-def stop():
-    """Ask the game thread to end (the app is closing for good)."""
-    if _game is not None:
+def stop(session=0):
+    """Ask the game thread to end (the game screen is closing for good). With a session number, only that game is
+    stopped: a late call from a screen that is already gone cannot end the game that replaced it."""
+    if _game is not None and (not session or session == getattr(_game, "session", 0)):
         _game.stop_flag = True
 
 
@@ -382,47 +387,6 @@ def take_message():
     if _game is not None and _game.messages:
         return _game.messages.popleft()
     return ""
-
-
-STATE_NAMES = ("1", "2", "3", "4", "5", "6", "7", "8", "9", "auto", "auto2", "auto3")
-
-
-def states_json():
-    """The slots as JSON for the Saves screen: [{name, label, exists, created, thumb}], slots 1-9 then the autosaves."""
-    import json
-    from khvcemu.savestate import StateSlots, read_header
-    out = []
-    if _game is None:
-        return json.dumps(out)
-    slots = _game.slots
-    for name in STATE_NAMES:
-        slot = StateSlots.parse(name)
-        path = slots.path(slot)
-        item = {"name": name, "label": StateSlots.label(slot).capitalize(), "exists": os.path.isfile(path),
-                "created": 0, "thumb": ""}
-        if item["exists"]:
-            try:
-                item["created"] = read_header(path)["created"]
-            except Exception:
-                item["exists"] = False                              # unreadable: shown as empty
-            png = os.path.splitext(path)[0] + ".png"
-            if os.path.isfile(png):
-                item["thumb"] = png
-        out.append(item)
-    return json.dumps(out)
-
-
-def delete_state(name):
-    """Delete a save slot (its state and its thumbnail)."""
-    from khvcemu.savestate import StateSlots
-    if _game is None or str(name) not in STATE_NAMES:
-        return
-    path = _game.slots.path(StateSlots.parse(str(name)))
-    for p in (path, os.path.splitext(path)[0] + ".png"):
-        try:
-            os.remove(p)
-        except OSError:
-            pass
 
 
 def pause(menu=False):

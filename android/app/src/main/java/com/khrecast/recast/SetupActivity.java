@@ -52,10 +52,7 @@ public class SetupActivity extends Activity {
         choose = button("Choose the game folder", v -> startActivityForResult(
                 new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), PICK));
         col.addView(choose);
-        play = button("Play", v -> {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-        });
+        play = button("Done", v -> finish());
         col.addView(play);
         remove = button("Remove the game files", v -> {
             GameInstaller.remove(this);
@@ -97,11 +94,6 @@ public class SetupActivity extends Activity {
         play.setVisibility(installed && !working ? View.VISIBLE : View.GONE);
         remove.setVisibility(installed && !working ? View.VISIBLE : View.GONE);
         busy.setVisibility(working ? View.VISIBLE : View.GONE);
-        if (installed && !working && problems.getText().length() == 0 && getIntent().getBooleanExtra("auto", true)) {
-            getIntent().putExtra("auto", false);          // only the first time the screen opens
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-        }
     }
 
     @Override
@@ -121,8 +113,7 @@ public class SetupActivity extends Activity {
             runOnUiThread(() -> {
                 working = false;
                 if (found.isEmpty()) {
-                    getIntent().putExtra("auto", false);
-                    refresh();
+                    finish();                                  // back to where it was opened from: the game is ready
                 } else {
                     problems.setText(join(found));
                     refresh();
