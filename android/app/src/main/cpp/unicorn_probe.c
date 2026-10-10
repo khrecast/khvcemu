@@ -34,7 +34,7 @@ static double now_ms(void) {
 
 /* The library handle is never closed (dlclose): this is a probe that runs once. */
 JNIEXPORT jstring JNICALL
-Java_com_khrecast_recast_MainActivity_runUnicornProbe(JNIEnv *env, jclass cls) {
+Java_com_khrecast_recast_BenchActivity_runUnicornProbe(JNIEnv *env, jclass cls) {
     char out[512];
     void *lib = dlopen("libunicorn.so", RTLD_NOW);
     if (!lib) {

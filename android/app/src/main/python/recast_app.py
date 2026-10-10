@@ -1,14 +1,19 @@
-"""Python side of the Android spike app: runs the headless core inside Chaquopy.
+"""Python side of the Android app: runs the unmodified khvcemu core inside Chaquopy.
 
-The Java activity calls run_benchmark(...) on a background thread and shows what it returns. The benchmark
-is android/spike/bench_headless.py (staged next to this file by the Gradle task stagePython): it boots the
-unmodified khvcemu core on a virtual clock and prints one JSON line per measurement.
+Two uses:
+* run_benchmark(...): the spike benchmark (android/spike/bench_headless.py, staged next to this file by the Gradle
+  task stagePython), used by BenchActivity.
+* start_game(...) and the small calls after it: the real game in real time on a Python thread (a reduced version of the
+  desktop front end's loop: no autosave, no Wonderland pages, no quit prompt). The Java side polls
+  frame_count()/frame_bytes() to draw the picture and sends key(name, down) for touches. Sound is not wired yet.
 """
 import contextlib
 import importlib
 import io
 import os
 import sys
+import threading
+import time
 
 
 class _Tee(io.StringIO):
@@ -50,6 +55,7 @@ def _prepare_unicorn(native_lib_dir):
     importlib.resources.files = files
 
 
+# ---------------------------------------------------------------------------------------------- the benchmark
 def run_benchmark(mode, native_lib_dir, game_dir):
     """Run bench_headless.py <mode> (boot, world or audio); returns everything it printed."""
     _prepare_unicorn(native_lib_dir)
@@ -79,3 +85,134 @@ def run_benchmark(mode, native_lib_dir, game_dir):
         faulthandler.cancel_dump_traceback_later()
         stall.close()
     return out.getvalue()
+
+
+# ---------------------------------------------------------------------------------------------- the game
+class _Game:
+    """The core running in real time on its own thread. The Java side only calls the small functions below."""
+
+    def __init__(self, native_lib_dir, game_dir, data_dir):
+        _prepare_unicorn(native_lib_dir)
+        os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+        from khvcemu.keys import AVK
+        from khvcemu.runtime import Emulator
+        self.AVK = AVK
+        self.emu = Emulator(game_dir, data_dir, realtime=True, audio=False, log=self._log)
+        self.stop_flag = False
+        self.want_paused = False
+        self.paused_at = None          # monotonic time the loop paused the game clock, else None
+        self.error = ""
+        self.thread = threading.Thread(target=self._run, name="recast-core", daemon=True)
+
+    @staticmethod
+    def _log(line):
+        print("[core]", line, flush=True)
+
+    def _run(self):
+        emu = self.emu
+        try:
+            emu.start()
+            while not self.stop_flag:
+                if emu.exit_requested:                             # the game asked to quit (as the desktop loop ends)
+                    self._log("the game asked to exit")
+                    break
+                if self.want_paused != (self.paused_at is not None):
+                    if self.want_paused:                           # hold the game clock still, let go of every key
+                        for avk in sorted(emu.keys_held):
+                            emu.key_up(avk)
+                        self.paused_at = time.monotonic()
+                        self._log("paused (the app is not in the foreground); game clock %d ms" % emu.clock_ms())
+                    else:                                          # the clock continues where it stopped
+                        held = time.monotonic() - self.paused_at
+                        emu._t0 += held
+                        self.paused_at = None
+                        self._log("resumed after %.1f s; game clock %d ms" % (held, emu.clock_ms()))
+                if self.paused_at is not None:
+                    time.sleep(0.02)
+                    continue
+                emu.run_due()
+                due = emu.next_due()
+                wait = 0.002 if due is None else (due - emu.clock_ms()) / 1000
+                if wait > 0.001:
+                    time.sleep(min(wait, 0.005))
+        except BaseException as exc:                               # show it in the app instead of dying silently
+            import traceback
+            traceback.print_exc()
+            self.error = repr(exc)
+        finally:
+            try:
+                emu.stop()
+                emu.playtime.save()
+            except Exception:
+                pass
+
+
+_game = None
+
+
+_start_lock = threading.Lock()
+
+
+def start_game(native_lib_dir, game_dir, data_dir):
+    """Start the game thread (once)."""
+    global _game
+    with _start_lock:
+        if _game is not None and _game.stop_flag:                   # told to stop (Back, then reopened quickly):
+            _game.thread.join(5)                                    # let it finish saving before a new one starts
+        if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
+            os.makedirs(data_dir, exist_ok=True)
+            game = _Game(native_lib_dir, game_dir, data_dir)
+            game.thread.start()
+            _game = game
+    return True
+
+
+def stop():
+    """Ask the game thread to end (the app is closing for good)."""
+    if _game is not None:
+        _game.stop_flag = True
+
+
+def frame_count():
+    """How many frames the game has drawn so far (cheap: the Java side polls this)."""
+    return 0 if _game is None else _game.emu.frames
+
+
+def frame_bytes():
+    """The latest 176x220 picture as little-endian RGB565 bytes (what Android's RGB_565 bitmap takes), or empty."""
+    if _game is None or _game.emu.last_frame is None:
+        return b""
+    import numpy as np
+    return np.ascontiguousarray(_game.emu.last_frame, dtype="<u2").tobytes()
+
+
+def key(name, down):
+    """A touch control was pressed or released: name is a phone key from khvcemu.keys.AVK (UP, SELECT, STAR, 0...)."""
+    if _game is None or _game.paused_at is not None or _game.want_paused or not _game.thread.is_alive():
+        return
+    avk = _game.AVK.get(name)
+    if avk is None:
+        return
+    if down:
+        _game.emu.key_down(avk)
+    else:
+        _game.emu.key_up(avk)
+
+
+def pause():
+    if _game is not None:
+        _game.want_paused = True
+
+
+def resume():
+    if _game is not None:
+        _game.want_paused = False
+
+
+def status():
+    """One line for the on-screen debug text."""
+    if _game is None:
+        return "game not started"
+    emu = _game.emu
+    state = "stopped" if not _game.thread.is_alive() else ("paused" if _game.want_paused else "running")
+    return "%s  frames %d  faults %d%s" % (state, emu.frames, emu.faults, ("  ERROR " + _game.error) if _game.error else "")

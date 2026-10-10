@@ -3,16 +3,24 @@
 
     <application
         android:allowBackup="false"
-        android:label="Re:Cast spike"
+        android:label="Re:Cast"
         android:theme="@android:style/Theme.Material.NoActionBar">
+        <!-- the game -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- the speed spike (start it with: adb shell am start -n com.khrecast.recast/.BenchActivity) -->
+        <activity
+            android:name=".BenchActivity"
+            android:exported="true"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

@@ -3,7 +3,7 @@
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
 section. Spike results and the first app run on the phone are in section 6 and Chunk 3.
 
-## Status (updated 2026-10-10: chunks 1 to 4 done; next is drawing the picture and touch input)
+## Status (updated 2026-10-10: chunks 1 to 5 done; the game runs on the phone but has no text yet: next is chunk 6)
 
 - Toolchain installed under C:\Android (Chunk 2). The test phone is connected over adb. Spike 0 passed on it
   (section 6) and a probe APK at target SDK 36 runs Unicorn on it (Chunk 3).
@@ -11,7 +11,7 @@ section. Spike results and the first app run on the phone are in section 6 and C
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
   Kotlin front end. Chunk 4 proved it: the core boots to the title inside the app on the phone at about 1.7 to 1.8x real time.
-  Next: show the frames on screen and take touch input (chunk 5).
+  Chunk 5 draws the frames and takes touch input; next is the text and image backend (chunk 6).
 
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
@@ -155,6 +155,48 @@ Not done (next chunks): the picture is not drawn (the benchmark runs headless), 
 file picker, no pause on leaving the app; heat over a long session; the Agrabah lava scene; an x86_64 build for an
 emulator; a 16 KB-page device (Chaquopy 17 supports them, but this numpy wheel may not load there: use Python 3.13
 if needed); a release build and signing; the Unicorn library still comes from Termux.
+
+## Chunk 5: the game on screen, touch controls, pause (2026-10-10, done; text and images are the next chunk)
+
+Goal: play the real game in real time on the phone: see the picture, press keys by touch, hold the game still when the
+app leaves the foreground.
+
+- **Python side (`recast_app.py`):** `start_game` builds an `Emulator` (real-time clock, audio off) and runs the same loop
+  as the desktop front end, in a reduced form, on a thread: `emu.start()`, then `run_due()` and a short sleep until the
+  next timer. It ends when the game asks to exit (`emu.exit_requested`) or the app is closed for good; it has no autosave,
+  no Wonderland pages (`skip_wonderland` is on, so the stand-in is probably not reached) and no quit prompt.
+  Small calls for the Java side: `frame_count()`, `frame_bytes()` (the 176x220 RGB565 frame, little endian: the format
+  of Android's RGB_565 bitmap), `key(name, down)` (names from `khvcemu.keys.AVK`), `pause()`, `resume()`, `status()`.
+  Pausing is done by the core's own thread, like the desktop's focus-loss pause: it lets go of every key and shifts the
+  game clock (`emu._t0`) by the time held.
+- **Android side:** `MainActivity` (the game; the old speed spike is `BenchActivity`, started with `adb shell am start -n
+  com.khrecast.recast/.BenchActivity`), `GameView` (draws the frame with nearest-pixel scaling, and the controls),
+  a frame-pump thread polling `frame_count()`, a single input thread for key calls. Portrait only. The controls: a
+  direction pad (diagonals work), Action (SELECT), Magic (STAR), Status (0), the two softkeys and Back (CLR); several
+  fingers at once. `onPause` releases all keys and pauses the core; `onResume` resumes it.
+- **Seen on the phone** (screenshots taken with `adb shell screencap`; they show the game's art, so they are not kept
+  in the repo): the title screen is drawn (Sora, the logo, the yellow menu frames), the menu highlight moves when the
+  Down button is tapped, Action starts a new game and the intro page appears. Status line: `running frames 248 faults 0`.
+- **Pause, checked from the core's log:** `paused ... game clock 11179 ms`, then 8.1 s later `resumed after 8.1 s; game
+  clock 11179 ms`: no game time was lost. Leaving the app 1 s after launch, while the game was still starting, also
+  paused it (`game clock 281 ms`, resumed 12.2 s later with the clock unchanged). The foreground flag is applied through
+  the single input thread and read when each task runs, so the last state wins.
+- **When the game ends:** if the game asks to exit, the core loop ends and the app closes; a crash of the core stays
+  on screen in the status line (`ERROR ...`). Reopening the app starts a fresh core (after waiting up to 5 s for a core that was told to stop). Key events come from the input
+  thread while the core thread runs: they only append to the core's event list and its held-key set, which is fine
+  under the interpreter lock, but it is new compared with the single-threaded desktop front end.
+- **What is missing, and why (chunk 6):** every word and every host-decoded image is blank. The core asks pygame to
+  draw text (`display.py`) and to decode the game's PNG/BMP images (`image.py`), and there is no pygame on Android:
+  the log fills with `[image] decode failed: No module named 'pygame'`. So the menu entries have no labels, and the
+  intro page is a white screen with an empty softkey bar. The picture the game draws itself (the 3D, its sprites)
+  is fine. The fix is a host backend for text and images behind the core (pygame stays the default on the desktop),
+  e.g. Pillow with a bundled free font, or Android's own drawing through Java; that touches `khvcemu/` and needs the
+  full desktop test suite.
+- **Checked only with `adb shell input tap`:** single taps on the pad and Action. Multi-finger play, diagonals and how
+  the controls feel under real thumbs are unverified.
+- **Not done:** text and images (above), sound, save states and game saves (the data folder `files/data` is used, but
+  there is no way to see or back it up), the file picker for the game files, landscape, the lava scene, heat.
+  The status line is drawn at the very bottom, over the area of the navigation bar (cosmetic).
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
