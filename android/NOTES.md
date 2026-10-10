@@ -453,6 +453,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   Worth one manual try: export a slot, import it into another, load it.
 - **Not done:** the game's own saves (the in-game Save / Load Game files), "Start at world", exporting all slots at once.
 
+## The opening notice (2026-10-10, done)
+
+- **`DisclaimerActivity` is what the app opens on, every time:** the logo, the same notice as the desktop launcher and the
+  website (an unofficial, free, non-profit fan project; the rights belong to their holders; not affiliated with Disney,
+  Square Enix, Superscape, Verizon, Qualcomm; never to be sold), a line that the app contains no game files and the player
+  brings their own copy, and an "I understand" button that goes on to the home screen (and finishes, so Back from Home
+  leaves the app). Back on the notice leaves the app.
+- **One wording in four places:** `tests.test_units.DisclaimerTests` now also checks that `DisclaimerActivity.java` holds
+  `DISCLAIMER` from `khvcemu/launcher.py` exactly (the website test already did for the launcher).
+- Shown on every launch (a cold start of the app); when Android restores the app after killing it, the screen that was
+  open comes back instead, without the notice. Seen on the S23 Ultra in portrait; landscape and the "I understand" tap
+  were exercised, the notice in landscape was not looked at.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

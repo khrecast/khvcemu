@@ -6,15 +6,19 @@
         android:icon="@mipmap/ic_launcher"
         android:label="Re:Cast"
         android:theme="@android:style/Theme.Material.NoActionBar">
-        <!-- the front door: Continue, Saved games, Options, game files -->
+        <!-- what the app opens on, every time: the fan project notice, then the home screen -->
         <activity
-            android:name=".HomeActivity"
+            android:name=".DisclaimerActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- the home screen: Continue, Saved games, Options, game files (exported so adb can start it for testing) -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true" />
         <!-- pick the game folder (opened from the home screen or the game's menu) -->
         <activity
             android:name=".SetupActivity"

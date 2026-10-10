@@ -47,8 +47,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (!GameInstaller.isInstalled(this) && !new File(new File(getFilesDir(), "game"), "mod").isDirectory()) {
-            if (isTaskRoot()) {                                        // no game files yet: the home screen asks for them
-                startActivity(new Intent(this, HomeActivity.class));
+            if (isTaskRoot()) {                                        // no game files yet: start from the front (notice, then Home)
+                startActivity(new Intent(this, DisclaimerActivity.class));
             }
             finish();
             return;
