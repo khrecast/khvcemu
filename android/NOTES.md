@@ -485,6 +485,17 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Still plain text:** the in-game menu (a system list dialog), the text on the Setup, Saves and Options screens and the
   toggles (the buttons on those screens are themed but show text, not pictures). Seen on the S23 Ultra in portrait only.
 
+## Screenshots (2026-10-10, done)
+
+- **"Take a screenshot" in the game's menu** saves the game's current picture as a PNG: the game's own 176 x 220 pixels
+  enlarged four times with hard edges (704 x 880), named `Re-Cast_<date>_<time>.png`, into the phone's gallery under
+  `Pictures/Re-Cast` through MediaStore (no permission needed on Android 10 and later; on older phones into the app's own
+  Pictures folder, which the gallery does not show). The folder is "Re-Cast" because Android folder names cannot hold a colon (the macOS app has the same
+  spelling). A toast says where it went. `Screenshots.java`, `GameView.snapshot()`.
+- **Verified on the S23 Ultra:** one screenshot taken at the title screen: the file landed in `Pictures/Re-Cast` as 704 x 880
+  with crisp pixels. The test picture was deleted afterwards. Not done: a list of screenshots inside the app with preview,
+  share and delete (the gallery does that), a screenshot button on the controls, the hi-res text overlay in the picture.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
             return;
         }
         final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Options...", "Quit and go to the Re:Cast menu"};
+                "Load a saved game...", "Take a screenshot", "Options...", "Quit and go to the Re:Cast menu"};
         menuOpen = true;
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
@@ -153,10 +153,13 @@ public class MainActivity extends Activity {
                                     .putExtra(SavesActivity.EXTRA_MODE, which == 3 ? "save" : "load"), REQ_SAVES);
                             break;
                         case 5:
+                            takeScreenshot();
+                            break;
+                        case 6:
                             inner = true;
                             startActivity(new Intent(this, OptionsActivity.class));
                             break;
-                        case 6:
+                        case 7:
                             stopGame();                // now, not only when the system gets round to destroying the screen
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
@@ -169,6 +172,30 @@ public class MainActivity extends Activity {
                     applyLifecycle();
                 })
                 .show();
+    }
+
+    /** Saves the game's current picture to the gallery (Pictures/Re-Cast) and says where. */
+    private void takeScreenshot() {
+        android.graphics.Bitmap picture = view.snapshot();
+        if (picture == null) {
+            Toast.makeText(this, "Nothing to save yet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new Thread(() -> {
+            try {
+                String where = Screenshots.save(getApplicationContext(), picture);
+                toast("Screenshot saved in " + where, Toast.LENGTH_SHORT);
+            } catch (Exception e) {
+                toast("Could not save the screenshot: " + (e.getMessage() != null ? e.getMessage() : e.toString()),
+                        Toast.LENGTH_LONG);
+            }
+        }, "recast-screenshot").start();
+    }
+
+    /** A message from any thread (the application context, so it works even if the screen has gone). */
+    private void toast(String text, int length) {
+        android.content.Context app = getApplicationContext();
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> Toast.makeText(app, text, length).show());
     }
 
     private void stopGame() {

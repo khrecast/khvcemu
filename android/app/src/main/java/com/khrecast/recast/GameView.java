@@ -119,6 +119,13 @@ public class GameView extends View {
         postInvalidate();
     }
 
+    /** A copy of the game's current picture (176 x 220), or null before the first frame. */
+    public Bitmap snapshot() {
+        synchronized (frame) {
+            return hasFrame ? frame.copy(Bitmap.Config.ARGB_8888, false) : null;
+        }
+    }
+
     public void setStatus(String s) {
         status = s;
         postInvalidate();
