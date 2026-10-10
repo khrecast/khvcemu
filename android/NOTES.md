@@ -528,6 +528,25 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   ears (`GameView.placeButtons`). An earlier try that moved the ears to 45 and 60 degrees was dropped: the player liked the
   original size and angle and wanted only the touching.
 
+## The Sound screen: mixes and sliders (2026-10-10, done in part)
+
+- **Options > "Music mix and sliders..."** opens `SoundActivity`: a Mix picker (the six ready-made mixes of
+  `khvcemu/music_settings.PRESETS`, plus Custom) and the 15 sliders of the launcher's Sound tab (how loud each family is, and
+  how the piano, horns and bass sound), with a reset to "as tuned". `SoundSettings.java` mirrors the module's sliders, ranges and
+  mixes, and `tests/test_android_assets.py` fails if they ever differ from the Python (checked by breaking one value).
+  The choice is stored as the module's own text (`piano=0.8,bass_cut=1.5`, `Settings.music`), passed to
+  `recast_app.start_game(..., music)` and parsed by `music_settings.parse(strict=False)` into `Emulator(music=...)`.
+- **Heard the next time the game starts.** Fixed on the way: a slider has finite steps, so 1.0 could come back as 1.005 and a
+  chosen mix was re-saved slightly off; a chosen mix is now saved as written, values within one step of 1.0 snap to 1.0,
+  and the sliders have 600 steps.
+- **Verified on the S23 Ultra:** the screen opens, shows "As tuned" with every slider at 1.00; choosing "More bass" moved
+  Bass to 1.60, Drums to 1.30 and Bass cut to 0.30 and saved exactly `bass=1.6,drums=1.3,bass_cut=0.3`; starting the game then
+  made a second set of music files in `audio_cache` (the setting is part of the cache key) and the game ran at 25 fps with
+  sound being produced. **Not heard** (nobody here can), and the time to make the music on the phone was not measured.
+- **Not done:** saved custom mixes with favorites, the tune player and its comparison with a recording, "use a recording
+  in the game" (needs a decoder for FLAC and MP3 without ffmpeg: Android's `MediaCodec`), the SoundFont option and clearing the
+  music cache.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

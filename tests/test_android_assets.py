@@ -21,6 +21,22 @@ class AndroidAssetCopyTests(unittest.TestCase):
             with open(os.path.join(menu, name), "rb") as a, open(os.path.join(res, "menu_" + name), "rb") as b:
                 self.assertEqual(a.read(), b.read(), name + ": run tools/make_tab_labels.py to refresh the Android copies")
 
+    def test_the_apps_sound_tables_match_music_settings(self):
+        import re
+        from khvcemu import music_settings as ms
+        path = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "khrecast", "recast", "SoundSettings.java")
+        with open(path, encoding="utf-8") as f:
+            source = f.read()
+        sliders = re.findall(r'\{"(\w+)", "([^"]+)", "([\d.]+)", "([\d.]+)"\}', source)
+        self.assertEqual([(k, label, float(lo), float(hi)) for k, label, lo, hi in sliders],
+                         [(s.key, s.label, s.low, s.high) for s in ms.VOLUMES + ms.CHARACTER],
+                         "SoundSettings.SLIDERS differs from music_settings")
+        self.assertIn("VOLUME_COUNT = %d;" % len(ms.VOLUMES), source)
+        presets = re.findall(r'\{"([A-Za-z ]+)", "([a-z_=0-9.,]*)"\}', source)
+        self.assertEqual([name for name, _ in presets], list(ms.PRESETS))
+        for name, text in presets:
+            self.assertEqual(ms.parse(text, strict=False), ms.changed(ms.PRESETS[name]), name)
+
 
 if __name__ == "__main__":
     unittest.main()

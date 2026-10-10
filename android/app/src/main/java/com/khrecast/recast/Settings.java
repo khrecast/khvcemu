@@ -103,6 +103,15 @@ final class Settings {
         return off.toString();
     }
 
+    /** The music synth settings as the module's text, "piano=0.8,bass_cut=1.5" ("" = as tuned). See SoundSettings. */
+    static String music(Context c) {
+        return prefs(c).getString("music", "");
+    }
+
+    static void setMusic(Context c, String text) {
+        prefs(c).edit().putString("music", text).apply();
+    }
+
     static void restoreDefaults(Context c) {
         prefs(c).edit().clear().apply();
     }

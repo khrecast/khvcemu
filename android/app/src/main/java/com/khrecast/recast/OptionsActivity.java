@@ -1,6 +1,7 @@
 package com.khrecast.recast;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -65,6 +66,13 @@ public class OptionsActivity extends Activity {
 
         col.addView(heading("Sound"));
         col.addView(toggle("Mute the game", Settings.muted(this), Settings::setMuted));
+        Button sound = new Button(this);
+        sound.setText("Music mix and sliders...");
+        Labels.theme(sound, false);
+        sound.setOnClickListener(v -> startActivity(new Intent(this, SoundActivity.class)));
+        LinearLayout.LayoutParams soundParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        soundParams.topMargin = dp(8);
+        col.addView(sound, soundParams);
 
         col.addView(heading("Autosave"));
         col.addView(toggle("Autosave", Settings.autosave(this), Settings::setAutosave));

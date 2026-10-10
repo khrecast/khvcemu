@@ -37,6 +37,10 @@
         <activity
             android:name=".OptionsActivity"
             android:exported="false" />
+        <!-- the music mix and sliders (opened from Options) -->
+        <activity
+            android:name=".SoundActivity"
+            android:exported="false" />
         <!-- the speed spike (start it with: adb shell am start -n com.khrecast.recast/.BenchActivity) -->
         <activity
             android:name=".BenchActivity"

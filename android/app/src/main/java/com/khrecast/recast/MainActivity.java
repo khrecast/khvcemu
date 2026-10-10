@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
             getIntent().removeExtra(HomeActivity.EXTRA_START_WORLD);    // once, and before the call: nothing may reseed the save
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath(), world == null ? "" : world, Settings.speedOff(this),
-                    Settings.frameLock(this)).toInt();
+                    Settings.frameLock(this), Settings.music(this)).toInt();
             app = module;
             String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {
