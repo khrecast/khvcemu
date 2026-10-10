@@ -476,8 +476,14 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   `docs/CREDITS.md`) now says the app's menu names too; the website's credit is unchanged until the app is public.
 - `Labels.java` scales a label by a whole number (about 20 to 26 dp tall) with no smoothing, so the pixels stay crisp; a
   picture button is a normal Button with the picture on top (the button is raised, so the picture has a higher elevation).
-- **Still plain text:** the in-game menu (a system list dialog), the text on the Setup, Saves and Options screens, the
-  Import button and the other buttons, and the toggles. Seen on the S23 Ultra in portrait only.
+- **Buttons restyled (same day):** the picture labels are bigger (a whole-number scale of 3, about 30 dp tall, up from 2) and
+  the buttons use the launcher's palette and the logo's blue: the main button is a bright blue gradient with a silver
+  outline (like the selected tab), the others dark navy with a blue-silver outline, all brighter while pressed
+  (`Labels.buttonBackground`); the Continue card has the same outlined panel; the plain text buttons on the Game files,
+  Saved games and Options screens got the same look (`Labels.theme`). The Home logo is capped (20% of the screen height) so
+  all four buttons and the hint fit on the S23's screen without scrolling. Seen on the S23 Ultra in portrait only.
+- **Still plain text:** the in-game menu (a system list dialog), the text on the Setup, Saves and Options screens and the
+  toggles (the buttons on those screens are themed but show text, not pictures). Seen on the S23 Ultra in portrait only.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 

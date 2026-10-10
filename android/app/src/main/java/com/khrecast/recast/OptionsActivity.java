@@ -34,7 +34,7 @@ public class OptionsActivity extends Activity {
         int pad = dp(20);
         col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.addView(Labels.picture(this, R.drawable.menu_options, 26, Labels.maxWidth(this), false, "Options"));
+        col.addView(Labels.picture(this, R.drawable.menu_options, 32, Labels.maxWidth(this), false, "Options"));
 
         col.addView(heading("Picture size"));
         RadioGroup sizes = new RadioGroup(this);
@@ -85,7 +85,7 @@ public class OptionsActivity extends Activity {
 
         Button defaults = new Button(this);
         defaults.setText("Restore the default settings");
-        defaults.setAllCaps(false);
+        Labels.theme(defaults, false);
         defaults.setOnClickListener(v -> {
             Settings.restoreDefaults(this);
             build();                                           // show the defaults

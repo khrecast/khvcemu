@@ -48,7 +48,7 @@ public class DisclaimerActivity extends Activity {
         files.setPadding(0, 0, 0, wide ? dp(12) : dp(24));
         col.addView(files);
 
-        android.widget.FrameLayout ok = Labels.pictureButton(this, R.drawable.menu_understand, 24, wide ? 52 : 60,
+        android.widget.FrameLayout ok = Labels.pictureButton(this, R.drawable.menu_understand, 30, wide ? 56 : 72, true,
                 "I understand", v -> {
                     startActivity(new Intent(this, HomeActivity.class));
                     finish();

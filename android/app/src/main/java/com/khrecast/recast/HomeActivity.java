@@ -35,7 +35,7 @@ public class HomeActivity extends Activity {
         col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
-        int pad = dp(24);
+        int pad = dp(16);
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
         scroll.setFillViewport(true);
@@ -55,7 +55,7 @@ public class HomeActivity extends Activity {
         ImageView logo = new ImageView(this);                  // the Kingdom Hearts Re:Cast logo (wordmark included)
         logo.setImageResource(R.drawable.recast_logo);
         logo.setAdjustViewBounds(true);
-        logo.setMaxHeight(Math.min(dp(260), Math.round(getResources().getDisplayMetrics().heightPixels * 0.3f)));   // not the whole screen in landscape
+        logo.setMaxHeight(Math.min(dp(220), Math.round(getResources().getDisplayMetrics().heightPixels * 0.2f)));   // leaves room for the buttons, in landscape too
         logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         logo.setContentDescription("Kingdom Hearts Re:Cast");
         LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -69,7 +69,7 @@ public class HomeActivity extends Activity {
                     + "that holds them to get started.", 16, 0xFFCFD8DC);
             need.setPadding(0, dp(16), 0, dp(20));
             col.addView(need);
-            col.addView(Labels.pictureButton(this, R.drawable.menu_set_up, 26, 64, "Set up the game files",
+            col.addView(Labels.pictureButton(this, R.drawable.menu_set_up, 30, 76, true, "Set up the game files",
                     v -> startActivity(new Intent(this, SetupActivity.class))));
             return;
         }
@@ -78,15 +78,15 @@ public class HomeActivity extends Activity {
         if (newest != null) {
             col.addView(continueCard(newest));
         }
-        col.addView(Labels.pictureButton(this, R.drawable.menu_play_title, newest == null ? 26 : 20,
-                newest == null ? 64 : 54, "Play from the title screen",
+        col.addView(Labels.pictureButton(this, R.drawable.menu_play_title, 30, newest == null ? 76 : 68,
+                newest == null, "Play from the title screen",
                 v -> startActivity(new Intent(this, MainActivity.class))));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_saved_games, 20, 54, "Saved games",
+        col.addView(Labels.pictureButton(this, R.drawable.menu_saved_games, 30, 68, false, "Saved games",
                 v -> startActivityForResult(new Intent(this, SavesActivity.class)
                         .putExtra(SavesActivity.EXTRA_MODE, "load").putExtra(SavesActivity.EXTRA_IMPORT, true), REQ_SAVES)));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_options, 20, 54, "Options",
+        col.addView(Labels.pictureButton(this, R.drawable.menu_options, 30, 68, false, "Options",
                 v -> startActivity(new Intent(this, OptionsActivity.class))));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_game_files, 20, 54, "Game files",
+        col.addView(Labels.pictureButton(this, R.drawable.menu_game_files, 30, 68, false, "Game files",
                 v -> startActivity(new Intent(this, SetupActivity.class))));
         TextView hint = text("In the game, the phone's Back button opens its menu.", 13, 0xFF8EA4BF);
         hint.setPadding(0, dp(20), 0, 0);
@@ -97,8 +97,8 @@ public class HomeActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setBackgroundColor(0xFF1E2A3C);
-        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        card.setBackground(Labels.buttonBackground(this, false));
+        card.setPadding(dp(12), dp(12), dp(12), dp(12));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(20);
@@ -122,7 +122,7 @@ public class HomeActivity extends Activity {
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
         words.setPadding(dp(14), 0, 0, 0);
-        ImageView continueLabel = Labels.picture(this, R.drawable.menu_continue, 24, Labels.maxWidth(this), false, "Continue");
+        ImageView continueLabel = Labels.picture(this, R.drawable.menu_continue, 34, Labels.maxWidth(this), false, "Continue");
         words.addView(continueLabel);
         words.addView(text(s.label, 15, 0xFFCFD8DC));
         words.addView(text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)

@@ -48,7 +48,7 @@ public class SavesActivity extends Activity {
         int pad = dp(16);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.addView(Labels.picture(this, "save".equals(mode) ? R.drawable.menu_save_slot : R.drawable.menu_load_saved, 26,
+        col.addView(Labels.picture(this, "save".equals(mode) ? R.drawable.menu_save_slot : R.drawable.menu_load_saved, 32,
                 Labels.maxWidth(this), false, "save".equals(mode) ? "Save to a slot" : "Load a saved game"));
         TextView hint = text("save".equals(mode)
                 ? "Tap a slot to save the game there. The autosaves can only be loaded."
@@ -57,7 +57,7 @@ public class SavesActivity extends Activity {
         col.addView(hint);
         Button importButton = new Button(this);
         importButton.setText("Import a state file...");
-        importButton.setAllCaps(false);
+        Labels.theme(importButton, false);
         importButton.setOnClickListener(v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_IMPORT));
         LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));

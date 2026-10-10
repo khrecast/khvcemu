@@ -41,7 +41,7 @@ public class SetupActivity extends Activity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        col.addView(Labels.picture(this, R.drawable.menu_game_files, 26, Labels.maxWidth(this), false, "Game files"));
+        col.addView(Labels.picture(this, R.drawable.menu_game_files, 32, Labels.maxWidth(this), false, "Game files"));
         message = text("", 16, 0xFFCFD8DC);
         message.setPadding(0, dp(16), 0, dp(24));
         col.addView(message);
@@ -68,6 +68,9 @@ public class SetupActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
+        Labels.theme(choose, true);
+        Labels.theme(play, false);
+        Labels.theme(remove, false);
         scroll.addView(col);
         setContentView(scroll);
         Edge.pad(scroll, col, pad, dp(24), pad, dp(32));
@@ -141,7 +144,9 @@ public class SetupActivity extends Activity {
         b.setText(label);
         b.setAllCaps(false);
         b.setOnClickListener(l);
-        b.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(60));
+        lp.topMargin = dp(10);
+        b.setLayoutParams(lp);
         return b;
     }
 
