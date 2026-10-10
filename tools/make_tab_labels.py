@@ -40,7 +40,8 @@ MENU_OUT = os.path.join(ROOT, "khvcemu", "assets", "menu")
 ANDROID_RES = os.path.join(ROOT, "android", "app", "src", "main", "res", "drawable-nodpi")
 MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen", "saved_games": "Saved games",
                "options": "Options", "game_files": "Game files", "set_up": "Set up the game files",
-               "load_saved": "Load a saved game", "save_slot": "Save to a slot", "understand": "I understand"}
+               "load_saved": "Load a saved game", "save_slot": "Save to a slot", "understand": "I understand",
+               "start_world": "Start at a world"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:

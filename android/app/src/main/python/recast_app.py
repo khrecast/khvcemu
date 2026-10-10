@@ -96,7 +96,7 @@ AUDIO_RATE = 22050          # the core's own rate (khvcemu.midi_synth.RATE): mon
 class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
-    def __init__(self, native_lib_dir, game_dir, data_dir):
+    def __init__(self, native_lib_dir, game_dir, data_dir, start_world=""):
         _prepare_unicorn(native_lib_dir)
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         from khvcemu.keys import AVK
@@ -111,6 +111,12 @@ class _Game:
         self.audio_peak = 0
         self.emu = Emulator(game_dir, data_dir, realtime=True, audio=True, audio_mixer=self.mixer, log=self._log,
                              frame_locked_clock=True)      # 25 fps when the phone keeps up (see Emulator.__init__)
+        if start_world:                # "Start at a world": the world's starting save replaces the game save (a backup is kept)
+            from khvcemu import chapters
+            try:
+                chapters.install_save(self.emu, start_world)
+            except (SystemExit, OSError) as e:
+                self._log("start at %s failed: %s" % (start_world, e))
         self.stop_flag = False
         self.session = 0               # set by start_game
         self.want_paused = False
@@ -294,19 +300,24 @@ _start_lock = threading.Lock()
 _sessions = 0                       # counts the games started; a screen stops only the game it started
 
 
-def start_game(native_lib_dir, game_dir, data_dir):
-    """Start the game thread (once). Returns the session number of the game that is running."""
+def start_game(native_lib_dir, game_dir, data_dir, start_world=""):
+    """Start the game thread (once). Returns the session number of the game that is running. start_world: seed the
+    game save from that world's starting save first (chapters.install_save), so Load Game continues from there."""
     global _game, _sessions
     with _start_lock:
         if _game is not None and _game.stop_flag:                   # told to stop (Back, then reopened quickly):
             _game.thread.join(5)                                    # let it finish saving before a new one starts
+            if _game.thread.is_alive() and start_world:
+                print("[core] the earlier game is still closing; the starting save may be overwritten", flush=True)
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
-            game = _Game(native_lib_dir, game_dir, data_dir)
+            game = _Game(native_lib_dir, game_dir, data_dir, start_world)
             _sessions += 1
             game.session = _sessions
             game.thread.start()
             _game = game
+        elif start_world:
+            print("[core] a game is already running: the starting save for %s was not applied" % start_world, flush=True)
         return _game.session
 
 

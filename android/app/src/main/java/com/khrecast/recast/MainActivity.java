@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
 
     private GameView view;
     private final ExecutorService input = Executors.newSingleThreadExecutor(r -> new Thread(r, "recast-input"));
+    private boolean freshStart = true;                // false when Android restored this screen: one-time requests are not repeated
     private volatile int session = 0;               // which game (recast_app.start_game's number) this screen started
     private volatile PyObject app;                 // the recast_app module once the game has started
     private volatile boolean running = true;
@@ -46,6 +47,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        freshStart = savedInstanceState == null;
         if (!GameInstaller.isInstalled(this) && !new File(new File(getFilesDir(), "game"), "mod").isDirectory()) {
             if (isTaskRoot()) {                                        // no game files yet: start from the front (notice, then Home)
                 startActivity(new Intent(this, DisclaimerActivity.class));
@@ -96,10 +98,12 @@ public class MainActivity extends Activity {
                 Python.start(new AndroidPlatform(this));
             }
             PyObject module = Python.getInstance().getModule("recast_app");
+            String world = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_START_WORLD) : null;
+            getIntent().removeExtra(HomeActivity.EXTRA_START_WORLD);    // once, and before the call: nothing may reseed the save
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
-                    data.getAbsolutePath()).toInt();
+                    data.getAbsolutePath(), world == null ? "" : world).toInt();
             app = module;
-            String load = getIntent().getStringExtra(HomeActivity.EXTRA_LOAD);
+            String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {
                 getIntent().removeExtra(HomeActivity.EXTRA_LOAD);   // once: a recreated activity must not load it again
                 requestState("load", load);                // Continue or a saved game was chosen on the home screen

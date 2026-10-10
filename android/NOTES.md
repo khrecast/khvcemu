@@ -496,6 +496,24 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   with crisp pixels. The test picture was deleted afterwards. Not done: a list of screenshots inside the app with preview,
   share and delete (the gallery does that), a screenshot button on the controls, the hi-res text overlay in the picture.
 
+## Start at a world (2026-10-10, done)
+
+- **Home has "Start at a world"** when the game folder came with starting saves (`savegame(world).dat`, which the folder
+  picker copies next to `mif` and `mod`). It lists the worlds that have one (Swashbuckler's Island, Agrabah, Maleficent's
+  Castle on this phone's files; the files spell the castle "maleficient", which is mapped as on the desktop), asks the same
+  question as the desktop ("this replaces your current game save with the starting save, then choose Load Game; your current
+  save is backed up first") and starts the game with the world seeded.
+- **Core:** `recast_app.start_game(..., start_world)` calls the desktop's `chapters.install_save` before the game starts, so
+  the backup rules are the desktop's (a real save with progress is copied into `save_backups`, a stock one is not).
+- Home now puts Options and Game files side by side so five rows still fit on the S23's screen.
+- Known and left (rare, logged only, no message to the player): if "Start at a world" is chosen while an earlier game is still
+  running or closing, or the seeding fails, the game starts with the old save. One-time requests (this and Continue) are
+  applied only on a fresh start of the game screen, not after Android restores it.
+- **Verified on the S23 Ultra:** the list, the confirmation, and Start at Agrabah: the log says `savegame.dat seeded from
+  savegame(agrabah).dat (world: agrabah)` and the file then held `0101agrabah`; the game ran at 25 fps. There was no earlier
+  game save on the phone, so the backup path was not exercised here (it is the desktop's code, tested there). The test
+  save was deleted again afterwards. Not tried: choosing Load Game after it (the same game code as the desktop).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

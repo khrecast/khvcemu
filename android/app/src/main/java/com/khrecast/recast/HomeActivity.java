@@ -25,6 +25,7 @@ import java.util.Date;
  */
 public class HomeActivity extends Activity {
     static final String EXTRA_LOAD = "load";          // for MainActivity: a slot to load as soon as the game is up
+    static final String EXTRA_START_WORLD = "start_world";   // for MainActivity: seed the game save from this world's start
     private static final int REQ_SAVES = 1;
 
     private LinearLayout col;
@@ -84,13 +85,75 @@ public class HomeActivity extends Activity {
         col.addView(Labels.pictureButton(this, R.drawable.menu_saved_games, 30, 68, false, "Saved games",
                 v -> startActivityForResult(new Intent(this, SavesActivity.class)
                         .putExtra(SavesActivity.EXTRA_MODE, "load").putExtra(SavesActivity.EXTRA_IMPORT, true), REQ_SAVES)));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_options, 30, 68, false, "Options",
-                v -> startActivity(new Intent(this, OptionsActivity.class))));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_game_files, 30, 68, false, "Game files",
-                v -> startActivity(new Intent(this, SetupActivity.class))));
+        if (!worldSaves().isEmpty()) {
+            col.addView(Labels.pictureButton(this, R.drawable.menu_start_world, 30, 68, false, "Start at a world",
+                    v -> chooseWorld()));
+        }
+        // Options and Game files share a row (their names are short), so everything fits on one screen
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        int half = (getResources().getDisplayMetrics().widthPixels - 2 * dp(16) - dp(10)) / 2 - dp(12);   // the picture's room
+        android.widget.FrameLayout options = Labels.pictureButton(this, R.drawable.menu_options, 30, 68, false, "Options",
+                half, v -> startActivity(new Intent(this, OptionsActivity.class)));
+        android.widget.FrameLayout files = Labels.pictureButton(this, R.drawable.menu_game_files, 30, 68, false, "Game files",
+                half, v -> startActivity(new Intent(this, SetupActivity.class)));
+        for (android.widget.FrameLayout b : new android.widget.FrameLayout[]{options, files}) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(68), 1f);   // equal halves
+            lp.topMargin = 0;
+            lp.leftMargin = b == files ? dp(5) : 0;
+            lp.rightMargin = b == options ? dp(5) : 0;
+            b.setLayoutParams(lp);
+            row.addView(b);
+        }
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowParams.topMargin = dp(8);
+        col.addView(row, rowParams);
         TextView hint = text("In the game, the phone's Back button opens its menu.", 13, 0xFF8EA4BF);
         hint.setPadding(0, dp(20), 0, 0);
         col.addView(hint);
+    }
+
+    /** The worlds the game folder came with a starting save for (savegame(world).dat): {core name, title}. */
+    private java.util.List<String[]> worldSaves() {
+        java.util.List<String[]> out = new java.util.ArrayList<>();
+        String[][] known = {{"training", "The Obstacle Course"}, {"island", "Swashbuckler's Island"},
+                {"wonderland", "Wonderland"}, {"agrabah", "Agrabah"}, {"castle", "Maleficent's Castle"}};
+        java.io.File[] files = new java.io.File(getFilesDir(), "game").listFiles();
+        java.util.Set<String> found = new java.util.HashSet<>();
+        if (files != null) {
+            for (java.io.File f : files) {
+                String low = f.getName().toLowerCase(java.util.Locale.ROOT);
+                if (low.startsWith("savegame(") && low.endsWith(").dat")) {
+                    String w = low.substring("savegame(".length(), low.length() - ").dat".length());
+                    found.add(w.startsWith("malefic") || w.equals("castle") ? "castle" : w);     // "maleficient" is how the files spell it
+                }
+            }
+        }
+        for (String[] k : known) {
+            if (found.contains(k[0])) {
+                out.add(k);
+            }
+        }
+        return out;
+    }
+
+    private void chooseWorld() {
+        java.util.List<String[]> worlds = worldSaves();
+        String[] titles = new String[worlds.size()];
+        for (int i = 0; i < titles.length; i++) {
+            titles[i] = worlds.get(i)[1];
+        }
+        new android.app.AlertDialog.Builder(this).setTitle("Start at a world").setItems(titles, (d, which) -> {
+            String[] w = worlds.get(which);
+            new android.app.AlertDialog.Builder(this).setTitle("Start at " + w[1] + "?")
+                    .setMessage("This replaces your current game save with the starting " + w[1] + " save. Then choose "
+                            + "Load Game on the title screen.\n\nYour current save is backed up first. To keep playing your "
+                            + "own game, use Continue or Play from the title screen instead.")
+                    .setPositiveButton("Start", (d2, w2) -> startActivity(new Intent(this, MainActivity.class)
+                            .putExtra(EXTRA_START_WORLD, w[0])))
+                    .setNegativeButton("Cancel", null).show();
+        }).setNegativeButton("Cancel", null).show();
     }
 
     private View continueCard(SaveSlots.Slot s) {

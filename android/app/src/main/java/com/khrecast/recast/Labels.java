@@ -91,6 +91,12 @@ final class Labels {
     /** A button face made of a picture label: a normal Button with the picture centered on top (touches go to the button). */
     static FrameLayout pictureButton(Context context, int resId, int targetDp, int heightDp, boolean primary,
                                      String description, android.view.View.OnClickListener listener) {
+        return pictureButton(context, resId, targetDp, heightDp, primary, description, maxWidth(context), listener);
+    }
+
+    /** Same, with the widest the picture may be (for a button that is not the full width). The caller sets the layout. */
+    static FrameLayout pictureButton(Context context, int resId, int targetDp, int heightDp, boolean primary,
+                                     String description, int maxWidthPx, android.view.View.OnClickListener listener) {
         FrameLayout box = new FrameLayout(context);
         android.widget.Button button = new android.widget.Button(context);
         theme(button, primary);
@@ -98,7 +104,7 @@ final class Labels {
         button.setContentDescription(description);
         box.addView(button, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        ImageView pic = picture(context, resId, targetDp, maxWidth(context), true, description);
+        ImageView pic = picture(context, resId, targetDp, maxWidthPx, true, description);
         pic.setClickable(false);
         pic.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);   // the Button already says it
         float density = context.getResources().getDisplayMetrics().density;
