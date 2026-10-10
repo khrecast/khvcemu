@@ -3,7 +3,7 @@
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
 section. Spike results and the first app run on the phone are in section 6 and Chunk 3.
 
-## Status (updated 2026-10-10: chunks 1 to 6 done; the game runs on the phone with its text and pictures; next is sound)
+## Status (updated 2026-10-10: chunks 1 to 7 done; the game is playable on the phone at 25 fps with sound; next is saves and the file picker)
 
 - Toolchain installed under C:\Android (Chunk 2). The test phone is connected over adb. Spike 0 passed on it
   (section 6) and a probe APK at target SDK 36 runs Unicorn on it (Chunk 3).
@@ -11,7 +11,7 @@ section. Spike results and the first app run on the phone are in section 6 and C
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
   Kotlin front end. Chunk 4 proved it: the core boots to the title inside the app on the phone at about 1.7 to 1.8x real time.
-  Chunks 5 and 6 draw the frames, take touch input and give the game its text and images; next is sound (chunk 7).
+  Chunks 5 to 7 draw the frames, take touch input, give the game its text, images and sound and fix its frame rate; next is saves and a file picker (chunk 8).
 
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
@@ -225,6 +225,54 @@ pygame. This changed `khvcemu/`: the desktop path is untouched, the new code run
   files; the Wonderland lost-media pages (`lostmedia.py`, pygame) are not wired, so after the Island the stand-in's
   pages would fail (untested: the Island has not been played to its end on the phone); landscape; settings screen;
   smooth hi-res text; the hi-res Pillow path; heat; a slower phone.
+
+## Chunk 7: sound, and the frame rate (2026-10-10, done)
+
+Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU nearly idle.
+
+- **Sound:** the core mixes through a pygame.mixer look-alike it did not have before, `khvcemu/pcmmixer.py`
+  (`PcmMixer`: `Sound(buffer=...)`, `play(loops)`, per-channel volume/pause/stop, and `read(frames)` which the host
+  pulls). `AudioEngine` and `Emulator` take it as an optional argument (`mixer=`, `audio_mixer=`); pygame.mixer stays
+  the default. The app (`recast_app.audio_read`, `MainActivity.pumpSound`) feeds an `AudioTrack` (22,050 Hz, mono,
+  16-bit, USAGE_GAME) with blocks of 1,024 frames; it stops while the app is in the background and the mixer is held
+  with the game clock. The tunes are rendered in the background by the core's own prewarm thread.
+  Tests: `tests/test_pcmmixer.py` (13: playing once, loops, forever, volume, clipping, pause, stop, the channel limit,
+  the engine playing a WAV through it). **Measured, not heard** (nobody can listen from here): Python hands out audible
+  samples (loudest 4,400 to 5,300 of 32,767 while the title tune plays) and Android's `AudioTrack` counted 0 underruns
+  over more than 800 blocks (about 37 s) and again over a later 3D session. Whether it sounds right through the phone's
+  speaker is the user's to listen to.
+- **Why 10 fps (found with a profile on the phone, then reproduced on the desktop):** the game re-arms its frame timer
+  at the END of each frame (`SetTimer(30..40 ms)` as its last act), so on a real clock the time a frame takes is added to
+  the delay: frame period = work + 30 ms. The phone's title screen: about 33 ms of work + 30 = 63 ms, 10 to 16 fps
+  although the CPU was only 63% busy. The virtual-clock benchmarks never saw this: guest code takes no virtual time
+  there, the game sees 0 ms elapsed and asks for exactly 40 ms (25 fps). **The desktop has the same effect:** its title
+  screen in real-time play ran at 16.1 fps (median interval 62 ms) on a PC that can do 33.
+  Raising the core thread's priority made no difference (tried, removed).
+- **The fix, `Emulator(frame_locked_clock=True)`:** while a callback into the game runs, the clock the game sees is held
+  still (as the virtual clock already does), and it runs in real time between callbacks. The frame period is then
+  max(40 ms, work time). Safe for this game because the virtual-clock runs, which the whole test suite and the
+  benchmarks use, are exactly this behavior and never hang on a clock inside a callback. Off by default; the app turns
+  it on. Tests: `tests/test_frame_pacing.py` (6 unit tests with a hand-moved clock, and one that runs the real title
+  screen for 14 s and expects a 40 ms median interval).
+  Results: **desktop title screen 16.1 fps -> 24.6 fps; Galaxy S23 Ultra title screen 10 -> 25 fps**, journal page
+  18 to 19 -> 25, and the 3D Obstacle Course (Sora walking, sound on) a steady 25 fps with 0 faults and 0 underruns.
+  **For the user to decide: the desktop front end does not use it yet** (its real-time play has the 16 fps problem
+  above in scenes the PC can run faster); enabling it there is a one-line change in `__main__.py` plus checks of play
+  time, autosave and pause timing, which were not reviewed for it. Two limits to remember then: `GetTimeMS` and
+  `GetSeconds` (time of day) use the wall clock and are not frozen (the 25 fps result says the game does not time
+  its frames with them), and `load_state` must not run from inside a game callback while the clock is frozen (it
+  resets the clock, and the game would keep seeing the old value until the callback ended; no such path exists today).
+- **Text drawing cost:** `PilFont.mask` now caches the rendered mask per string (a screen redraws the same strings every
+  frame); the journal page went from 18 to 19 fps to 25 with the pacing fix and the cache together.
+- **Diagnostics left in:** the status line shows fps; `files/profile_flag` (create it with `run-as`) makes the core
+  thread profile itself from 20 to 35 s after the start and print the busiest functions to logcat; the sound pump logs
+  its loudest sample and the `AudioTrack` underrun count every ~5 s.
+- **Played on the phone through `adb shell input` taps and long presses:** title menu, New Game, Jiminy's journal pages
+  (the left softkey is Continue; Action does nothing there), the in-game pause screen, and walking in the Obstacle
+  Course. Not played: a full session, fighting, saving, the later worlds, heat over time.
+- **Not done:** save states and the game's own saves are not reachable from the UI; the file picker for the game files;
+  the Wonderland lost-media pages (`lostmedia.py`, pygame); landscape; a settings screen; smooth hi-res text;
+  mute and volume controls (the phone's own volume keys work); a release build and signing.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 

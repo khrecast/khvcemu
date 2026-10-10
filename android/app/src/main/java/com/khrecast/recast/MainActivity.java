@@ -1,6 +1,9 @@
 package com.khrecast.recast;
 
 import android.app.Activity;
+import android.media.AudioAttributes;
+import android.media.AudioFormat;
+import android.media.AudioTrack;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.WindowManager;
@@ -27,6 +30,7 @@ public class MainActivity extends Activity {
     private volatile boolean running = true;
     private volatile boolean resumed = false;      // the activity is in the foreground
     private Thread pump;
+    private Thread sound;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +75,55 @@ public class MainActivity extends Activity {
         }
         pump = new Thread(this::pumpFrames, "recast-frames");
         pump.start();
+        sound = new Thread(this::pumpSound, "recast-sound");
+        sound.start();
+    }
+
+    /** Plays the core's sound: asks Python for the next block of mixed samples and writes it to an AudioTrack
+     *  (the blocking write paces the loop). Held while the app is not in the foreground. */
+    private void pumpSound() {
+        final int rate = 22050, frames = 1024;
+        AudioTrack track = null;
+        long blocks = 0;
+        try {
+            int min = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+            track = new AudioTrack.Builder()
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_GAME)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                    .setAudioFormat(new AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(rate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                    .setBufferSizeInBytes(Math.max(min * 2, frames * 2 * 4))
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build();
+            while (running) {
+                if (!resumed) {
+                    if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                        track.pause();
+                    }
+                    Thread.sleep(100);
+                    continue;
+                }
+                if (track.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
+                    track.play();
+                }
+                byte[] block = app.callAttr("audio_read", frames).toJava(byte[].class);
+                track.write(block, 0, block.length);
+                if (++blocks % 100 == 0) {
+                    Log.i(TAG, "audio underruns so far: " + track.getUnderrunCount());
+                }
+            }
+        } catch (InterruptedException e) {
+            // closing
+        } catch (Throwable t) {
+            Log.w(TAG, "sound stopped: " + t);
+        } finally {
+            if (track != null) {
+                track.release();
+            }
+        }
     }
 
     /** Fetches each new picture from the core and shows it, and the core's status line about once a second. */
@@ -89,6 +142,7 @@ public class MainActivity extends Activity {
                     lastStatus = now;
                     String status = a.callAttr("status").toString();
                     view.setStatus(status);
+                    Log.i(TAG, "status: " + status);
                     if (status.startsWith("stopped") && !status.contains("ERROR")) {
                         running = false;               // the game asked to exit: close the app (an error stays on screen)
                         runOnUiThread(this::finish);
@@ -144,6 +198,9 @@ public class MainActivity extends Activity {
         running = false;
         if (pump != null) {
             pump.interrupt();
+        }
+        if (sound != null) {
+            sound.interrupt();
         }
         PyObject a = app;
         if (a != null && isFinishing()) {

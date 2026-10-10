@@ -5,7 +5,8 @@ Two uses:
   task stagePython), used by BenchActivity.
 * start_game(...) and the small calls after it: the real game in real time on a Python thread (a reduced version of the
   desktop front end's loop: no autosave, no Wonderland pages, no quit prompt). The Java side polls
-  frame_count()/frame_bytes() to draw the picture and sends key(name, down) for touches. Sound is not wired yet.
+  frame_count()/frame_bytes() to draw the picture, sends key(name, down) for touches, and pulls sound with
+  audio_read(frames) (the core mixes into a khvcemu.pcmmixer.PcmMixer; an Android AudioTrack plays what it returns).
 """
 import contextlib
 import importlib
@@ -88,6 +89,9 @@ def run_benchmark(mode, native_lib_dir, game_dir):
 
 
 # ---------------------------------------------------------------------------------------------- the game
+AUDIO_RATE = 22050          # the core's own rate (khvcemu.midi_synth.RATE): mono, Android resamples it
+
+
 class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
@@ -95,9 +99,17 @@ class _Game:
         _prepare_unicorn(native_lib_dir)
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         from khvcemu.keys import AVK
+        from khvcemu.pcmmixer import PcmMixer
         from khvcemu.runtime import Emulator
         self.AVK = AVK
-        self.emu = Emulator(game_dir, data_dir, realtime=True, audio=False, log=self._log)
+        self.game_dir = game_dir
+        self.mixer = PcmMixer(AUDIO_RATE, 1)
+        self.audio_blocks = 0
+        self.last_frames = 0
+        self.last_status_at = time.monotonic()
+        self.audio_peak = 0
+        self.emu = Emulator(game_dir, data_dir, realtime=True, audio=True, audio_mixer=self.mixer, log=self._log,
+                             frame_locked_clock=True)      # 25 fps when the phone keeps up (see Emulator.__init__)
         self.stop_flag = False
         self.want_paused = False
         self.paused_at = None          # monotonic time the loop paused the game clock, else None
@@ -110,9 +122,27 @@ class _Game:
 
     def _run(self):
         emu = self.emu
+        prof = None
+        t_begin = time.monotonic()
+        # diagnostics: a file called profile_flag in the app's files folder makes the core thread profile itself
+        # from 20 s to 35 s after the start and print the busiest functions to logcat (tag python.stdout)
+        profile_wanted = os.path.exists(os.path.join(os.path.dirname(self.game_dir), "profile_flag"))
         try:
             emu.start()
             while not self.stop_flag:
+                if profile_wanted:
+                    age = time.monotonic() - t_begin
+                    if prof is None and 20 <= age < 35:
+                        import cProfile
+                        prof = cProfile.Profile()
+                        prof.enable()
+                    elif prof is not None and age >= 35:
+                        prof.disable()
+                        import pstats
+                        out = io.StringIO()
+                        pstats.Stats(prof, stream=out).sort_stats("tottime").print_stats(28)
+                        print("[profile]", out.getvalue(), flush=True)
+                        prof, profile_wanted = None, False
                 if emu.exit_requested:                             # the game asked to quit (as the desktop loop ends)
                     self._log("the game asked to exit")
                     break
@@ -121,11 +151,13 @@ class _Game:
                         for avk in sorted(emu.keys_held):
                             emu.key_up(avk)
                         self.paused_at = time.monotonic()
+                        self.mixer.paused = True                   # sound is held too
                         self._log("paused (the app is not in the foreground); game clock %d ms" % emu.clock_ms())
                     else:                                          # the clock continues where it stopped
                         held = time.monotonic() - self.paused_at
                         emu._t0 += held
                         self.paused_at = None
+                        self.mixer.paused = False
                         self._log("resumed after %.1f s; game clock %d ms" % (held, emu.clock_ms()))
                 if self.paused_at is not None:
                     time.sleep(0.02)
@@ -199,6 +231,21 @@ def key(name, down):
         _game.emu.key_up(avk)
 
 
+def audio_read(frames):
+    """The next `frames` mono 16-bit samples of the game's sound as bytes (silence when there is none)."""
+    if _game is None:
+        return bytes(frames * 2)
+    block = _game.mixer.read(frames)
+    # measurement (nobody can hear the sound from here): the loudest sample handed out, logged every ~5 s
+    import numpy as np
+    _game.audio_blocks += 1
+    _game.audio_peak = max(_game.audio_peak, int(np.abs(np.frombuffer(block, "<i2")).max(initial=0)))
+    if _game.audio_blocks % 100 == 0:
+        print("[audio] %d blocks, loudest sample in the last 100: %d" % (_game.audio_blocks, _game.audio_peak), flush=True)
+        _game.audio_peak = 0
+    return block
+
+
 def pause():
     if _game is not None:
         _game.want_paused = True
@@ -215,4 +262,8 @@ def status():
         return "game not started"
     emu = _game.emu
     state = "stopped" if not _game.thread.is_alive() else ("paused" if _game.want_paused else "running")
-    return "%s  frames %d  faults %d%s" % (state, emu.frames, emu.faults, ("  ERROR " + _game.error) if _game.error else "")
+    now = time.monotonic()
+    fps = (emu.frames - _game.last_frames) / max(0.001, now - _game.last_status_at)    # since the previous call
+    _game.last_frames, _game.last_status_at = emu.frames, now
+    return "%s  %.0f fps  frames %d  faults %d%s" % (state, fps, emu.frames, emu.faults,
+                                                      ("  ERROR " + _game.error) if _game.error else "")
