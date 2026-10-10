@@ -523,9 +523,10 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   old values; the core logs that).
   **Verified on the S23 Ultra:** with the steady frame rate off (and the matrix cache off) the title screen ran at 12 fps
   instead of 25; the settings were put back afterwards. The speed patches' own effect was not measured separately.
-- **Action, Magic and Status** now form a round head with two ears: Magic and Status sit up and to each side of Action, just
-  touching it at 60 degrees, the same sizes as before, centered between the d-pad and the screen edge in portrait and between the picture
-  and the edge in landscape (`GameView.placeMickey`). The group shrinks together if a narrow screen needs it.
+- **Action, Magic and Status** keep the sizes and positions the layout was designed with; Magic and Status are slid along
+  their own line to Action's centre until each just touches Action, so the three read as one group like a round head with two
+  ears (`GameView.placeButtons`). An earlier try that moved the ears to 45 and 60 degrees was dropped: the player liked the
+  original size and angle and wanted only the touching.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 

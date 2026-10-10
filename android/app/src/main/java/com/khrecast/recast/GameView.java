@@ -177,7 +177,10 @@ public class GameView extends View {
         padX = lc;
         padY = areaBottom - padR;
         float cy = areaTop + area / 2f;
-        placeMickey(gx + gw + rightW * 0.04f, right - rightW * 0.04f, cy, area, Math.min(rightW * 0.2f, area * 0.27f));
+        float big = Math.min(rightW * 0.2f, area * 0.27f);
+        placeButtons(rc + rightW * 0.1f, cy + area * 0.2f, big,                 // Action
+                rc - rightW * 0.2f, cy - area * 0.08f,                          // Magic
+                rc + rightW * 0.2f, cy - area * 0.28f);                         // Status
     }
 
     /** The picture at the top of the free area, the softkeys under it, the pad and buttons in what is left. */
@@ -218,32 +221,34 @@ public class GameView extends View {
         padR = Math.min(width * 0.24f, area * 0.46f);
         padX = left + width * 0.27f;
         padY = cy;
-        placeMickey(padX + padR + width * 0.02f, right - width * 0.01f, cy, area, Math.min(width * 0.13f, area * 0.27f));
+        float big = Math.min(width * 0.13f, area * 0.27f);
+        placeButtons(left + width * 0.75f, cy + area * 0.16f, big,              // Action
+                left + width * 0.61f, cy - area * 0.21f,                        // Magic
+                left + width * 0.89f, cy - area * 0.27f);                       // Status
     }
 
     /**
-     * Action is the big round button; Magic and Status sit up and to each side of it, just touching it at 60 degrees, so the
-     * three read as a round head with two round ears. The group is centered between `from` and `to` (horizontally) and
-     * around `cy` (vertically), and everything shrinks together if it would not fit.
+     * Action is the big round button; Magic and Status are the smaller ones up and to each side of it, at the positions given
+     * (the angles and sizes the layout was designed with). Each of the two is then slid along the line to Action's centre
+     * until the circles just touch, so the three read as one group.
      */
-    private void placeMickey(float from, float to, float cy, float area, float big) {
-        float ratio = 0.72f;                                           // an ear's radius compared with the head's
-        float across = 0.5f, up = 0.866f;                              // the ears sit 60 degrees up from the head's sides
-        float distance = (big + big * ratio) * 1.05f;                  // centre to centre: just touching the head
-        float need = 2 * (distance * across + big * ratio);            // the group's width
-        float room = Math.max(1f, to - from);
-        if (need > room) {
-            big *= room / need;
-            distance *= room / need;
+    private void placeButtons(float ax, float ay, float big, float mx, float my, float sx, float sy) {
+        float small = big * 0.72f;
+        setCircle(buttons.get(3), ax, ay, big);                                // Action
+        float[] magic = towards(ax, ay, mx, my, big + small);
+        float[] status = towards(ax, ay, sx, sy, big + small);
+        setCircle(buttons.get(4), magic[0], magic[1], small);                  // Magic
+        setCircle(buttons.get(5), status[0], status[1], small);                // Status
+    }
+
+    /** The point on the line from (ax, ay) through (x, y) that is `distance` from (ax, ay). */
+    private static float[] towards(float ax, float ay, float x, float y, float distance) {
+        float dx = x - ax, dy = y - ay;
+        float length = (float) Math.hypot(dx, dy);
+        if (length < 1f) {
+            return new float[]{x, y};
         }
-        float small = big * ratio;
-        float dx = distance * across, dy = distance * up;
-        float cx = (from + to) / 2f;
-        float top = dy + small, bottom = big;                          // the group's height above and below the head's centre
-        float headY = cy + (top - bottom) / 2f;                        // centre the whole group on cy
-        setCircle(buttons.get(3), cx, headY, big);                     // Action: the head
-        setCircle(buttons.get(4), cx - dx, headY - dy, small);         // Magic: the left ear
-        setCircle(buttons.get(5), cx + dx, headY - dy, small);         // Status: the right ear
+        return new float[]{ax + dx / length * distance, ay + dy / length * distance};
     }
 
     private static void setCircle(Button b, float cx, float cy, float r) {
