@@ -49,7 +49,8 @@ class Emulator:
                  log: Callable[[str], None] = None, realtime=True, audio=True,
                  soundfont: Optional[str] = None, skip_wonderland: bool = True,
                  music: Optional[dict] = None, music_files: Optional[dict] = None,
-                 wonderland_volume: float = 1.0, speed_patches=None):
+                 wonderland_volume: float = 1.0, speed_patches=None, audio_mixer=None,
+                 frame_locked_clock: bool = False):
         self.game_root = os.path.abspath(game_root)
         self.data_dir = os.path.abspath(data_dir)
         os.makedirs(self.data_dir, exist_ok=True)
@@ -58,6 +59,16 @@ class Emulator:
         self._log = log or (lambda s: print(s, file=sys.stderr, flush=True))
         self._once: set = set()
         self.realtime = realtime
+        # The game re-arms its frame timer at the END of each frame (SetTimer(30..40)), so on a real clock the time a
+        # frame takes is added to the delay: a PC that could draw 33 frames a second shows 16. On the virtual clock
+        # (headless benchmarks, tests) the clock does not move while the game runs a callback, the game sees 0 ms
+        # elapsed, asks for exactly 40 ms and gets 25 fps. frame_locked_clock gives a real-time run the same
+        # behavior: the clock the game sees is held still during each event or timer callback and runs in real
+        # time between them, so the frame period is max(40 ms, the host's time per frame). Off by default; the
+        # Android app turns it on.
+        self.frame_locked_clock = frame_locked_clock
+        self._frozen_ms: Optional[int] = None          # the clock the game sees while a callback runs, else None
+        self._guest_depth = 0
         self.skip_wonderland = skip_wonderland
         self.vfs_hooks: list = []      # callables(vfs) run when the VFS is created
         self.recent_files: dict = {}   # size -> name of files the game opened
@@ -115,7 +126,7 @@ class Emulator:
         self.hooks = []      # objects with optional on_file_opened/on_missing_file
         from .audio import AudioEngine
         self.audio = AudioEngine(self, enabled=audio, soundfont=soundfont, music=music, music_files=music_files,
-                                  wonderland_volume=wonderland_volume)
+                                  wonderland_volume=wonderland_volume, mixer=audio_mixer)
         if audio:                          # render the tunes now, not at the moment the game first asks for each
             self.audio.start_prewarm(self.game_root)
         self._register_builtin_classes()
@@ -140,6 +151,8 @@ class Emulator:
 
     # ---------------------------------------------------------------- time
     def clock_ms(self) -> int:
+        if self._frozen_ms is not None:
+            return self._frozen_ms
         if self.realtime:
             return int((time.monotonic() - self._t0) * 1000)
         return int(self._virtual_ms)
@@ -514,7 +527,11 @@ class Emulator:
         n = 0
         while self.pending_events and n < max_calls:
             evt, wp, dwp = self.pending_events.pop(0)
-            self.send_event(evt, wp, dwp)
+            self._enter_guest()
+            try:
+                self.send_event(evt, wp, dwp)
+            finally:
+                self._leave_guest()
             n += 1
         self.audio.tick()
         now = self.clock_ms()
@@ -526,14 +543,28 @@ class Emulator:
             pcb = getattr(t, "pcb", None)
             if pcb:
                 self.cpu.w32(pcb + 8, 0)
+            self._enter_guest()
             try:
                 self.cpu.call(t.fn, *(t.args or (t.user,)))
             except GuestFault as e:
                 self.faults += 1
                 self.log(f"[fault] timer 0x{t.fn:08x}(0x{t.user:08x}): {e}")
                 self.dump_recent()
+            finally:
+                self._leave_guest()
             n += 1
         return n
+
+    def _enter_guest(self):
+        """A callback into the game starts: with frame_locked_clock on a real clock, hold the clock it sees."""
+        if self.frame_locked_clock and self.realtime and self._guest_depth == 0:
+            self._frozen_ms = self.clock_ms()
+        self._guest_depth += 1
+
+    def _leave_guest(self):
+        self._guest_depth -= 1
+        if self._guest_depth == 0:
+            self._frozen_ms = None
 
     def dump_recent(self):
         self.log("  last BREW calls (oldest first):")

@@ -92,6 +92,14 @@ class FontTests(unittest.TestCase):
         self.assertEqual(mask.shape, (h, w))
         self.assertTrue(mask.any() and not mask.all())
 
+    def test_the_same_text_is_rendered_once(self):
+        from khvcemu import hostgfx
+        f = hostgfx.load_font("", 11, False)
+        self.assertIs(f.mask("Continue"), f.mask("Continue"))
+        for i in range(700):                                   # the cache stays bounded
+            f.mask("t%d" % i)
+        self.assertLessEqual(len(f._masks), 600)
+
     def test_bold_and_size_change_the_result(self):
         from khvcemu import hostgfx
         small = hostgfx.load_font("", 11, False)

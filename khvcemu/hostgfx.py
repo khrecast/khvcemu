@@ -81,6 +81,7 @@ class PilFont:
         self.font = font
         ascent, descent = font.getmetrics()
         self.ascent, self.descent = ascent, abs(descent)      # pygame's convention below makes the descent negative
+        self._masks: dict = {}                                 # text -> mask: a screen redraws the same strings every frame
 
     def get_ascent(self) -> int:
         return self.ascent
@@ -92,14 +93,22 @@ class PilFont:
         return (math.ceil(self.font.getlength(text)), self.ascent + self.descent)
 
     def mask(self, text: str) -> np.ndarray:
-        """(height, width) bool array: where the glyphs are."""
+        """(height, width) bool array: where the glyphs are. The same array comes back for the same text: do not
+        change it."""
+        cached = self._masks.get(text)
+        if cached is not None:
+            return cached
         from PIL import Image, ImageDraw
         w, h = self.size(text)
         img = Image.new("L", (max(1, w), max(1, h)), 0)
         draw = ImageDraw.Draw(img)
         draw.fontmode = "1"
         draw.text((0, 0), text, font=self.font, fill=255)
-        return np.asarray(img) > 127
+        mask = np.asarray(img) > 127
+        if len(self._masks) >= 600:                            # a bound, for text that changes every frame (a timer)
+            self._masks.clear()
+        self._masks[text] = mask
+        return mask
 
 
 def load_font(names: str, size: int, bold: bool = False) -> Optional[PilFont]:

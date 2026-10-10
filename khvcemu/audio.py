@@ -67,7 +67,9 @@ class Voice:
 
 class AudioEngine:
     def __init__(self, emu, enabled=True, soundfont: Optional[str] = None, music: Optional[dict] = None,
-                 music_files: Optional[dict] = None, wonderland_volume: float = 1.0):
+                 music_files: Optional[dict] = None, wonderland_volume: float = 1.0, mixer=None):
+        """`mixer`: a pygame.mixer look-alike the host supplies and pulls audio from (pcmmixer.PcmMixer, used by
+        the Android app); without one, pygame.mixer is opened."""
         self.emu = emu
         self.wonderland_volume = max(0.0, min(2.0, float(wonderland_volume)))   # the Setup tab's slider
         self.enabled = enabled
@@ -89,7 +91,11 @@ class AudioEngine:
         self.master_volume = 1.0
         self.capture: Optional[list] = None      # tests: list of (name, samples)
         self.out_rate, self.out_channels = RATE, 1
-        if enabled:
+        if enabled and mixer is not None:
+            self.mixer = mixer
+            self.out_rate, self.out_channels = mixer.get_init()[0], mixer.get_init()[2]
+            emu.logv(f"[audio] host mixer {self.out_rate} Hz, {self.out_channels} channel(s)")
+        elif enabled:
             try:
                 import pygame
                 pygame.mixer.pre_init(RATE, -16, 1, 512)
