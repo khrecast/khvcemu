@@ -1,15 +1,16 @@
 # Android port: running notes
 
 A log of what was tried, measured and decided, so no session redoes it. Newest entries first in each
-section. Nothing here has run on Android yet.
+section. Spike results and the first app run on the phone are in section 6 and Chunk 3.
 
-## Status (updated 2026-10-09: chunk 1, the Spike 0 kit, is built; waiting for the phone's numbers)
+## Status (updated 2026-10-10: chunks 1 to 3 done; next is chunk 4, Python inside the app)
 
-- No Android toolchain on the development PC yet (approved, see Decisions), no device attached. Nothing run on a phone.
+- Toolchain installed under C:\Android (Chunk 2). The test phone is connected over adb. Spike 0 passed on it
+  (section 6) and a probe APK at target SDK 36 runs Unicorn on it (Chunk 3).
 - Desktop baseline measured (below). The cost is the guest's own ARM code (the Swerve renderer)
   running in Unicorn, not the Python HLE layer.
 - Recommendation: keep the Python core, run it on Android with Chaquopy, Unicorn as a native library,
-  Kotlin front end. Waiting for the user: the Termux results from the phone (Chunk 1 below).
+  Kotlin front end. Next: add Chaquopy and boot the core to the title inside the app (chunk 4).
 
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
@@ -34,7 +35,7 @@ git), `android/spike/termux_spike.sh` (phone: installs Termux packages, builds U
 runs `bench_headless.py boot`, `world`, `audio`, writes `~/spike_results.txt`).
 Checked on the PC: the zip unpacks and `bench_headless.py boot` reaches the title from the unpacked folder
 (1.548x, 275 frames, 0 faults). **Not run on a phone**; the script's Unicorn steps (tag `2.1.4`, `-DUNICORN_ARCH=arm`,
-the binding used from the source tree with `LIBUNICORN_PATH`) come from the docs and are untried.
+the binding used from the source tree with `LIBUNICORN_PATH`) come from the docs; they were untried when written and have since run on the phone (section 6).
 
 On the phone, in order: (1) install **Termux from F-Droid or its GitHub releases** (the Play Store copy is
 outdated); (2) on the PC run `python android/spike/make_spike_zip.py` and copy `build/spike/recast_spike.zip` to
@@ -53,14 +54,50 @@ Installed under `C:\Android` (3.3 GB on disk, outside the repo; the user accepte
 `ndk;28.2.13676358` (clang 19.0.1), `cmake;3.31.6` (with Ninja 1.12.1). Gradle comes with the wrapper later.
 Checked: `clang`, `cmake`, `ninja`, `adb`, `javac` all run; `android.jar` and `aapt2.exe` are present.
 `android/env.ps1` sets JAVA_HOME, ANDROID_HOME, ANDROID_NDK_HOME and PATH for one PowerShell session
-(`. .ndroid\env.ps1`); nothing is system-wide.
+(`. .\android\env.ps1`); nothing is system-wide.
 Gotcha: `sdkmanager.bat` splits a package name like `platforms;android-36` at the semicolon when given on the
 command line (even quoted, from bash or PowerShell), so it reports "Package platforms not found". Use
 `--package_file=<file with one package per line>`.
 `adb devices` showed `emulator-5554 offline`: some Android emulator is running or was left registered on this PC
 (not started by us); it is not the phone. The phone is not connected over USB yet.
 
-## 1. This machine (checked 2026-10-06)
+## Chunk 3: Unicorn inside an app, at target SDK 36 (2026-10-10, done)
+
+Goal: show that an APK can load Unicorn and run ARM code on the phone (the `execmem` question of section 3).
+
+- **Test phone, as the PC sees it over adb:** SM-S918U (Galaxy S23 Ultra), Android 16 (SDK 36), SM8550, arm64-v8a
+  (also armeabi-v7a), 4 KB pages, 7.2 GB RAM (the 8 GB model). The phone's serial is passed with `adb -s`: an
+  offline `emulator-5554` entry is also listed, so plain `adb` commands fail with "more than one device".
+- **Unicorn for Android: the NDK cross-build from Windows does not work.** Unicorn's CMake runs QEMU's own
+  `configure` shell script while configuring. Without `sh` (PowerShell) the generated `config-host.h` is empty and
+  the build fails (`config-target.h` missing, then `CONFIG_INT128` and `CONFIG_POSIX` undefined). With Git's `sh` on
+  PATH, `configure` still stops: it guesses the host from `uname` and compile probes (a Windows host, an Android
+  target) and builds test programs it then cannot run. Not pursued further. Options if a reproducible build is needed:
+  a Linux build (WSL2 or Docker with the Linux NDK, or a CI job), or Termux again. For now the library is the one
+  built **on the phone** in Termux (Unicorn 2.1.4, `-DUNICORN_ARCH=arm`, clang 21, SHA-256
+  7CDDE399...CA72, 1,602,808 bytes). It needs only libc, libm and libdl, its segments are 16 KB aligned (so it is
+  ready for 16 KB-page phones), and it carries a harmless RUNPATH into Termux's folder. It is copied to
+  `C:\Android\libs\arm64-v8a\libunicorn.so` and is NOT committed; `android/fetch_unicorn.ps1` puts it into
+  `app/src/main/jniLibs/` (ignored by git). Unicorn's own README and COPYING say GPLv2 (the COPYING is the plain version 2 text; no "or later" wording was
+  seen), and this project is GPL-3.0: shipping it in an app is a licence point to settle before any release (the
+  desktop installers already ship it).
+- **The project (`android/`):** Gradle 9.6.0 wrapper, Android Gradle Plugin 9.4.1, compile/target SDK 36, min SDK 26,
+  NDK 28.2.13676358, CMake 3.31.6, arm64-v8a only, Java 17. `app/src/main/cpp/unicorn_probe.c` loads
+  `libunicorn.so` with `dlopen`, runs `mov r0,#6; mov r1,#7; mul r0,r0,r1` and a 65,536-iteration loop, and the
+  activity shows the result and logs it (tag `recast`). Debug APK 894 KB without the library, 2,339,135 bytes (2.3 MB) with it (measured).
+- **Result on the phone (`adb install`, then `am start`):** `Unicorn 2.1 loaded. ARM 6 x 7 = 42 (expected 42): PASS.
+  Loop 65536 iterations in 0.3 ms: PASS` (that loop is 196,608 guest instructions, so the translator is running;
+  the figure is only an order of magnitude, one run). **No `avc:` lines at all** in `adb logcat -d` after `adb logcat -c`, a
+  force-stop and a fresh launch (checked twice; 1,892 log lines the second time): on this phone, an app at target
+  SDK 36 on Android 16 can use Unicorn's JIT. That answers the `execmem` question of section 3 for this one
+  device and Android version; other makers' phones and versions are untested.
+- **Gotchas found:** a PowerShell script that writes `"No $Source: ..."` fails to parse (`$Source:` reads as a
+  drive); use `${Source}`. The first APK was built without the library because that script had failed silently
+  inside a larger command: check that `jniLibs` exists before building.
+- Not done: an x86_64 build for the emulator (no x86_64 Unicorn library yet); 16 KB-page device or emulator test;
+  Python (Chaquopy) inside the app, the next chunk.
+
+## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
 Python 3.14.7, unicorn 2.1.4, numpy 2.5.3, pygame-ce 2.5.8.
@@ -138,7 +175,7 @@ depend on the font), `image.py` BMP/PNG decode, `audio.py` mixer (`pygame.mixer`
   compilers" ([private/app.te, main](https://android.googlesource.com/platform/system/sepolicy/+/refs/heads/main/private/app.te)).
   So anonymous RWX memory for Unicorn's TCG should be allowed for an ordinary app at any target SDK.
   Android 10's change removed `execute_no_trans` (running files from app storage with execve), not
-  `execmem`. To confirm on a device at targetSdk 36, with `adb logcat | grep avc`.
+  `execmem`. Checked in Chunk 3 on the S23 Ultra (Android 16, targetSdk 36): no avc lines.
 - **16 KB pages:** devices with 16 KB pages exist (and an emulator image `google_apis_ps16k`). NDK r28+
   aligns to 16 KB by default. Unicorn has an old report about assuming 4 KB host pages
   ([unicorn #81](https://github.com/unicorn-engine/unicorn/issues/81)): test on the ps16k image.
@@ -253,7 +290,7 @@ installed (so no host-drawn text), the speed patches `span` and `matinv` on (the
 | Guest instructions per second in 3D | not counted on the phone; about 150 M estimated (168 M per game second on the desktop x 0.92; fewer with the patches) | >= 100 M | 140 to 145 M | pass (estimate) |
 | Synth render of the nine tunes | 11.99 s (training 2.97 s the longest), peak 48.6 MiB | < 60 s | 6.3 s | pass |
 | Peak memory (the Python process) | 58.8 to 60.6 MiB RSS | < 300 MB (PSS in the real app is still to be measured) | 64 MB | pass |
-| APK size | not built yet | < 60 MB | | open |
+| APK size | 0.9 MB for the probe app, without Python or numpy (the real size is open until Chaquopy is added) | < 60 MB | | open |
 
 What this says: on this phone the unmodified Python core with an ARM-only Unicorn built by Termux's clang runs the
 game at about 0.9x real time in the busiest scene tried, as fast as the development PC. It reaches 25 fps in the
@@ -264,8 +301,8 @@ What it does not say:
 - Sustained play (heat): each run was seconds long. Thermal throttling over 10 or 20 minutes is unmeasured.
 - The Agrabah lava scene (the slowest on the desktop, about 15 fps there) and a fight were not run; save states
   7 and 9 would need the benchmark pointed at them.
-- Termux is an app with an older target SDK (28); an APK at target SDK 36 must still show that Unicorn's executable
-  memory (`execmem`) is allowed, checked with `adb logcat | grep avc` (section 3).
+- Termux is an app with an older target SDK (28); the same check in an APK at target SDK 36 was done in Chunk 3
+  (it passed on this phone).
 - The frame digest differs from the desktop's (boot: phone 250a782cb28866d9, desktop e4aae8d85cb1a4c6) and `lit`
   is 0.366 against 0.376. Probably the host-drawn text (pygame is not installed on the phone, and the desktop
   run had it); not verified. Frames from the core alone should be compared before trusting the picture.

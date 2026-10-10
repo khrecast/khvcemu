@@ -25,3 +25,5 @@ spike-output/
 game/
 spike_results*.txt
 *.iml
+# the prebuilt Unicorn library is copied in by fetch_unicorn.ps1, never committed
+app/src/main/jniLibs/
