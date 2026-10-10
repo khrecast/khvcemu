@@ -514,6 +514,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   game save on the phone, so the backup path was not exercised here (it is the desktop's code, tested there). The test
   save was deleted again afterwards. Not tried: choosing Load Game after it (the same game code as the desktop).
 
+## Speed switches, and the button shape (2026-10-10, done)
+
+- **Options has a Speed section:** Steady frame rate, Faster blended fill (`span`) and Matrix cache (`matinv`), all on by
+  default, each with a short explanation (the launcher's Speed enhancements window, in the app's words). They are read when
+  the game starts (`Settings.speedOff`, `Settings.frameLock` into `recast_app.start_game(..., speed_off, frame_lock)` and
+  `Emulator(speed_patches=..., frame_locked_clock=...)`), so a change applies the next time the game is started from Home (a game still alive in the background keeps the
+  old values; the core logs that).
+  **Verified on the S23 Ultra:** with the steady frame rate off (and the matrix cache off) the title screen ran at 12 fps
+  instead of 25; the settings were put back afterwards. The speed patches' own effect was not measured separately.
+- **Action, Magic and Status** now form a round head with two ears: Magic and Status sit up and to each side of Action, just
+  touching it at 60 degrees, the same sizes as before, centered between the d-pad and the screen edge in portrait and between the picture
+  and the edge in landscape (`GameView.placeMickey`). The group shrinks together if a narrow screen needs it.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

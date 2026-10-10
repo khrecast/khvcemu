@@ -51,6 +51,18 @@ public class OptionsActivity extends Activity {
         col.addView(sizes);
         col.addView(note("Whole-number sizes keep every pixel the same size. Sizes too big for the screen use the largest that fits."));
 
+        col.addView(heading("Speed"));
+        col.addView(toggle("Steady frame rate", Settings.frameLock(this), Settings::setFrameLock));
+        col.addView(note("Lets the game run at its own 25 frames a second whenever the phone keeps up. The game's speed and "
+                + "your saves do not change."));
+        col.addView(toggle("Faster blended fill", Settings.speedSpan(this), Settings::setSpeedSpan));
+        col.addView(note("Draws water, glows and fades with a tighter loop. The picture is identical."));
+        col.addView(toggle("Matrix cache", Settings.speedMatinv(this), Settings::setSpeedMatinv));
+        col.addView(note("Remembers 3D matrix answers the engine asks for hundreds of times a frame. The picture is identical. "
+                + "Save states made with it carry about 580 KB more."));
+        col.addView(note("All three are on by default. Changes take effect the next time the game starts. Turn one off only to "
+                + "compare speed or to see whether it is behind a problem."));
+
         col.addView(heading("Sound"));
         col.addView(toggle("Mute the game", Settings.muted(this), Settings::setMuted));
 

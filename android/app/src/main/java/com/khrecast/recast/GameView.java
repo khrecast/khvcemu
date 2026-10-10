@@ -176,12 +176,8 @@ public class GameView extends View {
         padR = Math.min(leftW * 0.44f, area * 0.46f);
         padX = lc;
         padY = areaBottom - padR;
-        float big = Math.min(rightW * 0.2f, area * 0.27f);
-        float small = big * 0.72f;
         float cy = areaTop + area / 2f;
-        setCircle(buttons.get(3), rc + rightW * 0.1f, cy + area * 0.2f, big);                      // Action
-        setCircle(buttons.get(4), rc - rightW * 0.2f, cy - area * 0.08f, small);                   // Magic
-        setCircle(buttons.get(5), rc + rightW * 0.2f, cy - area * 0.28f, small);                   // Status
+        placeMickey(gx + gw + rightW * 0.04f, right - rightW * 0.04f, cy, area, Math.min(rightW * 0.2f, area * 0.27f));
     }
 
     /** The picture at the top of the free area, the softkeys under it, the pad and buttons in what is left. */
@@ -222,11 +218,32 @@ public class GameView extends View {
         padR = Math.min(width * 0.24f, area * 0.46f);
         padX = left + width * 0.27f;
         padY = cy;
-        float big = Math.min(width * 0.13f, area * 0.27f);
-        float small = big * 0.72f;
-        setCircle(buttons.get(3), left + width * 0.75f, cy + area * 0.16f, big);       // Action
-        setCircle(buttons.get(4), left + width * 0.61f, cy - area * 0.21f, small);     // Magic
-        setCircle(buttons.get(5), left + width * 0.89f, cy - area * 0.27f, small);     // Status
+        placeMickey(padX + padR + width * 0.02f, right - width * 0.01f, cy, area, Math.min(width * 0.13f, area * 0.27f));
+    }
+
+    /**
+     * Action is the big round button; Magic and Status sit up and to each side of it, just touching it at 60 degrees, so the
+     * three read as a round head with two round ears. The group is centered between `from` and `to` (horizontally) and
+     * around `cy` (vertically), and everything shrinks together if it would not fit.
+     */
+    private void placeMickey(float from, float to, float cy, float area, float big) {
+        float ratio = 0.72f;                                           // an ear's radius compared with the head's
+        float across = 0.5f, up = 0.866f;                              // the ears sit 60 degrees up from the head's sides
+        float distance = (big + big * ratio) * 1.05f;                  // centre to centre: just touching the head
+        float need = 2 * (distance * across + big * ratio);            // the group's width
+        float room = Math.max(1f, to - from);
+        if (need > room) {
+            big *= room / need;
+            distance *= room / need;
+        }
+        float small = big * ratio;
+        float dx = distance * across, dy = distance * up;
+        float cx = (from + to) / 2f;
+        float top = dy + small, bottom = big;                          // the group's height above and below the head's centre
+        float headY = cy + (top - bottom) / 2f;                        // centre the whole group on cy
+        setCircle(buttons.get(3), cx, headY, big);                     // Action: the head
+        setCircle(buttons.get(4), cx - dx, headY - dy, small);         // Magic: the left ear
+        setCircle(buttons.get(5), cx + dx, headY - dy, small);         // Status: the right ear
     }
 
     private static void setCircle(Button b, float cx, float cy, float r) {
@@ -357,7 +374,7 @@ public class GameView extends View {
         for (Button b : buttons) {
             RectF r = b.r;
             if (b.round) {                                                  // a circle, with a little slack for a thumb
-                float radius = r.width() / 2f * 1.1f;
+                float radius = r.width() / 2f * 1.04f;
                 if (Math.hypot(x - r.centerX(), y - r.centerY()) <= radius) {
                     out.add(b.key);
                 }

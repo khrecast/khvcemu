@@ -65,6 +65,44 @@ final class Settings {
         prefs(c).edit().putBoolean("autosave_quit", v).apply();
     }
 
+    /** The 3D engine's speed enhancements and the steady frame rate: all on unless switched off (taking effect when the game
+     *  next starts). Names are the core's: "span" and "matinv" (khvcemu/swerve_patch.py). */
+    static boolean speedSpan(Context c) {
+        return prefs(c).getBoolean("speed_span", true);
+    }
+
+    static void setSpeedSpan(Context c, boolean v) {
+        prefs(c).edit().putBoolean("speed_span", v).apply();
+    }
+
+    static boolean speedMatinv(Context c) {
+        return prefs(c).getBoolean("speed_matinv", true);
+    }
+
+    static void setSpeedMatinv(Context c, boolean v) {
+        prefs(c).edit().putBoolean("speed_matinv", v).apply();
+    }
+
+    static boolean frameLock(Context c) {
+        return prefs(c).getBoolean("frame_lock", true);
+    }
+
+    static void setFrameLock(Context c, boolean v) {
+        prefs(c).edit().putBoolean("frame_lock", v).apply();
+    }
+
+    /** The patches switched off, as the comma list the core takes. */
+    static String speedOff(Context c) {
+        StringBuilder off = new StringBuilder();
+        if (!speedSpan(c)) {
+            off.append("span");
+        }
+        if (!speedMatinv(c)) {
+            off.append(off.length() > 0 ? "," : "").append("matinv");
+        }
+        return off.toString();
+    }
+
     static void restoreDefaults(Context c) {
         prefs(c).edit().clear().apply();
     }
