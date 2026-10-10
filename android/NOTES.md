@@ -675,7 +675,11 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   other numpy for 3.12 and no 16 KB build). A phone with 16 KB pages would refuse to load them. Phones with 4 KB pages,
   including the S23 Ultra, are unaffected. Ways out, none tried: a newer Chaquopy with rebuilt packages, building numpy and Pillow
   ourselves with 16 KB alignment, or dropping them (hostgfx and the core use both).
-- **Still open for release:** signing, a reproducible Unicorn build (the library still comes from the phone), the Unicorn
+- **The Unicorn build is now a script:** `android/build_unicorn_termux.sh` (tag 2.1.4, ARM only, Release, 16 KB linker
+  alignment, prints size, SHA-256 and the segment alignment). It was written from the recorded steps and **has not been run**; a
+  rebuild with another compiler will not be byte-identical, so it is checked by behavior, not by hash. The library still comes from
+  the phone, so the build is repeatable but not independent of Termux.
+- **Still open for release:** signing, the Unicorn
   GPLv2 against this project's GPL-3.0 question, the privacy wording against the website, naming the INTERNET permission in the
   install text, and the owner's own passes with a finger, a real controller and the pinch.
 
