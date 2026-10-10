@@ -208,7 +208,51 @@ final class Settings {
         prefs(c).edit().putInt("font_size", Math.max(8, Math.min(16, v))).apply();
     }
 
+    /** The player's own saved mixes (a name and a music settings text each), in the order they were saved. */
+    static java.util.LinkedHashMap<String, String> mixes(Context c) {
+        java.util.LinkedHashMap<String, String> out = new java.util.LinkedHashMap<>();
+        for (String line : prefs(c).getString("music_mixes", "").split("\n")) {
+            int tab = line.indexOf('\t');
+            if (tab > 0) {
+                out.put(line.substring(0, tab), line.substring(tab + 1));
+            }
+        }
+        return out;
+    }
+
+    /** A name fit to keep: no tabs or line breaks, trimmed, at most 40 characters; "" when nothing is left. */
+    static String cleanMixName(String name) {
+        String n = name == null ? "" : name.replaceAll("[\\t\\r\\n]+", " ").trim();
+        return n.length() > 40 ? n.substring(0, 40).trim() : n;
+    }
+
+    static void saveMix(Context c, String name, String text) {
+        java.util.LinkedHashMap<String, String> all = mixes(c);
+        for (String existing : new java.util.ArrayList<>(all.keySet())) {
+            if (existing.equalsIgnoreCase(name)) {
+                all.remove(existing);                                    // "my piano" replaces "My piano"
+            }
+        }
+        all.put(name, text);
+        writeMixes(c, all);
+    }
+
+    static void deleteMix(Context c, String name) {
+        java.util.LinkedHashMap<String, String> all = mixes(c);
+        all.remove(name);
+        writeMixes(c, all);
+    }
+
+    private static void writeMixes(Context c, java.util.Map<String, String> all) {
+        StringBuilder sb = new StringBuilder();
+        for (java.util.Map.Entry<String, String> e : all.entrySet()) {
+            sb.append(e.getKey()).append('\t').append(e.getValue()).append('\n');
+        }
+        prefs(c).edit().putString("music_mixes", sb.toString()).apply();
+    }
+
     static void restoreDefaults(Context c) {
-        prefs(c).edit().clear().apply();
+        String mixes = prefs(c).getString("music_mixes", "");           // the player's own saved mixes are not a setting
+        prefs(c).edit().clear().putString("music_mixes", mixes).apply();
     }
 }

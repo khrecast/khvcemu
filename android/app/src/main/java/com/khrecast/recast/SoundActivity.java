@@ -28,6 +28,8 @@ public class SoundActivity extends Activity {
     private final SeekBar[] bars = new SeekBar[SoundSettings.SLIDERS.length];
     private final TextView[] values = new TextView[SoundSettings.SLIDERS.length];
     private Spinner mix;
+    private Button deleteMix;
+    private java.util.List<String> mixNames = new java.util.ArrayList<>();   // ready-made mixes, saved mixes, then "Custom"
     private boolean loading;                            // true while the screen sets the sliders itself
 
     @Override
@@ -40,13 +42,27 @@ public class SoundActivity extends Activity {
 
         col.addView(heading("Mix"));
         mix = new Spinner(this);
-        String[] names = new String[SoundSettings.PRESETS.length + 1];
-        for (int i = 0; i < SoundSettings.PRESETS.length; i++) {
-            names[i] = SoundSettings.PRESETS[i][0];
-        }
-        names[names.length - 1] = "Custom";
-        mix.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
         col.addView(mix);
+        LinearLayout mixButtons = new LinearLayout(this);
+        mixButtons.setOrientation(LinearLayout.HORIZONTAL);
+        Button saveMix = new Button(this);
+        saveMix.setText("Save this mix...");
+        Labels.theme(saveMix, false);
+        saveMix.setOnClickListener(v -> askMixName());
+        deleteMix = new Button(this);
+        deleteMix.setText("Delete this mix");
+        Labels.theme(deleteMix, false);
+        deleteMix.setOnClickListener(v -> confirmDeleteMix());
+        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        half.rightMargin = dp(4);
+        LinearLayout.LayoutParams halfRight = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        halfRight.leftMargin = dp(4);
+        mixButtons.addView(saveMix, half);
+        mixButtons.addView(deleteMix, halfRight);
+        LinearLayout.LayoutParams mixRow = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        mixRow.topMargin = dp(6);
+        col.addView(mixButtons, mixRow);
         col.addView(note("Pick a ready-made mix, or move the sliders for your own. Heard the next time the game starts. "
                 + "The game's own sound effects are not changed. The first start after a change takes a few seconds longer "
                 + "while the music is made."));
@@ -74,17 +90,20 @@ public class SoundActivity extends Activity {
         setContentView(scroll);
         Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
 
+        rebuildMixList();
         setAll(Settings.music(this), false);
         mix.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (loading || position >= SoundSettings.PRESETS.length) {
-                    return;
+                String chosen = textOfMix(position);
+                updateDeleteButton();
+                if (loading || chosen == null) {
+                    return;                                          // "Custom" is not a mix to apply
                 }
-                if (SoundSettings.PRESETS[position][0].equals(SoundSettings.presetNamed(Settings.music(SoundActivity.this)))) {
+                if (SoundSettings.normalize(chosen).equals(SoundSettings.normalize(Settings.music(SoundActivity.this)))) {
                     return;                                          // already this mix (the picker reports its starting choice)
                 }
-                setAll(SoundSettings.PRESETS[position][1]);
+                setAll(chosen);
             }
 
             @Override
@@ -185,17 +204,140 @@ public class SoundActivity extends Activity {
         showMixName();
     }
 
+    /** The settings text of the mix at a position of the Mix list, or null for "Custom". */
+    private String textOfMix(int position) {
+        if (position < 0 || position >= mixNames.size() - 1) {
+            return null;
+        }
+        if (position < SoundSettings.PRESETS.length) {
+            return SoundSettings.PRESETS[position][1];
+        }
+        return Settings.mixes(this).get(mixNames.get(position));
+    }
+
+    /** The Mix list: the ready-made mixes, the player's saved ones, then "Custom". */
+    private void rebuildMixList() {
+        mixNames = new java.util.ArrayList<>();
+        for (String[] p : SoundSettings.PRESETS) {
+            mixNames.add(p[0]);
+        }
+        for (java.util.Map.Entry<String, String> e : Settings.mixes(this).entrySet()) {
+            boolean twin = false;                                    // a damaged entry that equals a ready-made mix cannot be told apart
+            for (String[] p : SoundSettings.PRESETS) {
+                twin |= SoundSettings.normalize(p[1]).equals(SoundSettings.normalize(e.getValue()));
+            }
+            if (!twin) {
+                mixNames.add(e.getKey());
+            }
+        }
+        mixNames.add("Custom");
+        // (the picker reports its starting choice after the next layout; the callback ignores a mix that is already in force)
+        mix.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, mixNames));
+    }
+
+    /** Which entry of the Mix list the current sliders are: a ready-made mix, a saved one, or "Custom". */
     private void showMixName() {
-        String name = SoundSettings.presetNamed(Settings.music(this));
-        int position = SoundSettings.PRESETS.length;                 // "Custom"
-        for (int i = 0; i < SoundSettings.PRESETS.length; i++) {
-            if (SoundSettings.PRESETS[i][0].equals(name)) {
+        String current = SoundSettings.normalize(Settings.music(this));
+        int position = mixNames.size() - 1;                          // "Custom"
+        for (int i = 0; i < mixNames.size() - 1; i++) {
+            String text = textOfMix(i);
+            if (text != null && SoundSettings.normalize(text).equals(current)) {
                 position = i;
+                break;
             }
         }
         if (mix.getSelectedItemPosition() != position) {
             mix.setSelection(position);                              // (the picker's callback ignores a mix that is already saved)
         }
+        updateDeleteButton(position);
+    }
+
+    private void updateDeleteButton() {
+        updateDeleteButton(mix.getSelectedItemPosition());
+    }
+
+    /** "Delete this mix" is for the player's own saved mixes only. */
+    private void updateDeleteButton(int position) {
+        boolean own = position >= SoundSettings.PRESETS.length && position < mixNames.size() - 1;
+        deleteMix.setEnabled(own);
+    }
+
+    private void askMixName() {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("Name of this mix");
+        input.setSingleLine(true);
+        input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(40)});
+        new android.app.AlertDialog.Builder(this).setTitle("Save this mix").setView(input)
+                .setPositiveButton("Save", (d, w) -> saveMixAs(Settings.cleanMixName(input.getText().toString())))
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void saveMixAs(String name) {
+        if (name.isEmpty()) {
+            return;
+        }
+        if (name.equalsIgnoreCase("Custom")) {
+            android.widget.Toast.makeText(this, "Custom is the name of unsaved sliders: pick another",
+                    android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        for (String[] p : SoundSettings.PRESETS) {
+            if (p[0].equalsIgnoreCase(name)) {
+                android.widget.Toast.makeText(this, "That name belongs to a ready-made mix: pick another",
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+        String current = SoundSettings.normalize(Settings.music(this));
+        for (String[] p : SoundSettings.PRESETS) {                  // two mixes with the same settings could not be told apart
+            if (SoundSettings.normalize(p[1]).equals(current)) {
+                android.widget.Toast.makeText(this, "These settings are the ready-made mix " + p[0] + ": change a slider first",
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+        for (java.util.Map.Entry<String, String> e : Settings.mixes(this).entrySet()) {
+            if (!e.getKey().equalsIgnoreCase(name) && SoundSettings.normalize(e.getValue()).equals(current)) {
+                android.widget.Toast.makeText(this, "These settings are already saved as " + e.getKey(),
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+        boolean exists = false;
+        for (String saved : Settings.mixes(this).keySet()) {
+            exists |= saved.equalsIgnoreCase(name);
+        }
+        if (exists) {
+            new android.app.AlertDialog.Builder(this).setTitle("Replace " + name + "?")
+                    .setMessage("A mix with this name is already saved.")
+                    .setPositiveButton("Replace", (d, w) -> writeMix(name))
+                    .setNegativeButton("Cancel", null).show();
+        } else {
+            writeMix(name);
+        }
+    }
+
+    private void writeMix(String name) {
+        Settings.saveMix(this, name, Settings.music(this));
+        rebuildMixList();
+        showMixName();
+        android.widget.Toast.makeText(this, "Saved as " + name, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void confirmDeleteMix() {
+        int position = mix.getSelectedItemPosition();
+        if (position < SoundSettings.PRESETS.length || position >= mixNames.size() - 1) {
+            return;
+        }
+        String name = mixNames.get(position);
+        new android.app.AlertDialog.Builder(this).setTitle("Delete " + name + "?")
+                .setMessage("The sliders stay as they are; only the saved name goes.")
+                .setPositiveButton("Delete", (d, w) -> {
+                    Settings.deleteMix(this, name);
+                    rebuildMixList();
+                    showMixName();
+                })
+                .setNegativeButton("Cancel", null).show();
     }
 
     private TextView heading(String s) {

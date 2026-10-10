@@ -652,6 +652,18 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   share one stick state (a second pad sitting at center can let go of the first one's direction).
 - **Not done:** remapping the buttons, a controller picker, rumble.
 
+## Saved sound mixes (2026-10-10, done)
+
+- **The Sound screen can keep the player's own mixes:** "Save this mix..." asks for a name (at most 40 characters) and stores the
+  current sliders; the saved mixes appear in the Mix list after the ready-made ones; picking one sets the sliders; "Delete
+  this mix" (enabled only for the player's own) asks first and leaves the sliders as they are. A name cannot be a ready-made
+  mix's name, and settings that equal another mix (ready-made or saved) are refused with the name of that mix, since two mixes
+  with the same sliders could not be told apart in the list. Stored in `music_mixes` (name, tab, settings text per line).
+- **Verified on the S23 Ultra:** saving "As tuned" is refused with the message; after moving the Piano slider a save kept
+  `My piano` (`piano=1.597`), it showed as selected with Delete enabled; the delete asked first and emptied the list.
+  "Restore the default settings" keeps saved mixes (they are the player's work, not a setting). Names are compared without regard
+  to case (saving "my piano" replaces "My piano") and "Custom" is not allowed. Not done: favorites, renaming, export of mixes to the desktop's `launcher.json` format, recordings and the tune player.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

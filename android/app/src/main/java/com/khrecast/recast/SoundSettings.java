@@ -78,13 +78,18 @@ final class SoundSettings {
         return sb.toString();
     }
 
-    /** The name of the ready-made mix a settings text equals, or null when it is a custom mix. */
-    static String presetNamed(String text) {
+    /** The settings text in its one canonical form (only what differs from 1.0, in slider order). */
+    static String normalize(String text) {
         float[] values = new float[SLIDERS.length];
         for (int i = 0; i < values.length; i++) {
             values[i] = value(text, SLIDERS[i][0]);
         }
-        String mine = text(values);
+        return text(values);
+    }
+
+    /** The name of the ready-made mix a settings text equals, or null when it is a custom mix. */
+    static String presetNamed(String text) {
+        String mine = normalize(text);
         for (String[] p : PRESETS) {
             float[] other = new float[SLIDERS.length];
             for (int i = 0; i < other.length; i++) {
