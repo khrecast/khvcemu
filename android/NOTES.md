@@ -664,6 +664,21 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   "Restore the default settings" keeps saved mixes (they are the player's work, not a setting). Names are compared without regard
   to case (saving "my piano" replaces "My piano") and "Custom" is not allowed. Not done: favorites, renaming, export of mixes to the desktop's `launcher.json` format, recordings and the tune player.
 
+## Release readiness, checked 2026-10-10 (nothing signed, nothing published)
+
+- **A release build compiles** (`assembleRelease`, unsigned): **25.9 MB** (the debug build is 37.6 MB; the bar was 60 MB). Signing
+  needs a key that only the project owner should make and keep; the app is sideloaded, not on a store.
+- **16 KB memory pages (Android 15 and later phones that use them): NOT ready.** `android/tools/check_page_alignment.py <apk>`
+  reads the ELF headers of every native library, also inside Chaquopy's packed archives: 79 of 99 are 16 KB aligned (our
+  libunicorn, Python, Chaquopy's own libraries), **20 are only 4 KB aligned: numpy's 16 `.so` files and Pillow's
+  FreeType and imaging libraries** (the packages Chaquopy ships for Python 3.12: numpy 1.26.2 and Pillow 11.0.0; its package index has no
+  other numpy for 3.12 and no 16 KB build). A phone with 16 KB pages would refuse to load them. Phones with 4 KB pages,
+  including the S23 Ultra, are unaffected. Ways out, none tried: a newer Chaquopy with rebuilt packages, building numpy and Pillow
+  ourselves with 16 KB alignment, or dropping them (hostgfx and the core use both).
+- **Still open for release:** signing, a reproducible Unicorn build (the library still comes from the phone), the Unicorn
+  GPLv2 against this project's GPL-3.0 question, the privacy wording against the website, naming the INTERNET permission in the
+  install text, and the owner's own passes with a finger, a real controller and the pinch.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
