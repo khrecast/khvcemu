@@ -132,6 +132,15 @@ class _Game:
         self.error = ""
         self.taps = collections.deque()      # (x, y) taps on the game's picture, in game pixels, from the Java side
         self.key_script = []                 # [due (monotonic), "down" or "up", avk]: key presses a tap asked for
+        # khvcemu's own "Wonderland is lost media" pages, shown when Continue is pressed on the Wonderland splash (as the
+        # desktop frontend does): the game is held while they are up, and its Continue press is passed on after the last
+        self.lm_pages = []                   # the pages still to show (565 frames), the first is on screen
+        self.lm_start = self.lm_next = False  # asked for by a key press (from any thread), done on the core thread
+        self.lm_serial = 0                   # changes whenever the picture shown changes (the Java side polls it)
+        self.lm_t0 = 0.0
+        self.lm_ended = 0.0                  # when the last page was turned (see _press)
+        self.soft1_down = 0.0
+        self.lm_paused = 0.0                 # seconds of the pages' time the app spent paused (already kept out of the clock)
         from khvcemu.savestate import StateSlots
         self.slots = StateSlots(self.emu)    # slots 1-9 and three rotating autosaves, in <data dir>/states (the desktop's files)
         self.requests = collections.deque()  # ("save" or "load", slot name) asked for by the menu, run on the core thread
@@ -152,6 +161,8 @@ class _Game:
         profile_wanted = os.path.exists(os.path.join(os.path.dirname(self.game_dir), "profile_flag"))
         try:
             emu.start()
+            if os.path.exists(os.path.join(os.path.dirname(self.game_dir), "lm_test_flag")):
+                emu.wonderland_splash_up = True                    # diagnostics: act as if the Wonderland splash were up
             while not self.stop_flag:
                 if profile_wanted:
                     age = time.monotonic() - t_begin
@@ -181,6 +192,8 @@ class _Game:
                     else:                                          # the clock continues where it stopped
                         held = time.monotonic() - self.paused_at
                         emu._t0 += held
+                        if self.lm_pages:
+                            self.lm_paused += held                  # (the pages' own hold must not count it again)
                         self.paused_at = None
                         self.mixer.paused = False
                         self._log("resumed after %.1f s; game clock %d ms" % (held, emu.clock_ms()))
@@ -193,6 +206,10 @@ class _Game:
                     time.sleep(0.02)
                     continue
                 self._handle_taps()
+                if self._lost_media():                             # the Wonderland pages are up: the game waits
+                    self._handle_requests()                        # (a save or load from the menu does not)
+                    time.sleep(0.02)
+                    continue
                 self._handle_states()
                 emu.run_due()
                 due = emu.next_due()
@@ -226,18 +243,22 @@ class _Game:
                 self.slots.last_auto_ms = emu.clock_ms()          # try again in a while, not on every pass
         failed = msg.startswith("Failed") or "empty" in msg
         if (not loading or failed) and self.paused_at is None:   # (a load that worked sets the clock itself; a pause
-            emu._t0 += time.monotonic() - t                      # already accounts for the time it lasted)
+            took = time.monotonic() - t                          # already accounts for the time it lasted)
+            emu._t0 += took
+            if self.lm_pages:
+                self.lm_paused += took                           # (and the pages' own hold must not count it again)
         if not msg.startswith(("Failed", "Slot 0")) and "empty" not in msg:
             self.played = False
         self._log("state: " + msg)
         if not (fn == self.slots.autosave and msg == "Autosaved"):
             self.messages.append(msg)
+        return msg
 
-    def _handle_states(self):
-        """The menu's save and load requests, then the timed autosaves (every few minutes of play, and a few seconds
-        after a loading screen), with the same rules as the desktop."""
+    def _handle_requests(self):
+        """The menu's save and load requests (also while the Wonderland pages are up: a load puts the game somewhere else,
+        so the pages end)."""
         from khvcemu.savestate import StateSlots
-        emu, slots = self.emu, self.slots
+        slots = self.slots
         while self.requests:
             op, name = self.requests.popleft()
             try:
@@ -248,7 +269,17 @@ class _Game:
             if op == "save" and not (isinstance(slot, int) and 1 <= slot <= 9):
                 self.messages.append("Only slots 1 to 9 can be saved to")
                 continue
-            self._state_action(lambda: slots.save(slot) if op == "save" else slots.load(slot), loading=(op == "load"))
+            msg = self._state_action(lambda: slots.save(slot) if op == "save" else slots.load(slot), loading=(op == "load"))
+            worked = not (msg.startswith("Failed") or "empty" in msg)
+            if op == "load" and worked and self.lm_pages:             # (a load that failed changes nothing: the pages stay)
+                self.lm_pages = []
+                self.lm_serial += 1
+
+    def _handle_states(self):
+        """The menu's requests, then the timed autosaves (every few minutes of play, and a few seconds after a loading
+        screen), with the same rules as the desktop."""
+        emu, slots = self.emu, self.slots
+        self._handle_requests()
         if slots.autosave_due():
             if self.played:
                 self._state_action(slots.autosave)
@@ -271,6 +302,9 @@ class _Game:
         the keys the tapped button stands for (khvcemu/tapmap.py), and press them a little apart."""
         from khvcemu import tapmap
         emu = self.emu
+        if self.lm_pages and self.taps:                      # a tap anywhere turns the Wonderland page
+            self.taps.clear()
+            self.lm_next = True
         while self.taps:
             x, y = self.taps.popleft()
             display = emu.display
@@ -296,7 +330,62 @@ class _Game:
                 self.key_script.remove(step)
                 if step[1] == "down":
                     pressed.add(step[2])
-                (emu.key_down if step[1] == "down" else emu.key_up)(step[2])
+                self._press(step[2], step[1] == "down", scripted=True)
+
+    def _press(self, avk, down, scripted=False):
+        """A key goes to the game, except around the Wonderland splash: while the pages are up Soft 1 or Action turns the
+        page and nothing reaches the game; on the splash itself Soft 1 starts the pages instead of continuing."""
+        emu = self.emu
+        if down and not scripted and avk == self.AVK["SOFT1"]:
+            self.soft1_down = time.monotonic()                   # when the player's finger last went down on Soft 1
+        if self.lm_pages:
+            if down and avk in (self.AVK["SOFT1"], self.AVK["SELECT"]):
+                self.lm_next = True
+            return
+        if emu.wonderland_splash_up and avk == self.AVK["SOFT1"]:
+            if down:
+                self.lm_start = True
+            return
+        if (not down and not scripted and avk == self.AVK["SOFT1"] and self.lm_ended
+                and self.soft1_down < self.lm_ended and time.monotonic() - self.lm_ended < 0.3):
+            return                                           # the finger that turned the last page: the game's Continue is
+        (emu.key_down if down else emu.key_up)(avk)          # released by the script, so it is held long enough to be seen
+
+    def _lost_media(self):
+        """Starts, advances and ends the Wonderland pages (on the core thread). True while a page is on screen."""
+        emu = self.emu
+        if self.lm_start and not self.lm_pages:
+            self.lm_start = False                            # (cleared where it is read: a press that lands later is kept)
+            for avk in sorted(emu.keys_held):
+                emu.key_up(avk)
+            try:
+                from khvcemu import lostmedia
+                self.lm_pages = lostmedia.build_screens_pil()
+            except Exception as e:                           # no pages: the game just continues
+                self._log("the Wonderland pages are unavailable: %s" % e)
+                emu.wonderland_splash_up = False
+                self._press(self.AVK["SOFT1"], True)
+                self.key_script.append([time.monotonic() + 0.15, "up", self.AVK["SOFT1"]])
+                return False
+            self.lm_t0, self.lm_paused = time.monotonic(), 0.0
+            self.lm_serial += 1
+            self._log("the Wonderland pages are up")
+        if not self.lm_pages:
+            self.lm_start = False                            # a stray press while no pages are up
+            self.lm_next = False
+            return False
+        if self.lm_next:
+            self.lm_next = False
+            self.lm_pages.pop(0)
+            self.lm_serial += 1
+            if not self.lm_pages:                            # the game did not see the time the pages were up
+                emu._t0 += (time.monotonic() - self.lm_t0) - self.lm_paused
+                emu.wonderland_splash_up = False
+                self._press(self.AVK["SOFT1"], True)         # now let the game have its Continue
+                self.lm_ended = time.monotonic()
+                self.key_script.append([self.lm_ended + 0.15, "up", self.AVK["SOFT1"]])
+                self._log("the Wonderland pages are done")
+        return bool(self.lm_pages)
 
 
 _game = None
@@ -338,7 +427,7 @@ def stop(session=0):
 
 def frame_count():
     """How many frames the game has drawn so far (cheap: the Java side polls this)."""
-    return 0 if _game is None else _game.emu.frames
+    return 0 if _game is None else _game.emu.frames + _game.lm_serial * 1000003      # (a page turn changes it too)
 
 
 def frame_bytes():
@@ -346,7 +435,8 @@ def frame_bytes():
     if _game is None or _game.emu.last_frame is None:
         return b""
     import numpy as np
-    return np.ascontiguousarray(_game.emu.last_frame, dtype="<u2").tobytes()
+    pages = list(_game.lm_pages)                        # a copy: the core thread changes the list
+    return np.ascontiguousarray(pages[0] if pages else _game.emu.last_frame, dtype="<u2").tobytes()
 
 
 def key(name, down):
@@ -358,9 +448,7 @@ def key(name, down):
         return
     if down:
         _game.played = True
-        _game.emu.key_down(avk)
-    else:
-        _game.emu.key_up(avk)
+    _game._press(avk, down)
 
 
 def audio_read(frames):

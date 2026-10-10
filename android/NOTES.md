@@ -598,6 +598,29 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the edit-screen reset cleared every saved value. **Not verified:** the pinch itself (`adb` cannot send two fingers: the code
   was only read and reviewed), landscape, and a key press landing on a resized or moved control.
 
+## The Wonderland pages (2026-10-10, done; the real splash not reached)
+
+- **Soft 1 on the Wonderland splash starts khvcemu's two "Wonderland is lost media" pages**, as on the desktop: the game is held
+  behind them, Soft 1, Action or a tap on the picture turns a page, the last one hands the game its Continue press, and the
+  game's clock skips the time they were up (the time the app spent paused meanwhile is not subtracted twice). The pages are
+  drawn with Pillow (`lostmedia.build_screens_pil`, 565 frames; the desktop keeps its pygame version) and shown through
+  `frame_bytes`. If they cannot be drawn the game just continues.
+- **Found on the phone and fixed:** (1) the two screenshot assets were WebP data in `.png` files, which the phone's Pillow cannot
+  read: converted to real PNG, pixel for pixel (a test checks every asset `.png`); (2) text drawn without smoothing is up to
+  14% wider than Pillow measures, so wrapped lines ran off the page: `PilFont.size` now reports the drawn width (this also
+  changes the width the game's own text path sees on the phone, in the direction of what pygame reports).
+- After review: a save or load from the menu is handled while the pages are up (a load ends them); the time a save takes is
+  not counted twice; the player's finger lifting right after the last page does not cut short the Continue press the core
+  sends; each key flag is cleared where it is read. Known and left: a state made while the pages were up (an autosave on
+  leaving) loads with the splash up and no pages, and Soft 1 starts them again; the pause/resume accounting is tested only
+  through the pieces (a hand-set `lm_paused`), not by driving the loop; on the phone every new string costs one extra small
+  render to measure it (cached).
+- **Tests:** `tests/test_android_lostmedia.py` (the state machine with a fake emulator, six cases), `tests/test_lostmedia_pil.py`.
+- **Verified on the S23 Ultra** with a diagnostic flag file (`files/lm_test_flag` makes the core act as if the splash were up,
+  like `profile_flag`): Soft 1 at the title showed page 1, a tap page 2, another tap ended it; the game was held (0 fps) behind
+  the pages and back at 25 fps after; both pages fit the screen. **Not reached:** the real Wonderland splash (it needs a finished
+  Island), so the splash flag, the Continue press that follows and the clock catch-up were tested only with the flag.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
