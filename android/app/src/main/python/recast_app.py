@@ -113,10 +113,17 @@ class _Game:
                              frame_locked_clock=True)      # 25 fps when the phone keeps up (see Emulator.__init__)
         self.stop_flag = False
         self.want_paused = False
+        self.pause_for_menu = False    # held for the app's own menu, not because the app left the screen
+        self.leave_pending = False     # the app left while the menu already held the game: autosave once
         self.paused_at = None          # monotonic time the loop paused the game clock, else None
         self.error = ""
         self.taps = collections.deque()      # (x, y) taps on the game's picture, in game pixels, from the Java side
         self.key_script = []                 # [due (monotonic), "down" or "up", avk]: key presses a tap asked for
+        from khvcemu.savestate import StateSlots
+        self.slots = StateSlots(self.emu)    # slots 1-9 and three rotating autosaves, in <data dir>/states (the desktop's files)
+        self.requests = collections.deque()  # ("save" or "load", slot name) asked for by the menu, run on the core thread
+        self.messages = collections.deque(maxlen=4)      # what the last save or load said, for the app to show once
+        self.played = False                  # a key was pressed since the last save/load: idle time never rotates autosaves
         self.thread = threading.Thread(target=self._run, name="recast-core", daemon=True)
 
     @staticmethod
@@ -153,6 +160,8 @@ class _Game:
                     if self.want_paused:                           # hold the game clock still, let go of every key
                         for avk in sorted(emu.keys_held):
                             emu.key_up(avk)
+                        if not self.pause_for_menu:
+                            self._autosave_on_leaving()            # Android may end the app without telling it
                         self.paused_at = time.monotonic()
                         self.mixer.paused = True                   # sound is held too
                         self._log("paused (the app is not in the foreground); game clock %d ms" % emu.clock_ms())
@@ -163,11 +172,15 @@ class _Game:
                         self.mixer.paused = False
                         self._log("resumed after %.1f s; game clock %d ms" % (held, emu.clock_ms()))
                 if self.paused_at is not None:
+                    if self.leave_pending:
+                        self.leave_pending = False
+                        self._autosave_on_leaving()
                     self.taps.clear()
                     self.key_script.clear()
                     time.sleep(0.02)
                     continue
                 self._handle_taps()
+                self._handle_states()
                 emu.run_due()
                 due = emu.next_due()
                 wait = 0.002 if due is None else (due - emu.clock_ms()) / 1000
@@ -179,11 +192,66 @@ class _Game:
             self.error = repr(exc)
         finally:
             try:
+                if emu.applet_ptr and not emu.exit_requested and self.played and self.slots.autosave_on_quit:
+                    self.slots.autosave()                      # leaving mid-game: keep one more, as the desktop does
                 emu.stop()
                 emu.playtime.save()
             except Exception:
                 pass
 
+
+    def _state_action(self, fn, loading=False):
+        """Save, load or autosave between guest calls (as khvcemu/frontend.py does); the clock is held still while the
+        file is written so the game does not skip ahead (not after a load: that sets the clock itself)."""
+        emu = self.emu
+        t = time.monotonic()
+        try:
+            msg = fn()
+        except Exception as e:                                    # a failed save or load must never end the game
+            msg = "Failed: %s" % e
+            if fn == self.slots.autosave:
+                self.slots.last_auto_ms = emu.clock_ms()          # try again in a while, not on every pass
+        failed = msg.startswith("Failed") or "empty" in msg
+        if (not loading or failed) and self.paused_at is None:   # (a load that worked sets the clock itself; a pause
+            emu._t0 += time.monotonic() - t                      # already accounts for the time it lasted)
+        if not msg.startswith(("Failed", "Slot 0")) and "empty" not in msg:
+            self.played = False
+        self._log("state: " + msg)
+        if not (fn == self.slots.autosave and msg == "Autosaved"):
+            self.messages.append(msg)
+
+    def _handle_states(self):
+        """The menu's save and load requests, then the timed autosaves (every few minutes of play, and a few seconds
+        after a loading screen), with the same rules as the desktop."""
+        from khvcemu.savestate import StateSlots
+        emu, slots = self.emu, self.slots
+        while self.requests:
+            op, name = self.requests.popleft()
+            try:
+                slot = StateSlots.parse(name)
+            except ValueError as e:
+                self.messages.append(str(e))
+                continue
+            if op == "save" and not (isinstance(slot, int) and 1 <= slot <= 9):
+                self.messages.append("Only slots 1 to 9 can be saved to")
+                continue
+            self._state_action(lambda: slots.save(slot) if op == "save" else slots.load(slot), loading=(op == "load"))
+        if slots.autosave_due():
+            if self.played:
+                self._state_action(slots.autosave)
+            else:
+                slots.last_auto_ms = emu.clock_ms()               # idle: check again next period
+        if slots.area_save_due():                                  # a new area has finished loading
+            emu.last_loading_ms = None
+            if self.played and slots.area_save_allowed():
+                self._state_action(slots.autosave)
+
+    def _autosave_on_leaving(self):
+        """The app is going to the background: one autosave if something was played (not within 30 s of the last one)."""
+        slots, emu = self.slots, self.emu
+        if (self.played and slots.autosave_enabled and emu.applet_ptr
+                and (slots.last_autosave_ms is None or emu.clock_ms() - slots.last_autosave_ms >= 30000)):
+            self._state_action(slots.autosave)
 
     def _handle_taps(self):
         """On the core thread, so what the game has drawn is not changing underneath: turn each tap on the picture into
@@ -198,6 +266,8 @@ class _Game:
             items = display.__dict__.get("text_items", [])
             keys = tapmap.resolve_tap(x, y, items, emu.last_frame)
             self._log("tap (%d, %d) -> %s" % (x, y, keys or "nothing"))
+            if keys:
+                self.played = True
             due = time.monotonic()
             for k in keys:
                 avk = self.AVK[k]
@@ -263,6 +333,7 @@ def key(name, down):
     if avk is None:
         return
     if down:
+        _game.played = True
         _game.emu.key_down(avk)
     else:
         _game.emu.key_up(avk)
@@ -289,13 +360,74 @@ def tap(x, y):
         _game.taps.append((float(x), float(y)))
 
 
-def pause():
+def request_state(op, name):
+    """Save ("save") or load ("load") a slot ("1".."9", "auto", "auto2", "auto3") on the core thread. The result comes
+    back through take_message()."""
+    if _game is not None and op in ("save", "load"):
+        _game.requests.append((op, str(name)))
+
+
+def take_message():
+    """What the last save or load said (once), or an empty string."""
+    if _game is not None and _game.messages:
+        return _game.messages.popleft()
+    return ""
+
+
+STATE_NAMES = ("1", "2", "3", "4", "5", "6", "7", "8", "9", "auto", "auto2", "auto3")
+
+
+def states_json():
+    """The slots as JSON for the Saves screen: [{name, label, exists, created, thumb}], slots 1-9 then the autosaves."""
+    import json
+    from khvcemu.savestate import StateSlots, read_header
+    out = []
+    if _game is None:
+        return json.dumps(out)
+    slots = _game.slots
+    for name in STATE_NAMES:
+        slot = StateSlots.parse(name)
+        path = slots.path(slot)
+        item = {"name": name, "label": StateSlots.label(slot).capitalize(), "exists": os.path.isfile(path),
+                "created": 0, "thumb": ""}
+        if item["exists"]:
+            try:
+                item["created"] = read_header(path)["created"]
+            except Exception:
+                item["exists"] = False                              # unreadable: shown as empty
+            png = os.path.splitext(path)[0] + ".png"
+            if os.path.isfile(png):
+                item["thumb"] = png
+        out.append(item)
+    return json.dumps(out)
+
+
+def delete_state(name):
+    """Delete a save slot (its state and its thumbnail)."""
+    from khvcemu.savestate import StateSlots
+    if _game is None or str(name) not in STATE_NAMES:
+        return
+    path = _game.slots.path(StateSlots.parse(str(name)))
+    for p in (path, os.path.splitext(path)[0] + ".png"):
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+
+
+def pause(menu=False):
+    """Hold the game. menu=True: only because the app's own menu is up (no autosave then); else the app is leaving."""
     if _game is not None:
+        if _game.want_paused and _game.pause_for_menu and not menu:
+            _game.leave_pending = True                 # the menu was up and now the app really leaves
+        _game.pause_for_menu = bool(menu)
         _game.want_paused = True
 
 
 def resume():
     if _game is not None:
+        _game.leave_pending = False                    # the app is back before the core noticed it had left
+        _game.pause_for_menu = False
         _game.want_paused = False
 
 

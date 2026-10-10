@@ -1,13 +1,17 @@
 package com.khrecast.recast;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 import android.view.WindowManager;
+import android.window.OnBackInvokedDispatcher;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
@@ -30,6 +34,10 @@ public class MainActivity extends Activity {
     private volatile PyObject app;                 // the recast_app module once the game has started
     private volatile boolean running = true;
     private volatile boolean resumed = false;      // the activity is in the foreground
+    private volatile boolean inner = false;        // one of our own screens (Saves, Setup) was opened from the game
+    private AlertDialog menu;
+    private volatile boolean menuOpen = false;     // our menu is up: the game is held, like when the app is in the background
+    private static final int REQ_SAVES = 1;
     private Thread pump;
     private Thread sound;
 
@@ -65,6 +73,10 @@ public class MainActivity extends Activity {
         }));
         setContentView(view);
         view.setStatus("starting...");
+        if (Build.VERSION.SDK_INT >= 33) {             // the system Back button and the back swipe open the game's menu
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    this::showMenu);
+        }
         new Thread(this::startGame, "recast-start").start();
     }
 
@@ -95,6 +107,80 @@ public class MainActivity extends Activity {
         sound.start();
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public void onBackPressed() {                      // phones before Android 13 (the newer ones use the callback above)
+        showMenu();
+    }
+
+    /** The game's menu (the system Back button or swipe): the game is held while it is up. */
+    private void showMenu() {
+        if (app == null) {                             // still starting: Back leaves, as it did before the menu existed
+            finish();
+            return;
+        }
+        if (menuOpen) {
+            return;
+        }
+        final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
+                "Load a saved game...", "Game files...", "Quit the game"};
+        menuOpen = true;
+        applyLifecycle();
+        menu = new AlertDialog.Builder(this)
+                .setTitle("Re:Cast")
+                .setItems(items, (d, which) -> {
+                    switch (which) {
+                        case 1:
+                            requestState("save", "1");
+                            break;
+                        case 2:
+                            requestState("load", "1");
+                            break;
+                        case 3:
+                        case 4:
+                            inner = true;
+                            startActivityForResult(new Intent(this, SavesActivity.class)
+                                    .putExtra(SavesActivity.EXTRA_MODE, which == 3 ? "save" : "load"), REQ_SAVES);
+                            break;
+                        case 5:
+                            inner = true;
+                            startActivity(new Intent(this, SetupActivity.class).putExtra("auto", false));
+                            break;
+                        case 6:
+                            finish();                  // the core autosaves on the way out (if anything was played)
+                            break;
+                        default:
+                            break;
+                    }
+                })
+                .setOnDismissListener(d -> {
+                    menuOpen = false;
+                    applyLifecycle();
+                })
+                .show();
+    }
+
+    private void requestState(String op, String slot) {
+        input.execute(() -> {
+            PyObject a = app;
+            if (a != null) {
+                try {
+                    a.callAttr("request_state", op, slot);
+                } catch (Throwable t) {
+                    Log.w(TAG, "state request failed: " + t);
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_SAVES && resultCode == RESULT_OK && data != null) {
+            requestState(data.getStringExtra(SavesActivity.EXTRA_MODE), data.getStringExtra(SavesActivity.EXTRA_SLOT));
+        }
+    }
+
     /** Plays the core's sound: asks Python for the next block of mixed samples and writes it to an AudioTrack
      *  (the blocking write paces the loop). Held while the app is not in the foreground. */
     private void pumpSound() {
@@ -115,7 +201,7 @@ public class MainActivity extends Activity {
                     .setTransferMode(AudioTrack.MODE_STREAM)
                     .build();
             while (running) {
-                if (!resumed) {
+                if (!active()) {
                     if (track.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                         track.pause();
                     }
@@ -144,7 +230,7 @@ public class MainActivity extends Activity {
 
     /** Fetches each new picture from the core and shows it, and the core's status line about once a second. */
     private void pumpFrames() {
-        long last = -1, lastStatus = 0;
+        long last = -1, lastStatus = 0, lastMessage = 0;
         while (running) {
             try {
                 PyObject a = app;
@@ -165,7 +251,14 @@ public class MainActivity extends Activity {
                         return;
                     }
                 }
-                Thread.sleep(resumed ? 8 : 250);
+                Thread.sleep(active() ? 8 : 250);
+                if (now - lastMessage > 250) {                 // what a save or load said (once)
+                    lastMessage = now;
+                    String said = a.callAttr("take_message").toString();
+                    if (!said.isEmpty()) {
+                        runOnUiThread(() -> Toast.makeText(this, said, Toast.LENGTH_SHORT).show());
+                    }
+                }
             } catch (InterruptedException e) {
                 return;
             } catch (Throwable t) {
@@ -191,12 +284,20 @@ public class MainActivity extends Activity {
 
     /** Tells the core whether the app is in the foreground. Queued on the input thread, and the flag is read when the
      *  task runs, so the last state always wins whatever the order of onPause, onResume and the game starting. */
+    private boolean active() {
+        return resumed && !menuOpen;
+    }
+
     private void applyLifecycle() {
         input.execute(() -> {
             PyObject a = app;
             if (a != null) {
                 try {
-                    a.callAttr(resumed ? "resume" : "pause");
+                    if (active()) {
+                        a.callAttr("resume");
+                    } else {
+                        a.callAttr("pause", resumed || inner);   // only our own screens hold the game: no autosave for that
+                    }
                 } catch (Throwable t) {
                     Log.w(TAG, "pause/resume failed: " + t);
                 }
@@ -208,12 +309,16 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        inner = false;
         applyLifecycle();
     }
 
     @Override
     protected void onDestroy() {
         running = false;
+        if (menu != null && menu.isShowing()) {
+            menu.dismiss();                            // no leaked window
+        }
         if (view == null) {                            // onCreate went to the setup screen
             super.onDestroy();
             return;

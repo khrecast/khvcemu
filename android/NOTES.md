@@ -339,6 +339,33 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the APK for no gain yet; revisit when there are enough screens to justify it). The settings JSON and the move of the
   option defaults out of `launcher.py` touch the desktop launcher, so they wait for chunk 12 where the options are used.
 
+## Chunk 11: saves (2026-10-10, done in part; the Saves screen is plain, export and import are not done)
+
+- **The game's menu.** The system Back button or the back swipe opens it (Android 13+ through
+  `OnBackInvokedCallback`, because the old `onBackPressed` is not called at target SDK 36; older phones keep
+  `onBackPressed`). Items: Resume, Quick save (slot 1), Quick load (slot 1), Save to a slot, Load a saved game, Game
+  files (the Setup screen), Quit the game. The game and its sound are held while the menu is up.
+- **Core** (`recast_app.py`, on the core thread): `request_state(op, slot)` runs `StateSlots.save/load`; the clock is held
+  while a file is written (as `frontend.py` does); a failed save or load says "Failed: ..." and never ends the game.
+  Autosaves follow the desktop's rules (every 5 min of play, a few seconds after a loading screen, one more on quit),
+  and only when something was played since the last save or load. New: one autosave when the app goes to the
+  background (not for the menu), at most every 30 s, so a killed app keeps the session.
+- **Saves screen** (`SavesActivity`): slots 1 to 9 and the three autosaves with the picture and date from the same
+  `.khs` and `.png` files the desktop writes; tap to save or load (asks before replacing), press and hold to delete.
+  There is no world name yet (it is not in the file header).
+- **Verified on the S23 Ultra:** quick save at the title, move to Options, quick load: back at the title. Home press
+  wrote an autosave; the app was force-stopped; reopened, "The autosave" was listed with its picture and loaded
+  (Options screen). **A state made on the phone loads on the desktop** (0 faults, ran 1 s after). **A state made on the
+  desktop loads on the phone** (the highlight on Load Game as saved, 25 fps, 0 faults), after one fix: the desktop's
+  numpy 2 writes `numpy._core` names that numpy 1.26 on the phone does not have; `savestate._CompatUnpickler` now maps
+  them, and an unreadable state raises `StateError` instead of killing the game (core change, test in
+  `tests/test_savestate_compat.py`).
+- **Known limit:** Home pressed while the Saves or Setup screen is in front leaves the game held without an autosave
+  (the game screen gets no callback then); the autosave from opening the menu and the timed ones still apply.
+- **Not done:** "Start at world" (with the backup of the current save), export and import of saves to the Downloads
+  folder, the autosave switches (chunk 12's Options), a Continue card (chunk 10's Home), a state made with the speed
+  patches on loaded with them off (and the reverse), a long play session, the thumbnail's world name.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

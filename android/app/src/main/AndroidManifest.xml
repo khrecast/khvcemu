@@ -23,6 +23,11 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="portrait" />
+        <!-- the save slots (opened from the game's menu) -->
+        <activity
+            android:name=".SavesActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <!-- the speed spike (start it with: adb shell am start -n com.khrecast.recast/.BenchActivity) -->
         <activity
             android:name=".BenchActivity"
