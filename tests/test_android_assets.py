@@ -12,6 +12,15 @@ class AndroidAssetCopyTests(unittest.TestCase):
         with open(original, "rb") as a, open(copy, "rb") as b:
             self.assertEqual(a.read(), b.read(), "re-copy the logo into android/app/src/main/res/drawable-nodpi/recast_logo.png")
 
+    def test_the_app_menu_labels_match_the_ones_made_for_the_launcher_font(self):
+        menu = os.path.join(ROOT, "khvcemu", "assets", "menu")
+        res = os.path.join(ROOT, "android", "app", "src", "main", "res", "drawable-nodpi")
+        names = sorted(n for n in os.listdir(menu) if n.endswith(".png"))
+        self.assertTrue(names, "no menu labels found")
+        for name in names:
+            with open(os.path.join(menu, name), "rb") as a, open(os.path.join(res, "menu_" + name), "rb") as b:
+                self.assertEqual(a.read(), b.read(), name + ": run tools/make_tab_labels.py to refresh the Android copies")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-"""Render the launcher's tab names in the Kingdom Hearts menu font, blocky like the logo.
+"""Render the launcher's tab names (and the Android app's menu names) in the Kingdom Hearts menu font, blocky like the logo.
 
     python tools/make_tab_labels.py [path/to/KHMenu.otf]
 
@@ -17,6 +17,7 @@ doubled with hard pixel edges, the way the Re:Cast logo was made.
 """
 
 import os
+import shutil
 import sys
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -33,6 +34,13 @@ ZOOM = 2
 LABELS = {"play": "Play", "saves": "Saves", "options": "Options", "sound": "Sound",
           "setup": "Setup", "setup_warn": "Setup (!)", "controls": "Controls"}
 OUTLINE = (8, 14, 26)
+# the Android app's menu and heading names (bright silver, drawn the same way): key -> name. They are written to
+# khvcemu/assets/menu/ and copied to android/app/src/main/res/drawable-nodpi/menu_<key>.png (a test keeps the copies equal)
+MENU_OUT = os.path.join(ROOT, "khvcemu", "assets", "menu")
+ANDROID_RES = os.path.join(ROOT, "android", "app", "src", "main", "res", "drawable-nodpi")
+MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen", "saved_games": "Saved games",
+               "options": "Options", "game_files": "Game files", "set_up": "Set up the game files",
+               "load_saved": "Load a saved game", "save_slot": "Save to a slot", "understand": "I understand"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:
@@ -83,6 +91,14 @@ def main(font_path: str = FONT):
         for selected, suffix in ((False, ""), (True, "_on")):
             pygame.image.save(render(font, text, selected), os.path.join(OUT, f"{key}{suffix}.png"))
     print(f"wrote {len(LABELS) * 2} labels to {OUT}")
+    os.makedirs(MENU_OUT, exist_ok=True)
+    for key, text in MENU_LABELS.items():
+        path = os.path.join(MENU_OUT, f"{key}.png")
+        pygame.image.save(render(font, text, True), path)
+        if os.path.isdir(ANDROID_RES):
+            shutil.copyfile(path, os.path.join(ANDROID_RES, f"menu_{key}.png"))
+    print(f"wrote {len(MENU_LABELS)} app menu labels to {MENU_OUT}"
+          + (f" and {ANDROID_RES}" if os.path.isdir(ANDROID_RES) else ""))
 
 
 if __name__ == "__main__":

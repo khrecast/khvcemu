@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -49,15 +48,12 @@ public class DisclaimerActivity extends Activity {
         files.setPadding(0, 0, 0, wide ? dp(12) : dp(24));
         col.addView(files);
 
-        Button ok = new Button(this);
-        ok.setText("I understand");
-        ok.setAllCaps(false);
-        ok.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        ok.setOnClickListener(v -> {
-            startActivity(new Intent(this, HomeActivity.class));
-            finish();
-        });
-        col.addView(ok, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(wide ? 52 : 60)));
+        android.widget.FrameLayout ok = Labels.pictureButton(this, R.drawable.menu_understand, 24, wide ? 52 : 60,
+                "I understand", v -> {
+                    startActivity(new Intent(this, HomeActivity.class));
+                    finish();
+                });
+        col.addView(ok);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);

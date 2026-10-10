@@ -34,9 +34,7 @@ public class OptionsActivity extends Activity {
         int pad = dp(20);
         col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        TextView title = text("Options", 26, Color.WHITE);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        col.addView(title);
+        col.addView(Labels.picture(this, R.drawable.menu_options, 26, Labels.maxWidth(this), false, "Options"));
 
         col.addView(heading("Picture size"));
         RadioGroup sizes = new RadioGroup(this);

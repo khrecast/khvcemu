@@ -11,7 +11,6 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -70,7 +69,8 @@ public class HomeActivity extends Activity {
                     + "that holds them to get started.", 16, 0xFFCFD8DC);
             need.setPadding(0, dp(16), 0, dp(20));
             col.addView(need);
-            col.addView(button("Set up the game files", true, v -> startActivity(new Intent(this, SetupActivity.class))));
+            col.addView(Labels.pictureButton(this, R.drawable.menu_set_up, 26, 64, "Set up the game files",
+                    v -> startActivity(new Intent(this, SetupActivity.class))));
             return;
         }
 
@@ -78,13 +78,16 @@ public class HomeActivity extends Activity {
         if (newest != null) {
             col.addView(continueCard(newest));
         }
-        col.addView(button("Play from the title screen", newest == null,
+        col.addView(Labels.pictureButton(this, R.drawable.menu_play_title, newest == null ? 26 : 20,
+                newest == null ? 64 : 54, "Play from the title screen",
                 v -> startActivity(new Intent(this, MainActivity.class))));
-        col.addView(button("Saved games", false, v -> startActivityForResult(
-                new Intent(this, SavesActivity.class).putExtra(SavesActivity.EXTRA_MODE, "load")
-                        .putExtra(SavesActivity.EXTRA_IMPORT, true), REQ_SAVES)));
-        col.addView(button("Options", false, v -> startActivity(new Intent(this, OptionsActivity.class))));
-        col.addView(button("Game files", false, v -> startActivity(new Intent(this, SetupActivity.class))));
+        col.addView(Labels.pictureButton(this, R.drawable.menu_saved_games, 20, 54, "Saved games",
+                v -> startActivityForResult(new Intent(this, SavesActivity.class)
+                        .putExtra(SavesActivity.EXTRA_MODE, "load").putExtra(SavesActivity.EXTRA_IMPORT, true), REQ_SAVES)));
+        col.addView(Labels.pictureButton(this, R.drawable.menu_options, 20, 54, "Options",
+                v -> startActivity(new Intent(this, OptionsActivity.class))));
+        col.addView(Labels.pictureButton(this, R.drawable.menu_game_files, 20, 54, "Game files",
+                v -> startActivity(new Intent(this, SetupActivity.class))));
         TextView hint = text("In the game, the phone's Back button opens its menu.", 13, 0xFF8EA4BF);
         hint.setPadding(0, dp(20), 0, 0);
         col.addView(hint);
@@ -119,7 +122,8 @@ public class HomeActivity extends Activity {
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
         words.setPadding(dp(14), 0, 0, 0);
-        words.addView(text("Continue", 22, Color.WHITE));
+        ImageView continueLabel = Labels.picture(this, R.drawable.menu_continue, 24, Labels.maxWidth(this), false, "Continue");
+        words.addView(continueLabel);
         words.addView(text(s.label, 15, 0xFFCFD8DC));
         words.addView(text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
                 .format(new Date(s.created)), 13, 0xFF8EA4BF));
@@ -139,18 +143,6 @@ public class HomeActivity extends Activity {
             startActivity(new Intent(this, MainActivity.class)
                     .putExtra(EXTRA_LOAD, data.getStringExtra(SavesActivity.EXTRA_SLOT)));
         }
-    }
-
-    private Button button(String label, boolean main, View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setAllCaps(false);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, main ? 18 : 16);
-        b.setOnClickListener(l);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(main ? 64 : 54));
-        lp.topMargin = dp(8);
-        b.setLayoutParams(lp);
-        return b;
     }
 
     private TextView text(String s, int sp, int color) {

@@ -48,9 +48,8 @@ public class SavesActivity extends Activity {
         int pad = dp(16);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        TextView title = text("save".equals(mode) ? "Save to a slot" : "Load a saved game", 24, Color.WHITE);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        col.addView(title);
+        col.addView(Labels.picture(this, "save".equals(mode) ? R.drawable.menu_save_slot : R.drawable.menu_load_saved, 26,
+                Labels.maxWidth(this), false, "save".equals(mode) ? "Save to a slot" : "Load a saved game"));
         TextView hint = text("save".equals(mode)
                 ? "Tap a slot to save the game there. The autosaves can only be loaded."
                 : "Tap a slot to load it. Press and hold a slot to export or delete it.", 14, 0xFF8EA4BF);

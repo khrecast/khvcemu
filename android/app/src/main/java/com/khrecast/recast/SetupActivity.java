@@ -41,9 +41,7 @@ public class SetupActivity extends Activity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        TextView title = text("Re:Cast", 30, Color.WHITE);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        col.addView(title);
+        col.addView(Labels.picture(this, R.drawable.menu_game_files, 26, Labels.maxWidth(this), false, "Game files"));
         message = text("", 16, 0xFFCFD8DC);
         message.setPadding(0, dp(16), 0, dp(24));
         col.addView(message);

@@ -466,6 +466,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   open comes back instead, without the notice. Seen on the S23 Ultra in portrait; landscape and the "I understand" tap
   were exercised, the notice in landscape was not looked at.
 
+## The menu font on the app's menus (2026-10-10, done)
+
+- The Home screen's buttons and Continue card, the screen headings (Options, Saved games, Game files) and the notice's
+  "I understand" button are small pictures of their names in the KHMenu font, the same look as the desktop launcher's tab
+  names. `tools/make_tab_labels.py` draws them (it now also writes `khvcemu/assets/menu/*.png`, and copies each to
+  `android/app/src/main/res/drawable-nodpi/menu_*.png`); the font file itself stays out of the repository, as before, and
+  `tests/test_android_assets.py` fails if the Android copies drift from the originals. Televo's credit (README,
+  `docs/CREDITS.md`) now says the app's menu names too; the website's credit is unchanged until the app is public.
+- `Labels.java` scales a label by a whole number (about 20 to 26 dp tall) with no smoothing, so the pixels stay crisp; a
+  picture button is a normal Button with the picture on top (the button is raised, so the picture has a higher elevation).
+- **Still plain text:** the in-game menu (a system list dialog), the text on the Setup, Saves and Options screens, the
+  Import button and the other buttons, and the toggles. Seen on the S23 Ultra in portrait only.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

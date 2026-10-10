@@ -629,7 +629,7 @@ python -m unittest tests.test_units tests.test_music_settings tests.test_music_m
 KH_DUMP=path/to/kh_dump python -m unittest tests.test_game  # end-to-end, ~4 min
 python tools/probe.py <dump> --ms 12000 -v                  # headless run, logs + last frame
 python tools/frames.py <dump> out/ --save castle --keys 11000:DOWN,12000:SELECT,15000:SOFT1
-python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names (font not included)
+python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names and the Android app's menu names (font not included)
 python tools/launcher_screenshots.py                        # Windows: retake the launcher screenshots for the website
 python tools/disasm.py <mod> 0x100000 <addr> [n]            # needs capstone
 python tools/bench_state.py --root <dump> --state 7         # speed from one of your save states, speed-ups on and off
@@ -684,7 +684,7 @@ recorded and wrote about the game. The full list, with links, is in
   real phone), [Zero-Up](https://www.youtube.com/@michaelkindt3288) and
   [TheGamersJoint](https://www.youtube.com/@TheGamersJoint).
 * **Look and feel:** [Televo](https://github.com/Televo/kingdom-hearts-recollection) recreated the Kingdom
-  Hearts menu font (KHMenu) that the Re:Cast title and the launcher's tab names are drawn in.
+  Hearts menu font (KHMenu) that the Re:Cast title, the launcher's tab names and the Android app's menu names are drawn in.
 * **Emulation research:** [zeebulator](https://github.com/requeijaum/zeebulator), whose BREW
   interface research this project builds on, and
   [Melange](https://gitlab.com/usernameak/brewemulator) by UsernameAK, the Android BREW

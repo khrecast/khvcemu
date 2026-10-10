@@ -44,7 +44,7 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 
 | Who | What | Links |
 | --- | --- | --- |
-| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo and the launcher's tab names are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
+| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo, the launcher's tab names and the Android app's menu names are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
 
 The Re:Collection set has no formal license. Its README says: "If you decide to use these assets
 and fonts publicly, giving credit is much appreciated although not necessary." This repository
