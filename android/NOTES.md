@@ -226,7 +226,41 @@ native string/heap helpers (only matters while loading), and a dynarmic backend 
 
 ## 6. Spike results
 
-None yet. (Device, Android version, numbers, failures and why.)
+### Spike 0, Termux, 2026-10-10: Galaxy S23 Ultra (user's phone), Python 3.14.6, Unicorn 2.1.4 built on the phone
+
+Read off the user's screenshot of `~/spike_log.txt` (the phone and SoC header lines scrolled off it; battery and
+temperature were not recorded; one run of each, no repeats). The same repo code as the desktop, no pygame
+installed (so no host-drawn text), the speed patches `span` and `matinv` on (the default).
+
+| Measure | Phone | Pass bar | Desktop | Verdict |
+| --- | --- | --- | --- | --- |
+| Boot to title, real-time factor | 1.389x (28.8 ms per frame, 275 frames, faults 0, title reached) | >= 1.0x | 1.5x to 1.9x | pass |
+| 3D scene, real-time factor | 0.876x (scene a, loading), 0.92x (scene b, steady 3D; 43.5 ms per frame, 23 fps capacity) | >= 0.6x | 0.84x to 0.86x before the speed patches, about 0.93x with them | pass |
+| Guest instructions per second in 3D | not counted on the phone; about 150 M estimated (168 M per game second on the desktop x 0.92; fewer with the patches) | >= 100 M | 140 to 145 M | pass (estimate) |
+| Synth render of the nine tunes | 11.99 s (training 2.97 s the longest), peak 48.6 MiB | < 60 s | 6.3 s | pass |
+| Peak memory (the Python process) | 58.8 to 60.6 MiB RSS | < 300 MB (PSS in the real app is still to be measured) | 64 MB | pass |
+| APK size | not built yet | < 60 MB | | open |
+
+What this says: on this phone the unmodified Python core with an ARM-only Unicorn built by Termux's clang runs the
+game at about 0.9x real time in the busiest scene tried, as fast as the development PC. It reaches 25 fps in the
+menus and about 22 to 23 fps in 3D. The S23 Ultra's Cortex-X3 is one of the fastest phone cores of its generation,
+so this is a best case: a pass here does not make a mid-range phone pass.
+
+What it does not say:
+- Sustained play (heat): each run was seconds long. Thermal throttling over 10 or 20 minutes is unmeasured.
+- The Agrabah lava scene (the slowest on the desktop, about 15 fps there) and a fight were not run; save states
+  7 and 9 would need the benchmark pointed at them.
+- Termux is an app with an older target SDK (28); an APK at target SDK 36 must still show that Unicorn's executable
+  memory (`execmem`) is allowed, checked with `adb logcat | grep avc` (section 3).
+- The frame digest differs from the desktop's (boot: phone 250a782cb28866d9, desktop e4aae8d85cb1a4c6) and `lit`
+  is 0.366 against 0.376. Probably the host-drawn text (pygame is not installed on the phone, and the desktop
+  run had it); not verified. Frames from the core alone should be compared before trusting the picture.
+- Python 3.14 worked in Termux, but Chaquopy's Python (3.12, section 3) is a different build.
+
+Decision: the pass bar is met on the test phone, so the plan continues with the toolchain (chunk 2). A slower
+phone, if the user has one, is the next useful measurement.
+
+First attempt (earlier the same day): stopped at `CANNOT LINK EXECUTABLE "cmake"` until `pkg upgrade -y` (see Chunk 1).
 
 ## 7. Install list for Spike 1 (for the user to approve; nothing downloaded)
 
