@@ -46,6 +46,20 @@ Pass/fail numbers are in section 5. The zip holds the game files: it is for that
 
 First phone attempt (2026-10-10): stopped at step 2 with `CANNOT LINK EXECUTABLE "cmake": cannot locate symbol _ZNSt6__ndk113__hash_memoryEPKvm` (Termux had 72 packages not upgraded, so cmake and libc++ did not match). Fix: `pkg upgrade -y`, restart Termux, rerun; the script now upgrades first.
 
+## Chunk 2: the toolchain (2026-10-10, done)
+
+Installed under `C:\Android` (3.3 GB on disk, outside the repo; the user accepted the SDK licenses): Temurin JDK
+17.0.20.1, command-line tools 23.0.0, platform-tools 37.0.1 (adb), `platforms;android-36`, `build-tools;36.0.0`,
+`ndk;28.2.13676358` (clang 19.0.1), `cmake;3.31.6` (with Ninja 1.12.1). Gradle comes with the wrapper later.
+Checked: `clang`, `cmake`, `ninja`, `adb`, `javac` all run; `android.jar` and `aapt2.exe` are present.
+`android/env.ps1` sets JAVA_HOME, ANDROID_HOME, ANDROID_NDK_HOME and PATH for one PowerShell session
+(`. .ndroid\env.ps1`); nothing is system-wide.
+Gotcha: `sdkmanager.bat` splits a package name like `platforms;android-36` at the semicolon when given on the
+command line (even quoted, from bash or PowerShell), so it reports "Package platforms not found". Use
+`--package_file=<file with one package per line>`.
+`adb devices` showed `emulator-5554 offline`: some Android emulator is running or was left registered on this PC
+(not started by us); it is not the phone. The phone is not connected over USB yet.
+
 ## 1. This machine (checked 2026-10-06)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
