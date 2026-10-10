@@ -742,7 +742,9 @@ public class GameView extends View {
         for (String k : new ArrayList<>(held)) {
             if (!now.contains(k)) {
                 held.remove(k);
-                send(k, false);
+                if (!padHeld.containsKey(k)) {                     // (a controller may still be holding it)
+                    send(k, false);
+                }
             }
         }
         for (String k : now) {
@@ -779,6 +781,38 @@ public class GameView extends View {
         }
     }
 
+    // keys held from a controller: the sources (GamePad.FROM_*) that hold each one, so the stick and the D-pad can share a key
+    private final java.util.Map<String, Integer> padHeld = new java.util.HashMap<>();
+
+    /** A controller button or stick direction went down or up: presses the phone key unless the controls are being moved. */
+    public void padKey(String name, boolean down, int source) {
+        if (editing) {
+            return;
+        }
+        int before = padHeld.containsKey(name) ? padHeld.get(name) : 0;
+        int after = down ? (before | source) : (before & ~source);
+        if (after == 0) {
+            padHeld.remove(name);
+        } else {
+            padHeld.put(name, after);
+        }
+        if (before == 0 && after != 0 && !held.contains(name)) {
+            send(name, true);
+        } else if (before != 0 && after == 0 && !held.contains(name)) {      // (a finger may still be holding it)
+            send(name, false);
+        }
+    }
+
+    /** Lets go of every key a controller holds (a menu or another screen took the controller's focus). */
+    public void releasePad() {
+        for (String k : new ArrayList<>(padHeld.keySet())) {
+            if (!held.contains(k)) {
+                send(k, false);
+            }
+        }
+        padHeld.clear();
+    }
+
     /** Lets go of every key (the app left the foreground). */
     public void releaseAll() {
         if (editing) {
@@ -788,6 +822,10 @@ public class GameView extends View {
             send(k, false);
         }
         held.clear();
+        for (String k : new ArrayList<>(padHeld.keySet())) {
+            send(k, false);
+        }
+        padHeld.clear();
         tapPointer = -1;
         postInvalidate();
     }

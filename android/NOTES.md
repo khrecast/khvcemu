@@ -633,6 +633,25 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   text size 15. **Not compared:** the Java EPX against the desktop's pygame `scale2x` pixel by pixel; hi-res text (the
   desktop's smooth text drawn at window resolution) is not built.
 
+## Game controllers (2026-10-10, done with injected events only)
+
+- **A controller (or a keyboard with a D-pad) presses the phone keys:** the D-pad and the left stick (and the hat) move; A is
+  Action, B is Back, X is Magic, Y is Status, L1 or L2 is Soft 1, R1 or R2 is Soft 2, **Start opens the game's menu** (inside
+  that menu the controller moves the highlight and A picks, through Android's own focus). `GamePad.java` is the mapping;
+  `MainActivity.dispatchKeyEvent` and `dispatchGenericMotionEvent` take the events; `GameView.padKey` presses the key and
+  remembers which source holds it, so the stick and the D-pad can share a key; leaving the app lets everything go. While the
+  controls are being moved a controller does nothing.
+- **Verified on the S23 Ultra only with events injected through `adb shell input gamepad`:** two D-pad Down presses moved the
+  title highlight from New Game to Options, and Start opened the menu. **No real controller was available**: the stick's dead
+  zone (half), the hat, held buttons and repeats, and a Bluetooth pad's button codes are unproven.
+- After review: held controller keys and the stick are let go when the menu opens or the app pauses (the dialog takes the
+  controller's events, so their releases never arrive); Start does nothing before the game has started or while the controls are
+  being moved; a finger and a controller holding the same key do not release it for each other; a controller removed (unplugged or
+  switched off) or a window that loses focus lets go of everything the pad holds.
+- **Limits:** the analog triggers (axes) are ignored (L2 and R2 work only when the pad sends them as buttons); two controllers
+  share one stick state (a second pad sitting at center can let go of the first one's direction).
+- **Not done:** remapping the buttons, a controller picker, rumble.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

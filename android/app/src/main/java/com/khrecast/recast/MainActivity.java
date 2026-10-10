@@ -10,6 +10,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.window.OnBackInvokedDispatcher;
 
@@ -79,6 +82,10 @@ public class MainActivity extends Activity {
             }
         }));
         setContentView(view);
+        inputManager = (android.hardware.input.InputManager) getSystemService(INPUT_SERVICE);
+        if (inputManager != null) {
+            inputManager.registerInputDeviceListener(deviceListener, null);
+        }
         view.setStatus("starting...");
         if (Build.VERSION.SDK_INT >= 33) {             // the system Back button and the back swipe open the game's menu
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
@@ -134,6 +141,81 @@ public class MainActivity extends Activity {
         showMenu();
     }
 
+    private final boolean[] stick = new boolean[4];            // the stick's directions held: left, right, up, down
+    private static final String[] STICK_KEYS = {"LEFT", "RIGHT", "UP", "DOWN"};
+
+    /** Controller buttons: they press the phone keys (the game and its sound are held while a menu is up, as for touch). */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        if (view != null && GamePad.fromPad(e) && !menuOpen) {
+            String key = GamePad.keyFor(e.getKeyCode());
+            if (key != null) {
+                if (e.getRepeatCount() == 0) {
+                    view.padKey(key, e.getAction() == KeyEvent.ACTION_DOWN, GamePad.FROM_BUTTONS);
+                }
+                return true;
+            }
+            if (GamePad.isMenu(e.getKeyCode())) {
+                if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0 && app != null && !view.isEditing()) {
+                    showMenu();
+                }
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(e);
+    }
+
+    /** The left stick and the hat move like the D-pad. */
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent e) {
+        if (view != null && (e.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+                && e.getAction() == MotionEvent.ACTION_MOVE) {
+            float[] pos = GamePad.position(e);
+            boolean[] now = menuOpen ? new boolean[4] : GamePad.directions(pos[0], pos[1]);
+            for (int i = 0; i < 4; i++) {
+                if (now[i] != stick[i]) {
+                    stick[i] = now[i];
+                    view.padKey(STICK_KEYS[i], now[i], GamePad.FROM_STICK);
+                }
+            }
+            return true;
+        }
+        return super.dispatchGenericMotionEvent(e);
+    }
+
+    private android.hardware.input.InputManager inputManager;
+    private final android.hardware.input.InputManager.InputDeviceListener deviceListener =
+            new android.hardware.input.InputManager.InputDeviceListener() {
+                @Override
+                public void onInputDeviceAdded(int deviceId) {
+                }
+
+                @Override
+                public void onInputDeviceChanged(int deviceId) {
+                }
+
+                @Override
+                public void onInputDeviceRemoved(int deviceId) {         // a pad unplugged or switched off with a button held
+                    runOnUiThread(MainActivity.this::releaseController);  // sends no key up: let go of it ourselves
+                }
+            };
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!hasFocus) {
+            releaseController();                                         // the notification shade, a dialog, split screen
+        }
+    }
+
+    /** Lets go of the controller's keys and its stick (the game's menu or another screen takes over its events). */
+    private void releaseController() {
+        if (view != null) {
+            view.releasePad();
+        }
+        java.util.Arrays.fill(stick, false);
+    }
+
     /** The game's menu (the system Back button or swipe): the game is held while it is up. */
     private void showMenu() {
         if (app == null) {                             // still starting: Back leaves, as it did before the menu existed
@@ -153,6 +235,7 @@ public class MainActivity extends Activity {
                 "Load a saved game...", "Take a screenshot", "Move the controls", "Options...",
                 "Quit and go to the Re:Cast menu"};
         menuOpen = true;
+        releaseController();
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
                 .setTitle("Re:Cast")
@@ -373,6 +456,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        releaseController();
         if (view != null) {
             view.releaseAll();
         }
@@ -441,6 +525,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         running = false;
+        if (inputManager != null) {
+            inputManager.unregisterInputDeviceListener(deviceListener);
+        }
         if (menu != null && menu.isShowing()) {
             menu.dismiss();                            // no leaked window
         }
