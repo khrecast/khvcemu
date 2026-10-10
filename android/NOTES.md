@@ -13,6 +13,8 @@ section. Spike results and the first app run on the phone are in section 6 and C
   Kotlin front end. Chunk 4 proved it: the core boots to the title inside the app on the phone at about 1.7 to 1.8x real time.
   Chunks 5 to 7 draw the frames, take touch input, give the game its text, images and sound and fix its frame rate; next is saves and a file picker (chunk 8).
 
+**What comes next is planned in `android/PLAN_launcher_parity.md`** (chunks 8 to 17, with the decisions already made).
+
 ## Decisions (2026-10-09, the user's answers to the up-front questions)
 
 - Test phone: a **Samsung Galaxy S23 Ultra** (Snapdragon 8 Gen 2 for Galaxy: 1 x 3.36 GHz Cortex-X3, 2 x 2.8 GHz
@@ -256,9 +258,18 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   screen for 14 s and expects a 40 ms median interval).
   Results: **desktop title screen 16.1 fps -> 24.6 fps; Galaxy S23 Ultra title screen 10 -> 25 fps**, journal page
   18 to 19 -> 25, and the 3D Obstacle Course (Sora walking, sound on) a steady 25 fps with 0 faults and 0 underruns.
-  **For the user to decide: the desktop front end does not use it yet** (its real-time play has the 16 fps problem
-  above in scenes the PC can run faster); enabling it there is a one-line change in `__main__.py` plus checks of play
-  time, autosave and pause timing, which were not reviewed for it. Two limits to remember then: `GetTimeMS` and
+  **Decided 2026-10-10: the desktop uses it too, on by default** (`--no-frame-lock` and a switch in the launcher's
+  Speed enhancements window turn it off). Real-time desktop frames per second, without and with it (speed-ups on):
+  title 15.8 to 24.6, Obstacle Course 15.5 to 24.6, Castle room 16.6 to 24.9, fight 11.2 to 18.5, lava cave 11.9 to
+  19.0; with the speed-ups off: Obstacle Course 15.3 to 24.7, fight 9.8 to 16.3, lava cave 11.2 to 17.2
+  (`tools/bench_realtime.py`; an earlier version of the tool called the Obstacle Course scene "island", because its
+  Load Game keypresses did not land in real time and the game started a New Game: the numbers were the course's).
+  **The game's speed does not depend on the frame rate** (measured): walking forward in the Obstacle Course for 6 s of
+  real time at 24.7 fps (steady clock), 14.5 fps (steady clock, plus 35 ms of delay per frame) and 15.7 fps (old clock)
+  ends in the same place: the final pictures differ in 0.1 to 0.6% of pixels, against 54% from the start picture.
+  Play time is unaffected: the clock loses no time, it only holds still during a frame, and the pause logic changes
+  the clock's origin outside any callback. Not yet checked on the phone with the clock off in 3D (the title and the
+  intro pages were: 10 and 18 to 19 fps before, 25 after). Two limits to remember then: `GetTimeMS` and
   `GetSeconds` (time of day) use the wall clock and are not frozen (the 25 fps result says the game does not time
   its frames with them), and `load_state` must not run from inside a game callback while the clock is frozen (it
   resets the clock, and the game would keep seeing the old value until the callback ended; no such path exists today).
