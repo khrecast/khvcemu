@@ -44,6 +44,8 @@ sh android/spike/termux_spike.sh`; (4) keep the screen on, the phone cool and ch
 several minutes (the Unicorn build is the long part); (5) send back `cat ~/spike_results.txt`.
 Pass/fail numbers are in section 5. The zip holds the game files: it is for that phone only, never share it.
 
+First phone attempt (2026-10-10): stopped at step 2 with `CANNOT LINK EXECUTABLE "cmake": cannot locate symbol _ZNSt6__ndk113__hash_memoryEPKvm` (Termux had 72 packages not upgraded, so cmake and libc++ did not match). Fix: `pkg upgrade -y`, restart Termux, rerun; the script now upgrades first.
+
 ## 1. This machine (checked 2026-10-06)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

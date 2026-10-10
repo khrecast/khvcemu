@@ -13,7 +13,9 @@ OUT="$HOME/spike_results.txt"
 
 echo "== 1/4 packages (python, numpy, a compiler, cmake, git)"
 # If Termux asks about mirrors or a config file, answer the defaults (or run termux-change-repo first).
+# A full upgrade, not only 'update': a half-upgraded Termux fails with 'CANNOT LINK EXECUTABLE cmake' (libc++ too old).
 pkg update -y
+pkg upgrade -y
 pkg install -y python python-numpy clang cmake make git
 
 echo "== 2/4 Unicorn (ARM only), built from source"
