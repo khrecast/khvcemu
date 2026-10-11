@@ -629,7 +629,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Softkey names follow the game:** Options > Controls > "Softkey names follow the game" (on by default; applies at the next game start). The
   core's remembered strings (as for sharp text, which is not needed) at the bottom of the game's screen name the keys: a string whose box
   starts at game row 188 or lower, in the left 45 percent of the width, is Soft 1's word, in the right 45 percent Soft 2's. They are drawn on
-  the pills in the system font; with no word there, the pill shows "Soft 1" or "Soft 2" as before. The picture is sent unchanged unless Sharp text is also on (the core still remembers the strings every frame, the same work as for sharp text). Only short words (14 characters or fewer, in a box under 45 percent of the width) count.
+  the pills in the system font; with no word there, the pill stays blank. The picture is sent unchanged unless Sharp text is also on (the core still remembers the strings every frame, the same work as for sharp text). Only short words (14 characters or fewer, in a box under 45 percent of the width) count.
 - **Verified on the S23 Ultra:** the new look at rest and with Action held; the title screen showed Quit on the right pill, and the opening
   dialogue showed Continue on the left. **Not tried:** the other screens' words (Select, Back and so on), the pills with Sharp text on,
   landscape, and Magic or Status held.

@@ -200,6 +200,8 @@ final class ControlSkin {
                 words.setTextSize(words.getTextSize() - 1f);
             }
             c.drawText(word, r.centerX(), r.centerY() + words.getTextSize() * 0.35f, words);
+        } else if (label.startsWith("Soft")) {
+            // a softkey with nothing to say stays blank
         } else {
             name(c, label, r.centerX(), r.centerY(), r.width() * 0.8f, r.height() * 0.62f);
         }
