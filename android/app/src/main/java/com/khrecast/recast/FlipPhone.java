@@ -3,9 +3,12 @@ package com.khrecast.recast;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 
 import java.util.ArrayList;
@@ -13,17 +16,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * "Flip phone mode": the game on the screen of a clamshell phone drawn around it. Under the screen, in the lower half of
- * the shell, sit the two softkeys, a navigation ring with a center button, a green Call key and a red End key, and the
- * twelve keys of a phone keypad. The keys press the phone keys the game was written for: 2, 4, 6 and 8 move, 5 selects, the
- * ring does the same, * casts magic, 0 is Status. Call sends the phone's Send key (the game does not use it) and End is the phone's Clear key (Back).
- * Portrait only; GameView draws the layout in landscape as usual.
+ * "Flip phone mode": the game on the screen of a clamshell phone drawn round it, in the gray and silver plastic of a 2005
+ * handset. Under the screen, in the lower half of the shell, sit the two softkeys, a navigation ring with a center button, a
+ * green Call key and a red End key, and the twelve keys of a phone keypad. The keys press the phone keys the game was written
+ * for: 2, 4, 6 and 8 move, 5 selects, the ring does the same, * casts magic, 0 is Status. Call sends the phone's Send key (the
+ * game does not use it) and End is the phone's Clear key (Back). Portrait only; GameView draws the layout in landscape as usual.
  */
 final class FlipPhone {
     private static final class Key {
         final String key, label, sub;
         final int kind;                         // 0 keypad, 1 softkey, 2 call, 3 end
         final RectF r = new RectF();
+        Shader up, down;                        // the key's face, normal and held (built when the phone is laid out)
 
         Key(String key, String label, String sub, int kind) {
             this.key = key;
@@ -33,11 +37,15 @@ final class FlipPhone {
         }
     }
 
+    private static final int OUTLINE = 0xFF6B7078, EDGE_LIGHT = 0xFFF7F8FA, INK = 0xFF2A2E34, INK_SUB = 0xFF5B616A;
+
     private final float density;
     private final List<Key> keys = new ArrayList<>();
     private final RectF upper = new RectF(), lower = new RectF(), hinge = new RectF(), bezel = new RectF();
-    private final RectF screen = new RectF();
+    private final RectF screen = new RectF(), slot = new RectF();
+    private final Path arrowPath = new Path();
     private float navX, navY, navR;
+    private Shader shellUpper, shellLower, hingeShade, ringShade, hubUp, hubDown;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -65,6 +73,10 @@ final class FlipPhone {
         return v * density;
     }
 
+    private static Shader vertical(RectF r, int... colors) {
+        return new LinearGradient(0, r.top, 0, r.bottom, colors, null, Shader.TileMode.CLAMP);
+    }
+
     /** Lays the phone out inside the free area (pixels) and sets `screen` to where the game's picture goes. */
     void layout(float left, float top, float right, float bottom, RectF picture) {
         float width = right - left, free = bottom - top;
@@ -80,13 +92,14 @@ final class FlipPhone {
         screen.set(picture);
         upper.bottom = picture.bottom + dp(24);
         bezel.set(picture.left - dp(8), picture.top - dp(8), picture.right + dp(8), picture.bottom + dp(8));
+        slot.set(cx - dp(32), upper.top + dp(10), cx + dp(32), upper.top + dp(17));
         hinge.set(shellL + shellW * 0.04f, upper.bottom + dp(2), shellR - shellW * 0.04f, upper.bottom + dp(10));
         lower.set(shellL, hinge.bottom - dp(2), shellR, bottom - free * 0.02f);
 
         float lowerH = lower.height();
         float pad = lowerH * 0.035f;
         float rowTop = lower.top + pad, rowH = lowerH * 0.26f;
-        navR = Math.min(rowH * 0.5f, shellW * 0.16f);
+        navR = Math.max(1f, Math.min(rowH * 0.5f, shellW * 0.16f));      // never zero: the gradients need a radius
         navX = cx;
         navY = rowTop + rowH * 0.5f;
         float pillW = shellW * 0.28f, pillH = rowH * 0.30f;
@@ -106,54 +119,114 @@ final class FlipPhone {
             float x = x0 + col * (keyW + gapX), y = padTop + row * (keyH + gapY);
             keys.get(4 + i).r.set(x, y, x + keyW, y + keyH);
         }
+        buildShaders();
     }
 
-    /** The shell: two halves, the hinge, the speaker slot and the black frame round the screen (drawn before the picture). */
+    /** The gradients that give the plastic its look: they depend on where things are, so they are made once per layout. */
+    private void buildShaders() {
+        shellUpper = vertical(upper, 0xFFEEF0F3, 0xFFC9CDD3, 0xFFA9AEB6);
+        shellLower = vertical(lower, 0xFFC4C8CE, 0xFFB3B8BF, 0xFF989DA5);
+        hingeShade = vertical(hinge, 0xFFE9EBEE, 0xFF8F949C, 0xFF5E636B);
+        ringShade = new RadialGradient(navX - navR * 0.25f, navY - navR * 0.3f, navR * 1.4f,
+                new int[]{0xFFF4F5F7, 0xFFC5C9CF, 0xFF8D929A}, null, Shader.TileMode.CLAMP);
+        float hr = navR * 0.34f;
+        hubUp = new RadialGradient(navX - hr * 0.3f, navY - hr * 0.35f, hr * 1.5f,
+                new int[]{0xFFD7DADF, 0xFF9CA1A9, 0xFF70757D}, null, Shader.TileMode.CLAMP);
+        hubDown = new RadialGradient(navX, navY, hr * 1.3f,
+                new int[]{0xFF8BB6F2, 0xFF5B8FDA, 0xFF3D6DB5}, null, Shader.TileMode.CLAMP);
+        for (Key k : keys) {
+            switch (k.kind) {
+                case 2:
+                    k.up = vertical(k.r, 0xFF7FE59B, 0xFF2FAE58, 0xFF1F8140);
+                    k.down = vertical(k.r, 0xFF4FB86F, 0xFF1F8140, 0xFF176A33);
+                    break;
+                case 3:
+                    k.up = vertical(k.r, 0xFFFF8E80, 0xFFD2402F, 0xFF9C2A1E);
+                    k.down = vertical(k.r, 0xFFD2685B, 0xFF9C2A1E, 0xFF7E2017);
+                    break;
+                case 1:
+                    k.up = vertical(k.r, 0xFFDDE0E4, 0xFFAEB3BA, 0xFF8D929A);
+                    k.down = vertical(k.r, 0xFFA8C6F0, 0xFF7FA6DE, 0xFF5E86C2);
+                    break;
+                default:
+                    k.up = vertical(k.r, 0xFFF9FAFB, 0xFFDCDFE3, 0xFFB6BBC2);
+                    k.down = vertical(k.r, 0xFFBBD2F2, 0xFF98B8E6, 0xFF7A9ACD);
+            }
+        }
+    }
+
+    /** The shell: two silver halves, the hinge barrel, the speaker slot and the dark frame round the screen (drawn before the picture). */
     void drawBody(Canvas c) {
         fill.setStyle(Paint.Style.FILL);
-        stroke.setStrokeWidth(dp(2));
-        for (RectF half : new RectF[]{upper, lower}) {
-            fill.setColor(0xFF1B2330);
-            c.drawRoundRect(half, dp(34), dp(34), fill);
-            stroke.setColor(0xFF8EA4BF);
-            c.drawRoundRect(half, dp(34), dp(34), stroke);
+        float cr = dp(34);
+        fill.setShader(shellUpper);
+        c.drawRoundRect(upper, cr, cr, fill);
+        fill.setShader(shellLower);
+        c.drawRoundRect(lower, cr, cr, fill);
+        fill.setShader(null);
+        for (int h = 0; h < 2; h++) {
+            RectF half = h == 0 ? upper : lower;
+            stroke.setStrokeWidth(dp(2));
+            stroke.setColor(OUTLINE);
+            c.drawRoundRect(half, cr, cr, stroke);
+            stroke.setStrokeWidth(dp(1.2f));                                    // the lit edge inside the outline
+            stroke.setColor(EDGE_LIGHT);
+            c.drawRoundRect(half.left + dp(3), half.top + dp(3), half.right - dp(3), half.bottom - dp(3), cr - dp(3), cr - dp(3), stroke);
         }
-        fill.setColor(0xFF0D131B);
+        fill.setShader(hingeShade);
         c.drawRoundRect(hinge, dp(5), dp(5), fill);
-        stroke.setColor(0xFF4A5B73);
+        fill.setShader(null);
+        stroke.setStrokeWidth(dp(1.2f));
+        stroke.setColor(OUTLINE);
         c.drawRoundRect(hinge, dp(5), dp(5), stroke);
-        float cx = (upper.left + upper.right) / 2f;
-        fill.setColor(0xFF0B0F14);
-        c.drawRoundRect(new RectF(cx - dp(32), upper.top + dp(10), cx + dp(32), upper.top + dp(17)), dp(4), dp(4), fill);
-        fill.setColor(Color.BLACK);
+        // the speaker: a dark slot over a row of small holes
+        fill.setColor(0xFF4A4F57);
+        c.drawRoundRect(slot, dp(4), dp(4), fill);
+        fill.setColor(0xFF7C828B);
+        for (int i = 0; i < 7; i++) {
+            c.drawCircle(slot.left + dp(8) + i * (slot.width() - dp(16)) / 6f, slot.centerY(), dp(1.1f), fill);
+        }
+        // the dark frame round the screen, with a thin rim
+        fill.setColor(0xFF1B1E23);
         c.drawRoundRect(bezel, dp(10), dp(10), fill);
-        stroke.setColor(0xFF4A5B73);
+        stroke.setColor(0xFF5B616A);
         stroke.setStrokeWidth(dp(1.5f));
         c.drawRoundRect(bezel, dp(10), dp(10), stroke);
+        fill.setColor(Color.BLACK);
+        c.drawRect(screen.left - dp(2), screen.top - dp(2), screen.right + dp(2), screen.bottom + dp(2), fill);
     }
 
     /** The keys, with the ones that are held lit (drawn after the picture). */
     void drawKeys(Canvas c, Set<String> down) {
         for (Key k : keys) {
             boolean on = down.contains(k.key);
-            int color = k.kind == 2 ? (on ? 0xFF58D87C : 0xFF2E9E4F)
-                    : k.kind == 3 ? (on ? 0xFFFF6B5B : 0xFFC0392B)
-                    : (on ? 0xFF5B9DFF : k.kind == 1 ? 0xFF2C3A50 : 0xFF3A465A);
             fill.setStyle(Paint.Style.FILL);
-            fill.setColor(color);
             float radius = Math.min(k.r.width(), k.r.height()) / (k.kind == 0 ? 3.2f : 2f);
+            if (!on) {                                                          // a soft shadow under a raised key
+                fill.setColor(0x44000000);
+                c.drawRoundRect(k.r.left, k.r.top + dp(2), k.r.right, k.r.bottom + dp(2), radius, radius, fill);
+            }
+            fill.setColor(Color.BLACK);                                         // opaque: a shader is faded by the paint's alpha
+            fill.setShader(on ? k.down : k.up);
             c.drawRoundRect(k.r, radius, radius, fill);
-            stroke.setStrokeWidth(dp(1.5f));
-            stroke.setColor(0xFF8EA4BF);
+            fill.setShader(null);
+            stroke.setStrokeWidth(dp(1.2f));
+            stroke.setColor(OUTLINE);
             c.drawRoundRect(k.r, radius, radius, stroke);
-            text.setColor(Color.WHITE);
+            if (k.kind <= 1) {                                                  // a bright line just inside the edge of a plastic key
+                stroke.setStrokeWidth(dp(1));
+                stroke.setColor(0xAAFFFFFF);
+                c.drawRoundRect(k.r.left + dp(2), k.r.top + dp(2), k.r.right - dp(2), k.r.bottom - dp(2),
+                        radius - dp(2), radius - dp(2), stroke);
+            }
+            text.setColor(k.kind >= 2 ? Color.WHITE : INK);
             if (k.kind == 0) {
                 boolean hasSub = !k.sub.isEmpty();
                 text.setTextSize(k.r.height() * (hasSub ? 0.46f : 0.58f));
                 c.drawText(k.label, k.r.centerX(), k.r.centerY() + (hasSub ? -k.r.height() * 0.02f : k.r.height() * 0.2f), text);
                 if (hasSub) {
                     text.setTextSize(k.r.height() * 0.2f);
-                    text.setColor(0xFFB8C7DB);
+                    text.setColor(INK_SUB);
                     c.drawText(k.sub, k.r.centerX(), k.r.bottom - k.r.height() * 0.14f, text);
                 }
             } else {
@@ -161,34 +234,39 @@ final class FlipPhone {
                 c.drawText(k.label, k.r.centerX(), k.r.centerY() + text.getTextSize() * 0.35f, text);
             }
         }
-        // the navigation ring: four arrows round a center button
+        // the navigation ring: a metal disc with four arrows printed on it round a center button
         fill.setStyle(Paint.Style.FILL);
-        fill.setColor(0xFF2A3342);
+        fill.setColor(0x44000000);
+        c.drawCircle(navX, navY + dp(2), navR, fill);
+        fill.setColor(Color.BLACK);
+        fill.setShader(ringShade);
         c.drawCircle(navX, navY, navR, fill);
-        stroke.setColor(0xFF8EA4BF);
-        stroke.setStrokeWidth(dp(2));
+        fill.setShader(null);
+        stroke.setColor(OUTLINE);
+        stroke.setStrokeWidth(dp(1.6f));
         c.drawCircle(navX, navY, navR, stroke);
         arrow(c, "UP", down, navX, navY - navR * 0.68f, 0);
         arrow(c, "DOWN", down, navX, navY + navR * 0.68f, 180);
         arrow(c, "LEFT", down, navX - navR * 0.68f, navY, 270);
         arrow(c, "RIGHT", down, navX + navR * 0.68f, navY, 90);
-        fill.setColor(down.contains("SELECT") ? 0xFF5B9DFF : 0xFF3F4D63);
+        fill.setShader(down.contains("SELECT") ? hubDown : hubUp);
         c.drawCircle(navX, navY, navR * 0.34f, fill);
-        stroke.setStrokeWidth(dp(1.5f));
+        fill.setShader(null);
+        stroke.setStrokeWidth(dp(1.2f));
         c.drawCircle(navX, navY, navR * 0.34f, stroke);
     }
 
     private void arrow(Canvas c, String key, Set<String> down, float x, float y, float deg) {
         float s = navR * 0.17f;
-        fill.setColor(down.contains(key) ? 0xFF5B9DFF : 0xFFB8C7DB);
+        fill.setColor(down.contains(key) ? 0xFF2F66C4 : 0xFF3A3F47);
         c.save();
         c.rotate(deg, x, y);
-        Path p = new Path();
-        p.moveTo(x, y - s);
-        p.lineTo(x + s, y + s * 0.8f);
-        p.lineTo(x - s, y + s * 0.8f);
-        p.close();
-        c.drawPath(p, fill);
+        arrowPath.rewind();
+        arrowPath.moveTo(x, y - s);
+        arrowPath.lineTo(x + s, y + s * 0.8f);
+        arrowPath.lineTo(x - s, y + s * 0.8f);
+        arrowPath.close();
+        c.drawPath(arrowPath, fill);
         c.restore();
     }
 
