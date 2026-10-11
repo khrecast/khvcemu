@@ -41,6 +41,7 @@ final class ControlSkin {
     private final Paint pic = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint crisp = new Paint();
     private final Paint words = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final MenuFont menuFont;
     private final Path arrow = new Path();
     private final RectF box = new RectF();
     private final Map<String, Bitmap> names = new HashMap<>();
@@ -48,6 +49,7 @@ final class ControlSkin {
     ControlSkin(Context context) {
         density = context.getResources().getDisplayMetrics().density;
         crisp.setFilterBitmap(false);
+        menuFont = new MenuFont(context);
         words.setColor(0xFFFFFFFF);
         words.setTextAlign(Paint.Align.CENTER);
         words.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
@@ -181,7 +183,7 @@ final class ControlSkin {
             Bitmap known = names.get(word.substring(0, 1).toUpperCase(java.util.Locale.US) + word.substring(1).toLowerCase(java.util.Locale.US));   // (Open, Attack, Grab...)
             if (known != null) {
                 name(c, known, cx, cy, rad * 1.6f, rad * 0.8f);
-            } else {
+            } else if (!menuFont.draw(c, word, cx, cy, rad * 1.6f, rad * 0.8f)) {
                 words.setTextSize(rad * 0.5f);
                 while (words.measureText(word) > rad * 1.6f && words.getTextSize() > dp(9)) {
                     words.setTextSize(words.getTextSize() - 1f);
@@ -225,11 +227,13 @@ final class ControlSkin {
         c.drawRoundRect(box, rad, rad, paint);
         paint.setStyle(Paint.Style.FILL);
         if (word != null) {                                                    // the game's own word for what this key does now
-            words.setTextSize(r.height() * 0.46f);
-            while (words.measureText(word) > r.width() * 0.84f && words.getTextSize() > dp(9)) {
-                words.setTextSize(words.getTextSize() - 1f);
+            if (!menuFont.draw(c, word, r.centerX(), r.centerY(), r.width() * 0.8f, r.height() * 0.62f)) {
+                words.setTextSize(r.height() * 0.46f);                         // (a word the menu font has no letters for)
+                while (words.measureText(word) > r.width() * 0.84f && words.getTextSize() > dp(9)) {
+                    words.setTextSize(words.getTextSize() - 1f);
+                }
+                c.drawText(word, r.centerX(), r.centerY() + words.getTextSize() * 0.35f, words);
             }
-            c.drawText(word, r.centerX(), r.centerY() + words.getTextSize() * 0.35f, words);
         } else if (label.startsWith("Soft")) {
             // a softkey with nothing to say stays blank
         } else {

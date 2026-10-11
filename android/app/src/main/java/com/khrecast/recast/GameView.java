@@ -519,10 +519,13 @@ public class GameView extends View {
         padX = lc;
         padY = areaBottom - padR;
         float cy = areaTop + area / 2f;
-        float big = Math.min(rightW * 0.2f, area * 0.27f);
-        placeButtons(rc + rightW * 0.1f, cy + area * 0.2f, big,                 // Action
-                rc - rightW * 0.2f, cy - area * 0.08f,                          // Magic
-                rc + rightW * 0.2f, cy - area * 0.28f);                         // Status
+        // Action in front, Magic and Status up and to either side of it (about 37 degrees from straight up), all touching: the
+        // cluster is 3.7 radii wide and 3.4 tall, so the buttons are as big as the side of the picture allows
+        float big = Math.min(rightW * 0.255f, area * 0.285f);
+        float ax = rc, ay = cy + 0.535f * big;                                  // (centers the cluster vertically)
+        placeButtons(ax, ay, big,                                               // Action
+                ax - 0.75f * big, ay - big,                                     // Magic
+                ax + 0.75f * big, ay - big);                                    // Status
     }
 
     /** The picture at the top of the free area, the softkeys under it, the pad and buttons in what is left. */

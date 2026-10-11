@@ -38,6 +38,25 @@ class AndroidAssetCopyTests(unittest.TestCase):
         for name, text in presets:
             self.assertEqual(ms.parse(text, strict=False), ms.changed(ms.PRESETS[name]), name)
 
+    def test_the_menu_font_alphabet_is_whole_and_copied_to_the_app(self):
+        menu = os.path.join(ROOT, "khvcemu", "assets", "menu", "font_atlas.txt")
+        raw = os.path.join(ROOT, "android", "app", "src", "main", "res", "raw", "menu_font_atlas.txt")
+        with open(menu, "rb") as a, open(raw, "rb") as b:
+            self.assertEqual(a.read(), b.read(), "run tools/make_tab_labels.py to refresh res/raw/menu_font_atlas.txt")
+        with open(menu, encoding="utf-8") as f:
+            lines = f.read().split("\n")
+        height = int(lines[0])
+        cells = {chr(int(p[0])): (int(p[1]), int(p[2])) for p in (l.split() for l in lines[1:] if l.strip())}
+        self.assertTrue(set("ABCXYZabcxyz0189") <= set(cells), "the alphabet lacks letters")
+        spans = sorted(cells.values())
+        self.assertTrue(all(a[0] + a[1] <= b[0] for a, b in zip(spans, spans[1:])), "two cells overlap")
+        with open(os.path.join(ROOT, "khvcemu", "assets", "menu", "font_atlas.png"), "rb") as f:
+            png = f.read()
+        import struct
+        width, h = struct.unpack(">II", png[16:24])
+        self.assertEqual(h, height)
+        self.assertTrue(all(x >= 0 and x + w <= width for x, w in cells.values()), "a cell lies outside the picture")
+
     def test_the_apps_tune_list_matches_music_preview(self):
         import re
         from khvcemu import music_preview

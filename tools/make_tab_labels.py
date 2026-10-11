@@ -127,6 +127,46 @@ def render(font, text: str, selected: bool, gap: int = 0) -> pygame.Surface:
     return surf
 
 
+ATLAS_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:;!?'-/+&%()"
+
+
+def make_atlas(font) -> None:
+    """One picture of the letters, digits and common marks in the menu font (bright silver, like the labels), for text the app only knows
+    at run time (the game's own softkey words). A text file beside it lists, for each character, where its cell starts and how wide it is
+    (after the doubling), plus the picture's height. The cells include the dark outline and sit side by side without a gap."""
+    parts, cells, col = [], [], 0
+    gap = 3                                                       # empty columns between glyphs: 1 for each outline and 1 spare
+    for ch in ATLAS_CHARS:
+        m = _mask(font, ch)
+        if not m.any():
+            continue
+        cols = np.where(m.any(axis=0))[0]
+        m = m[:, cols[0]:cols[-1] + 1]
+        cells.append((ch, col, m.shape[1] + 2))                   # (in padded coordinates: the outline adds a column each side)
+        parts.append(m)
+        parts.append(np.zeros((m.shape[0], gap), bool))
+        col += m.shape[1] + gap
+    strip = np.hstack(parts[:-1])
+    rgba = silver(np.pad(strip, 1), (255, 255, 255), (176, 188, 204))
+    big = rgba.repeat(ZOOM, axis=0).repeat(ZOOM, axis=1)
+    surf = pygame.Surface((big.shape[1], big.shape[0]), pygame.SRCALPHA)
+    pygame.surfarray.pixels3d(surf)[:] = big[:, :, :3].transpose(1, 0, 2)
+    pygame.surfarray.pixels_alpha(surf)[:] = big[:, :, 3].T
+    os.makedirs(MENU_OUT, exist_ok=True)
+    png = os.path.join(MENU_OUT, "font_atlas.png")
+    pygame.image.save(surf, png)
+    lines = [str(big.shape[0])] + ["%d %d %d" % (ord(ch), x * ZOOM, w * ZOOM) for ch, x, w in cells]
+    txt = os.path.join(MENU_OUT, "font_atlas.txt")
+    with open(txt, "w", newline="\n", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    if os.path.isdir(ANDROID_RES):
+        shutil.copyfile(png, os.path.join(ANDROID_RES, "menu_font_atlas.png"))
+        raw = os.path.join(os.path.dirname(ANDROID_RES), "raw")
+        os.makedirs(raw, exist_ok=True)
+        shutil.copyfile(txt, os.path.join(raw, "menu_font_atlas.txt"))
+    print(f"wrote the menu font alphabet ({len(cells)} characters)")
+
+
 def main(font_path: str = FONT):
     if not os.path.isfile(font_path):
         sys.exit(f"KHMenu.otf not found at {font_path}: download it from "
@@ -144,6 +184,7 @@ def main(font_path: str = FONT):
         pygame.image.save(render(font, text, True, gap=1 if key.startswith("w_") else 0), path)
         if os.path.isdir(ANDROID_RES):
             shutil.copyfile(path, os.path.join(ANDROID_RES, f"menu_{key}.png"))
+    make_atlas(font)
     print(f"wrote {len(MENU_LABELS)} app menu labels to {MENU_OUT}"
           + (f" and {ANDROID_RES}" if os.path.isdir(ANDROID_RES) else ""))
 

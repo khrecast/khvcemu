@@ -646,6 +646,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   dialogue showed Continue on the left. **Not tried:** the other screens' words (Select, Back and so on), the pills with Sharp text on,
   landscape, and Magic or Status held.
 
+## Softkey words in the menu font, and bigger controls sideways (2026-10-11, built; NOT seen on the phone, it was disconnected)
+
+- **Menu font for the softkey words:** the words the game puts on its softkeys ("Save", "Shop", "Continue"...) were drawn in the phone's system
+  font on the pills. They now use the menu font: `tools/make_tab_labels.py` also makes `khvcemu/assets/menu/font_atlas.png` (76 characters, bright
+  silver like the labels; the letters, digits and `.,:;!?'-/+&%()`) and `font_atlas.txt` (the picture's height, then each character's cell start
+  and width), copied to `res/drawable-nodpi/menu_font_atlas.png` and `res/raw/menu_font_atlas.txt` (the menu-label test keeps the picture's copy equal, another test the text file's, and checks the cells lie inside the picture and do not overlap). `MenuFont.java` draws any text from it, a whole-number scale with hard edges when that is nearly exact and
+  smoothed otherwise, and says so when it lacks a letter for any character of a word (then the whole word is drawn in the system font as before). The Action button's fallback for an
+  unknown banner word uses it too. A preview made in Python looked right; the app was only built.
+- **Sideways (landscape) buttons:** the Action, Magic and Status cluster is now a tighter "mouse head" (Magic and Status about 37 degrees either side
+  of straight up from Action, all touching) so the buttons can be larger: the size is `min(0.255 x the right side's width, 0.285 x the free height)`
+  against `min(0.2 x width, 0.27 x height)` before, so about a quarter bigger on the S23 Ultra (a cluster 3.7 `big` wide and 3.4 `big` tall, where Action's radius is 1.15 `big`). Not seen on
+  the phone; the controls editor still moves and resizes them as before.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is
