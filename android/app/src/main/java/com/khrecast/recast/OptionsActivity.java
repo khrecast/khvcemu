@@ -115,7 +115,7 @@ public class OptionsActivity extends Activity {
         col.addView(note("Play it the way it was meant to be played: on a flip phone. The game sits in the screen of a 2005 clamshell "
                 + "with softkeys, a navigation ring, Call and End keys and a 12-key keypad (2, 4, 6, 8 move, 5 selects, * is Magic, "
                 + "0 is Status). The picture has a fixed size here. Turning the phone sideways uses the usual controls."));
-        col.addView(toggle("Graphite flip phone (instead of silver; needs the flip phone look)", Settings.flipGraphite(this), Settings::setFlipGraphite));
+        col.addView(flipColorRow());
         col.addView(toggle("Small bezel: a bigger picture (needs the flip phone look)", Settings.flipSmallBezel(this), Settings::setFlipSmallBezel));
         col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
                 + "move it, pinch it with two fingers to make it bigger or smaller."));
@@ -224,6 +224,30 @@ public class OptionsActivity extends Activity {
 
     private interface Setter {
         void set(android.content.Context c, boolean v);
+    }
+
+    /** "Flip phone color" with a list of the body colors (it only shows when the flip phone look is on). */
+    private View flipColorRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        TextView label = text("Flip phone color (needs the flip phone look)", 16, Color.WHITE);
+        label.setPadding(0, dp(10), 0, 0);
+        row.addView(label);
+        android.widget.Spinner spinner = new android.widget.Spinner(this);
+        spinner.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Settings.FLIP_COLORS));
+        spinner.setSelection(Settings.flipColor(this));
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View v, int position, long id) {
+                Settings.setFlipColor(OptionsActivity.this, position);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        row.addView(spinner);
+        return row;
     }
 
     private Switch toggle(String label, boolean on, Setter setter) {

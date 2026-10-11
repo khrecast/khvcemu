@@ -298,13 +298,18 @@ final class Settings {
         return prefs(c).getBoolean("flip_phone", false);
     }
 
-    /** The flip phone in dark graphite instead of silver. */
-    static boolean flipGraphite(Context c) {
-        return prefs(c).getBoolean("flip_graphite", false);
+    /** The flip phone's body colors, by number (what FlipPhone.setColor takes). All are the plastics and metallics of 2005 handsets. */
+    static final String[] FLIP_COLORS = {"Silver", "Graphite", "Sky blue", "Rose pink", "Champagne gold"};
+
+    /** Which of FLIP_COLORS the flip phone wears (an earlier build kept only "graphite or not"). */
+    static int flipColor(Context c) {
+        android.content.SharedPreferences p = prefs(c);
+        int v = p.contains("flip_color") ? p.getInt("flip_color", 0) : (p.getBoolean("flip_graphite", false) ? 1 : 0);
+        return Math.max(0, Math.min(FLIP_COLORS.length - 1, v));
     }
 
-    static void setFlipGraphite(Context c, boolean v) {
-        prefs(c).edit().putBoolean("flip_graphite", v).apply();
+    static void setFlipColor(Context c, int v) {
+        prefs(c).edit().putInt("flip_color", v).remove("flip_graphite").apply();
     }
 
     static void setFlipPhone(Context c, boolean v) {

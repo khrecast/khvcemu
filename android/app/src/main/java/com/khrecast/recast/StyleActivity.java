@@ -51,23 +51,23 @@ public class StyleActivity extends Activity {
 
         col.addView(choice(R.drawable.menu_style_smart, "Smartphone style", false,
                 "Touch controls round the picture, and the biggest picture. Turn the phone sideways for a wider view.",
-                v -> done(false, false, false)));
+                v -> done(false, 0, false)));
 
         TextView flipNote = text("Flip phone style, the most authentic 2005 V CAST experience: the game in the screen of a clamshell phone, "
                 + "played on its keypad and navigation ring.", 14, 0xFFCFD8DC);
         flipNote.setPadding(0, dp(24), 0, dp(8));
-        CheckBox graphite = new CheckBox(this);
-        graphite.setText("Graphite instead of silver");
-        graphite.setTextColor(0xFFCFD8DC);
-        graphite.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF9CC4F5));
+        TextView colorLabel = text("Color", 14, 0xFFCFD8DC);
+        android.widget.Spinner colors = new android.widget.Spinner(this);
+        colors.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Settings.FLIP_COLORS));
         CheckBox bezel = new CheckBox(this);
         bezel.setText("Small bezel (a bigger picture)");
         bezel.setTextColor(0xFFCFD8DC);
         bezel.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF9CC4F5));
         View flip = Labels.pictureButton(this, R.drawable.menu_style_flip, 24, 64, true, "Play in flip phone style",
-                v -> done(true, graphite.isChecked(), bezel.isChecked()));
+                v -> done(true, colors.getSelectedItemPosition(), bezel.isChecked()));
         col.addView(flipNote);                                          // the choices come first: the button below goes on
-        col.addView(graphite);
+        col.addView(colorLabel);
+        col.addView(colors);
         col.addView(bezel);
         col.addView(flip);
 
@@ -89,9 +89,9 @@ public class StyleActivity extends Activity {
         return box;
     }
 
-    private void done(boolean flip, boolean graphite, boolean smallBezel) {
+    private void done(boolean flip, int color, boolean smallBezel) {
         Settings.setFlipPhone(this, flip);
-        Settings.setFlipGraphite(this, flip && graphite);
+        Settings.setFlipColor(this, flip ? color : 0);
         Settings.setFlipSmallBezel(this, flip && smallBezel);
         Settings.setStyleChosen(this, true);
         startActivity(new Intent(this, HomeActivity.class));

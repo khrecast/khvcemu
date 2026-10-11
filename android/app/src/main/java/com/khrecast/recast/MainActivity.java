@@ -9,6 +9,7 @@ import android.media.AudioTrack;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -238,7 +239,8 @@ public class MainActivity extends Activity {
         if (menuOpen) {
             return;
         }
-        final String[] items = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
+        final boolean flipOn = Settings.flipPhone(this);
+        final String[] items = {flipOn ? "Switch to smartphone mode" : "Switch to flip phone mode", "Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
                 "Load a saved game...", "Take a screenshot", "Move the controls", "Options...",
                 "Quit and go to the Re:Cast menu"};
         menuOpen = true;
@@ -248,22 +250,29 @@ public class MainActivity extends Activity {
                 .setTitle("Re:Cast")
                 .setItems(items, (d, which) -> {
                     switch (which) {
-                        case 1:
-                            requestState("save", "1");
+                        case 0:
+                            Settings.setFlipPhone(this, !flipOn);
+                            applySettings();
+                            if (!flipOn) {
+                                flipDialogPending = true;          // the color and bezel choices open when this menu has closed
+                            }
                             break;
                         case 2:
-                            requestState("load", "1");
+                            requestState("save", "1");
                             break;
                         case 3:
+                            requestState("load", "1");
+                            break;
                         case 4:
+                        case 5:
                             inner = true;
                             startActivityForResult(new Intent(this, SavesActivity.class)
-                                    .putExtra(SavesActivity.EXTRA_MODE, which == 3 ? "save" : "load"), REQ_SAVES);
-                            break;
-                        case 5:
-                            takeScreenshot();
+                                    .putExtra(SavesActivity.EXTRA_MODE, which == 4 ? "save" : "load"), REQ_SAVES);
                             break;
                         case 6:
+                            takeScreenshot();
+                            break;
+                        case 7:
                             if (view.isFlipActive()) {
                                 Toast.makeText(this, "The flip phone has fixed keys: turn it off in Options to move the controls",
                                         Toast.LENGTH_LONG).show();
@@ -272,11 +281,11 @@ public class MainActivity extends Activity {
                             view.setEditing(true);
                             applyLifecycle();                  // hold the game while the controls are arranged
                             break;
-                        case 7:
+                        case 8:
                             inner = true;
                             startActivity(new Intent(this, OptionsActivity.class));
                             break;
-                        case 8:
+                        case 9:
                             stopGame();                // now, not only when the system gets round to destroying the screen
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
@@ -284,6 +293,69 @@ public class MainActivity extends Activity {
                             break;
                     }
                 })
+                .setOnDismissListener(d -> {
+                    menuOpen = false;
+                    if (flipDialogPending) {
+                        flipDialogPending = false;
+                        showFlipDialog();                          // (the game stays held: that dialog opens before it resumes)
+                        return;
+                    }
+                    applyLifecycle();
+                })
+                .show();
+    }
+
+    private boolean flipDialogPending;
+
+    /** The flip phone's choices, over the game as it is (held): the body color and the small bezel. They apply at once. */
+    private void showFlipDialog() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        menuOpen = true;
+        applyLifecycle();
+        float density = getResources().getDisplayMetrics().density;
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * density);
+        box.setPadding(pad, Math.round(8 * density), pad, 0);
+        android.widget.TextView colorHead = new android.widget.TextView(this);
+        colorHead.setText("Color");
+        colorHead.setTextSize(16);
+        box.addView(colorHead);
+        android.widget.RadioGroup group = new android.widget.RadioGroup(this);
+        int current = Settings.flipColor(this);
+        for (int i = 0; i < Settings.FLIP_COLORS.length; i++) {
+            android.widget.RadioButton b = new android.widget.RadioButton(this);
+            b.setText(Settings.FLIP_COLORS[i]);
+            b.setId(1000 + i);
+            group.addView(b);
+            b.setChecked(i == current);
+        }
+        group.setOnCheckedChangeListener((g, id) -> {
+            Settings.setFlipColor(this, id - 1000);
+            view.setFlipColor(id - 1000);
+        });
+        box.addView(group);
+        android.widget.CheckBox bezel = new android.widget.CheckBox(this);
+        bezel.setText("Small bezel (a bigger picture)");
+        bezel.setChecked(Settings.flipSmallBezel(this));
+        bezel.setOnCheckedChangeListener((b, on) -> {
+            Settings.setFlipSmallBezel(this, on);
+            view.setFlipSmallBezel(on);
+        });
+        box.addView(bezel);
+        if (getResources().getDisplayMetrics().widthPixels > getResources().getDisplayMetrics().heightPixels) {
+            android.widget.TextView note = new android.widget.TextView(this);
+            note.setText("The flip phone shows when the phone is upright.");
+            note.setTextSize(13);
+            note.setPadding(0, Math.round(8 * density), 0, 0);
+            box.addView(note);
+        }
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(box);
+        new AlertDialog.Builder(this).setTitle("Flip phone").setView(scroll)
+                .setPositiveButton("Done", null)
                 .setOnDismissListener(d -> {
                     menuOpen = false;
                     applyLifecycle();
@@ -485,7 +557,7 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             view.setPictureScale(scale);
             view.setFilter(Settings.pictureFilter(MainActivity.this));
-            view.setFlipGraphite(Settings.flipGraphite(MainActivity.this));
+            view.setFlipColor(Settings.flipColor(MainActivity.this));
             view.setFlipSmallBezel(Settings.flipSmallBezel(MainActivity.this));
             view.setFlipMode(Settings.flipPhone(MainActivity.this));
             view.reloadControlOffsets();                       // the controls may have been reset in Options

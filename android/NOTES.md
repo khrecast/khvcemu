@@ -659,6 +659,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   against `min(0.2 x width, 0.27 x height)` before, so about a quarter bigger on the S23 Ultra (a cluster 3.7 `big` wide and 3.4 `big` tall, where Action's radius is 1.15 `big`). Not seen on
   the phone; the controls editor still moves and resizes them as before.
 
+## Switching between flip phone and smartphone in the game menu, and more colors (2026-10-11, built; NOT seen on the phone, it was disconnected)
+
+- **The in-game menu (Back) starts with "Switch to flip phone mode" or "Switch to smartphone mode"** (whichever is not on). Choosing flip phone
+  closes the menu and opens a **Flip phone** pop-up over the game, which stays held: the body color (a list) and "Small bezel (a bigger
+  picture)". Both apply at once; "Done" closes it and the game goes on. In landscape the pop-up says the flip phone shows when the phone is upright.
+  Smartphone mode switches back without a pop-up. The other menu items moved down one place; the code uses their position.
+- **Colors (`Settings.FLIP_COLORS`, `FlipPhone.setColor`):** Silver, Graphite, Sky blue, Rose pink and Champagne gold. The three new ones tint the
+  silver's light and shade between a dark and a light end of the color (`TINT_DARK`, `TINT_LIGHT`), so the shell, hinge, ring and keys all follow; Call
+  and End stay green and red, and the screen's frame stays dark. A throwaway Python mock-up of the five bodies (not kept) looked right; the app was only built.
+  The color is stored as `flip_color` (an older build's `flip_graphite` is read as Graphite until a color is chosen). The same list is in Options
+  ("Flip phone color", replacing the Graphite switch) and in the first-run question.
+- **Not tried on the phone:** any of it: the menu item, the pop-up's look and its live changes, the three new colors on the real shape, the held state of
+  the game behind the pop-up, and the migration of an old setting.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is
@@ -806,7 +820,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Name strip:** "Re:Cast" printed under the screen, and the defunct V CAST logo on a small light plate beside it
   (`res/drawable-nodpi/vcast_logo.png`, the owner's image of Verizon's old logo: a third party's mark, covered only by the project's
   fan-game disclaimer; the plate is light in both colors, since the logo is black and red on white). The logo and the blank softkeys were built but NOT seen on a screen (the phone was disconnected).
-- **Graphite:** Options has "Graphite flip phone" (the same body in dark gray, `flip_graphite`); both colors were seen in screenshots
+- **Graphite:** (2026-10-11: replaced by the color list described below) Options has "Graphite flip phone" (the same body in dark gray, `flip_graphite`); both colors were seen in screenshots
   on the S23. The Options wording ("Play it the way it was meant to be played: on a flip phone") was not looked at on screen. The
   owner tried landscape and the key presses (before the graphite color) and found them fine.
 - **Keys:** 2, 4, 6, 8 send Up, Left, Right, Down and 5 sends Select (the game is steered with directions and Select, which the
@@ -822,7 +836,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 
 - **The question:** the first time the app is opened, "I understand" on the opening notice leads to `StyleActivity` instead of the
   home screen: "How do you want to play?" with **Smartphone style** (touch controls round the picture) or **Flip phone style** ("the
-  most authentic 2005 V CAST experience") with two tick boxes above its button, "Graphite instead of silver" and "Small bezel (a
+  most authentic 2005 V CAST experience") with two tick boxes above its button, (since replaced by a color list) "Graphite instead of silver" and "Small bezel (a
   bigger picture)". The answer is stored (`style_chosen`, plus `flip_phone`, `flip_graphite`, `flip_small_bezel`) and the question is
   not asked again; "Restore the default settings" keeps `style_chosen` (a player who already answered is not asked again). Everything
   can be changed later in Options. Players who had the app before this build are asked once. Starting `HomeActivity` straight from adb skips the question and

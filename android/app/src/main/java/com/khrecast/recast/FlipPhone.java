@@ -37,19 +37,35 @@ final class FlipPhone {
         }
     }
 
-    private boolean graphite;                    // the dark gray body instead of silver
+    private int scheme;                          // 0 silver, 1 graphite, 2 sky blue, 3 rose pink, 4 champagne gold (Settings.FLIP_COLORS)
     private boolean smallBezel;                  // a thin frame round the screen: a bigger picture
-    private int outline() { return graphite ? 0xFF1F2226 : 0xFF6B7078; }
-    private int edgeLight() { return graphite ? 0xFF7C828C : 0xFFF7F8FA; }
-    private int ink() { return graphite ? 0xFFEEF0F3 : 0xFF2A2E34; }
-    private int inkSub() { return graphite ? 0xFFB4BAC3 : 0xFF5B616A; }
+    private boolean graphite() {
+        return scheme == 1;
+    }
 
-    /** A silver colour as the graphite body shows it: the same light and shade, much darker. */
+    // the two ends of each tinted body: the shade of a silver of brightness 0.15 and of 1.0 (index = scheme - 2)
+    private static final int[][] TINT_DARK = {{0x0E, 0x22, 0x5E}, {0x86, 0x1B, 0x55}, {0x6E, 0x50, 0x14}};
+    private static final int[][] TINT_LIGHT = {{0xC9, 0xDC, 0xFF}, {0xFF, 0xD2, 0xE5}, {0xFF, 0xF0, 0xC4}};
+
+    private int outline() { return graphite() ? 0xFF1F2226 : tone(0xFF6B7078); }
+    private int edgeLight() { return graphite() ? 0xFF7C828C : tone(0xFFF7F8FA); }
+    private int ink() { return graphite() ? 0xFFEEF0F3 : tone(0xFF2A2E34); }
+    private int inkSub() { return graphite() ? 0xFFB4BAC3 : tone(0xFF5B616A); }
+
+    /** A silver as the chosen body shows it: the same light and shade (graphite: much darker; the others: tinted). */
     private int tone(int c) {
-        if (!graphite) {
+        if (scheme == 0) {
             return c;
         }
-        return (c & 0xFF000000) | (((c >> 16 & 0xFF) * 38 / 100) << 16) | (((c >> 8 & 0xFF) * 40 / 100) << 8) | ((c & 0xFF) * 44 / 100);
+        int r = c >> 16 & 0xFF, g = c >> 8 & 0xFF, b = c & 0xFF;
+        if (scheme == 1) {
+            return (c & 0xFF000000) | ((r * 38 / 100) << 16) | ((g * 40 / 100) << 8) | (b * 44 / 100);
+        }
+        float lum = (r + g + b) / (3f * 255f);
+        float t = Math.max(0f, Math.min(1f, (lum - 0.15f) / 0.85f));
+        int[] dark = TINT_DARK[scheme - 2], light = TINT_LIGHT[scheme - 2];
+        return (c & 0xFF000000) | (Math.round(dark[0] + (light[0] - dark[0]) * t) << 16)
+                | (Math.round(dark[1] + (light[1] - dark[1]) * t) << 8) | Math.round(dark[2] + (light[2] - dark[2]) * t);
     }
 
     private int[] tones(int... colors) {
@@ -65,10 +81,10 @@ final class FlipPhone {
         smallBezel = on;
     }
 
-    /** Silver or graphite; takes effect at once. */
-    void setGraphite(boolean on) {
-        if (on != graphite) {
-            graphite = on;
+    /** The body color (Settings.FLIP_COLORS); takes effect at once. */
+    void setColor(int color) {
+        if (color != scheme) {
+            scheme = color;
             if (upper.width() > 0) {
                 buildShaders();
             }
@@ -254,7 +270,7 @@ final class FlipPhone {
         c.drawCircle(slot.right + dp(13.2f), slot.centerY() - dp(0.8f), dp(0.9f), fill);
         text.setTextSize(dp(12));
         text.setLetterSpacing(0.25f);
-        text.setColor(graphite ? 0xFF14161A : 0xFFF4F5F7);                      // a lit edge under the print: a pressed-in logo
+        text.setColor(graphite() ? 0xFF14161A : tone(0xFFF4F5F7));                // a lit edge under the print: a pressed-in logo
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10) + dp(0.8f), text);
         text.setColor(inkSub());
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
@@ -344,7 +360,7 @@ final class FlipPhone {
 
     private void arrow(Canvas c, String key, Set<String> down, float x, float y, float deg) {
         float s = navR * 0.17f;
-        fill.setColor(down.contains(key) ? (graphite ? 0xFF8DB8F5 : 0xFF2F66C4) : (graphite ? 0xFFD5D9DF : 0xFF3A3F47));
+        fill.setColor(down.contains(key) ? (graphite() ? 0xFF8DB8F5 : 0xFF2F66C4) : (graphite() ? 0xFFD5D9DF : tone(0xFF3A3F47)));
         c.save();
         c.rotate(deg, x, y);
         arrowPath.rewind();
