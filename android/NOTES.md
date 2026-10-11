@@ -688,6 +688,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   and sets sharing to off (the default). If the player was never asked, they still are asked once. The first-run style answer was already kept.
   (The repeated questions the owner saw were mostly from the developer's test runs resetting the app's settings on the phone, not from the app.)
 
+## The game's sound effects (2026-10-11, done; the owner heard them)
+
+- **The bug:** the sword, jump and hit sounds (the game's ".pmd" effects, CMX files holding QCELP speech-codec audio) were silent on the phone: the core
+  decodes QCELP with ffmpeg, which the phone does not have, and logged "PMD sound effects need ffmpeg" (found by a temporary log of every sound the game
+  started: music and jingles played, every effect failed). The owner noticed "missing sound during fight".
+- **The fix:** `pmd.QCELP_DECODER` (a hook in the core, used only when there is no ffmpeg; tests in `tests/test_music_mixes.py`) is filled on the phone by
+  `QcelpDecoder.java`, which feeds the packets to the phone's own QCELP decoder (`MediaCodec` "audio/qcelp"; Samsung phones have `c2.sec.qcelp.decoder`).
+  `recast_app._qcelp_with_android` passes the packets through a temporary file. The log then showed the effects decoding with real lengths (swipe 320 ms,
+  jump 140 ms, enemy hit 500 ms), and the owner confirmed they are heard.
+- **Limits:** `QcelpDecoder.available()` is checked when the game starts (the hook is only set if the phone has the decoder); a phone without one still has no effects (nothing else is decoded for
+  it; a pure-Python QCELP decoder would be the answer, not written). One first start of `sora_hit.pmd` showed no mixer channel (it played afterwards);
+  not explained.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

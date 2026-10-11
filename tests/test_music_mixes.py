@@ -262,6 +262,41 @@ class FileDecoderHookTests(unittest.TestCase):
         self.assertTrue(np.array_equal(pcm, midi_synth.render_midi(mid)))
 
 
+class QcelpHookTests(unittest.TestCase):
+    """Without ffmpeg (the phone), a sound effect's QCELP packets go to pmd.QCELP_DECODER and come out at the game's rate."""
+
+    def pmd_bytes(self):
+        from khvcemu import pmd
+        packets = [bytes([4]) + bytes(34)] * 3                         # three full-rate packets
+        wave = b"\0" * 7 + b"".join(packets)
+        track = b"\xff\xf1" + len(wave).to_bytes(2, "big") + wave
+        body = b"cmid" + (0).to_bytes(4, "big") + (3).to_bytes(2, "big") + b"\0\0\0"
+        return body + b"trac" + len(track).to_bytes(4, "big") + track
+
+    def test_the_hook_decodes_when_there_is_no_ffmpeg(self):
+        from unittest import mock
+        from khvcemu import pmd
+        seen = []
+
+        def decoder(packets):
+            seen.append(packets)
+            return np.ones(480, np.int16) * 1000, 8000                  # 60 ms at 8 kHz
+
+        with mock.patch.object(pmd, "QCELP_DECODER", decoder), mock.patch("shutil.which", return_value=None):
+            pcm = pmd.decode(self.pmd_bytes(), 22050)
+        self.assertEqual(len(seen[0]), 3)
+        self.assertTrue(all(len(p) == 35 for p in seen[0]))
+        self.assertEqual(len(pcm), int(480 * 22050 / 8000))
+        self.assertEqual(int(pcm[100]), 1000)
+
+    def test_without_ffmpeg_or_a_hook_it_still_says_so(self):
+        from unittest import mock
+        from khvcemu import pmd
+        with mock.patch.object(pmd, "QCELP_DECODER", None), mock.patch("shutil.which", return_value=None):
+            with self.assertRaises(RuntimeError):
+                pmd.decode(self.pmd_bytes(), 22050)
+
+
 class CommandLineTests(unittest.TestCase):
     def test_bad_music_file_options_stop_with_a_message(self):
         from khvcemu.__main__ import main

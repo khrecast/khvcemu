@@ -91,7 +91,7 @@ class AndroidAssetCopyTests(unittest.TestCase):
         sys.path.insert(0, py)
         try:
             import recast_app
-            from khvcemu import audio
+            from khvcemu import audio, pmd
             with tempfile.TemporaryDirectory() as tmp:
                 have = os.path.join(tmp, "t.flac")
                 open(have, "wb").close()
@@ -101,12 +101,12 @@ class AndroidAssetCopyTests(unittest.TestCase):
                 self.assertEqual(recast_app._music_files(text), {"training.mid": {"path": have, "gain": 2.5}})
             self.assertEqual(recast_app._music_files(""), {})
             self.assertEqual(recast_app._music_files("not json"), {})
-            old = audio.FILE_DECODER
+            old, old_qcelp = audio.FILE_DECODER, pmd.QCELP_DECODER
             try:
                 recast_app._install_decoder()
                 self.assertIs(audio.FILE_DECODER, recast_app._decode_with_android)
             finally:
-                audio.FILE_DECODER = old
+                audio.FILE_DECODER, pmd.QCELP_DECODER = old, old_qcelp
         finally:
             sys.path.remove(py)
 

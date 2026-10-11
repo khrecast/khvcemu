@@ -20,13 +20,17 @@ from __future__ import annotations
 import shutil
 import struct
 import subprocess
-from typing import Optional
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 
 from .paths import no_window
 
 QCELP_PACKET = {4: 35, 3: 17, 2: 8, 1: 4, 0: 1}   # rate byte -> packet size
+
+# A way to decode the QCELP packets when there is no ffmpeg: a function (list of packets) -> (mono 16-bit samples, their sample rate).
+# The Android app sets it (the phone's own QCELP decoder); on the desktop it stays None and ffmpeg is used.
+QCELP_DECODER: Optional[Callable[[list], Tuple[np.ndarray, int]]] = None
 
 
 def parse_tracks(data: bytes) -> list:
@@ -92,6 +96,16 @@ def decode(data: bytes, rate: int, midi_renderer=None, ffmpeg: Optional[str] = N
     if qcp is None:
         return np.zeros(rate // 10, np.int16)
     ffmpeg = ffmpeg or shutil.which("ffmpeg")
+    if not ffmpeg and QCELP_DECODER is not None:
+        packets = []
+        for tr in parse_tracks(data):
+            packets += qcelp_packets(wave_blocks(tr))
+        pcm, src_rate = QCELP_DECODER(packets)
+        pcm = np.asarray(pcm, np.int16)
+        if src_rate != rate and len(pcm):                         # to the game's rate (linear, the same as audio.resample)
+            n = int(len(pcm) * rate / src_rate)
+            pcm = np.interp(np.linspace(0, len(pcm) - 1, n), np.arange(len(pcm)), pcm.astype(np.float32)).astype(np.int16)
+        return pcm
     if not ffmpeg:
         raise RuntimeError("PMD sound effects need ffmpeg (QCELP decoder) on PATH")
     r = subprocess.run([ffmpeg, "-v", "error", "-f", "qcp", "-i", "pipe:0", "-f", "s16le", "-ac", "1",

@@ -450,9 +450,31 @@ def _decode_with_android(path):
     return np.fromfile(pcm_path, dtype="<i2")
 
 
+def _qcelp_with_android(packets):
+    """pmd.QCELP_DECODER on the phone: the game's sound effects are QCELP, which the phone's own decoder (if it has one) reads.
+    The packets go to the app's decoder through a temporary file (each: its length, then its bytes); the samples come back the same way."""
+    import tempfile
+    import numpy as np
+    from java import jclass
+    with tempfile.TemporaryDirectory() as tmp:
+        src, dst = os.path.join(tmp, "p.bin"), os.path.join(tmp, "p.pcm")
+        with open(src, "wb") as f:
+            for p in packets:
+                f.write(bytes([len(p)]) + p)
+        rate = int(jclass("com.khrecast.recast.QcelpDecoder").decode(src, dst))
+        return np.fromfile(dst, dtype="<i2"), rate
+
+
 def _install_decoder():
-    from khvcemu import audio
+    from khvcemu import audio, pmd
     audio.FILE_DECODER = _decode_with_android
+    try:
+        from java import jclass
+        has_decoder = bool(jclass("com.khrecast.recast.QcelpDecoder").available())
+    except ImportError:                                               # (not on a phone: the tests)
+        has_decoder = True
+    if has_decoder:                                                   # a phone without the decoder keeps the old silence
+        pmd.QCELP_DECODER = _qcelp_with_android
 
 
 def match_gain(game_dir, tune, music_text, pcm_path):
