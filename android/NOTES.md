@@ -646,20 +646,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   dialogue showed Continue on the left. **Not tried:** the other screens' words (Select, Back and so on), the pills with Sharp text on,
   landscape, and Magic or Status held.
 
-## Softkey words in the menu font, and bigger controls sideways (2026-10-11, built; NOT seen on the phone, it was disconnected)
+## Softkey words in the menu font, and bigger controls sideways (2026-10-11, done; seen on the S23)
 
 - **Menu font for the softkey words:** the words the game puts on its softkeys ("Save", "Shop", "Continue"...) were drawn in the phone's system
   font on the pills. They now use the menu font: `tools/make_tab_labels.py` also makes `khvcemu/assets/menu/font_atlas.png` (76 characters, bright
   silver like the labels; the letters, digits and `.,:;!?'-/+&%()`) and `font_atlas.txt` (the picture's height, then each character's cell start
   and width), copied to `res/drawable-nodpi/menu_font_atlas.png` and `res/raw/menu_font_atlas.txt` (the menu-label test keeps the picture's copy equal, another test the text file's, and checks the cells lie inside the picture and do not overlap). `MenuFont.java` draws any text from it, a whole-number scale with hard edges when that is nearly exact and
   smoothed otherwise, and says so when it lacks a letter for any character of a word (then the whole word is drawn in the system font as before). The Action button's fallback for an
-  unknown banner word uses it too. A preview made in Python looked right; the app was only built.
+  unknown banner word uses it too. Seen on the S23: "Continue" on the left pill in the menu font.
 - **Sideways (landscape) buttons:** the Action, Magic and Status cluster is now a tighter "mouse head" (Magic and Status about 37 degrees either side
   of straight up from Action, all touching) so the buttons can be larger: the size is `min(0.255 x the right side's width, 0.285 x the free height)`
-  against `min(0.2 x width, 0.27 x height)` before, so about a quarter bigger on the S23 Ultra (a cluster 3.7 `big` wide and 3.4 `big` tall, where Action's radius is 1.15 `big`). Not seen on
-  the phone; the controls editor still moves and resizes them as before.
+  against `min(0.2 x width, 0.27 x height)` before, so about a quarter bigger on the S23 Ultra (a cluster 3.7 `big` wide and 3.4 `big` tall, where Action's radius is 1.15 `big`). Seen on the S23 in landscape (the cluster fits beside the picture); the controls editor
+  still moves and resizes them as before.
 
-## Switching between flip phone and smartphone in the game menu, and more colors (2026-10-11, built; NOT seen on the phone, it was disconnected)
+## Switching between flip phone and smartphone in the game menu, and more colors (2026-10-11, done; seen on the S23)
 
 - **The in-game menu (Back) starts with "Switch to flip phone mode" or "Switch to smartphone mode"** (whichever is not on). Choosing flip phone
   closes the menu and opens a **Flip phone** pop-up over the game, which stays held: the body color (a list) and "Small bezel (a bigger
@@ -674,7 +674,12 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   keys are red too, with pale pink print), and **Re:Cast blue**, a deep blue close to the logo's. Both are dark bodies like Graphite (`dark()`: pale key print
   and arrows, `FlipPhone.dark()` and `pale()`). The list is now Silver, Graphite, Sky blue, Rose pink, Champagne gold, Red, Re:Cast blue; judged only
   from a Python mock-up, not on the phone.
-- **Not tried on the phone:** any of it: the menu item, the pop-up's look and its live changes, the new colors on the real shape (End is a brighter orange-red on the Red body so it stands out), the held state of
+- **Verified on the S23 Ultra:** the menu's first item ("Switch to flip phone mode"), the Flip phone pop-up over the held game ("paused 0 fps" behind it)
+  with the seven colors and the small bezel box; choosing Rose pink and the small bezel changed the phone live, Done resumed the game at 25 fps, and the
+  settings were stored (`flip_color` 3, `flip_small_bezel`); Red and Re:Cast blue were also drawn on the real phone and look right (End stands out on Red).
+  The Red follows the owner's reference photo of a red LG phone.
+- **Not tried:** switching back to smartphone mode from the menu, the other colors on the phone (Silver, Graphite, Sky blue, Champagne gold seen only as mock-ups
+  or earlier), the old setting's migration. The rest of the earlier list: the menu item, the pop-up's look and its live changes, the new colors on the real shape (End is a brighter orange-red on the Red body so it stands out), the held state of
   the game behind the pop-up, and the migration of an old setting.
 
 ## Sharing high scores (2026-10-10, done; no score was posted)
