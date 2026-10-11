@@ -712,6 +712,10 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Moving and resizing:** the forward/back pair is group 0 (the d-pad's place) and the turn pair is a new group 7; each pair moves and resizes as one box, in the
   controls editor, like the other groups. The two-thumb layout keeps its own saved places (`ctl2_port2_*`, `ctl2_land2_*`, `ctlscale_..._*`), apart from the
   normal layout's; "Put the controls back" clears both. `Settings.controlOffset`/`controlScale` and their setters take a `twoThumb` flag now.
+- **Bigger, and a switch in the editor (the owner's next request):** all the two-thumb buttons are 18 percent bigger than first built (Magic, Status, Action and the
+  four arrow keys). In "Move the controls" a second button under "Put the controls back" switches between two-thumb and one-thumb (the d-pad) movement; it
+  saves the same setting as the Options switch. The editor's two buttons are kept as wide as the picture and their text shrinks to fit (a review found they could spill over the side columns sideways; seen sideways on the S23 after the fix: both stay over the picture and the text fits). Seen on the S23: the bigger keys in portrait, the editor with the new button, and switching to one thumb (the d-pad
+  returns) and back to two thumbs, each with a message.
 - Sideways with the flip phone mode on (where the usual controls show), the two-thumb layout applies too when its option is on.
 - **Seen on the S23:** the layout in portrait and landscape (the keys at the bottom corners of each column, Magic and Status small in portrait) and an Up key lighting
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved

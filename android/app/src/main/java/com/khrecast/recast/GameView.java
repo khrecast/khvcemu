@@ -67,7 +67,7 @@ public class GameView extends View {
     private final float[] scale = new float[Settings.CONTROL_GROUPS];      // 1 = the default size
     private int pinchPointer = -1;
     private float pinchStartDist, pinchStartScale;
-    private final RectF resetRect = new RectF();
+    private final RectF resetRect = new RectF(), modeRect = new RectF();   // the editor's two buttons: put back, and one thumb or two
     private boolean offsetLandscape, offsetTwoThumb, offsetsLoaded;
     // the two-thumb layout: the forward/back keys, the turn keys (each pair as one box) and the four keys inside them
     private boolean twoThumb;
@@ -599,9 +599,10 @@ public class GameView extends View {
     private void layoutTwoThumb() {
         float cwL = colL1 - colL0, cwR = colR1 - colR0, ch = areaB - areaT;
         float narrow = Math.max(1f, Math.min(cwL, cwR));
-        float rs = Math.min(narrow * 0.17f, ch * 0.12f);                    // Magic and Status
-        float bs = Math.min(narrow * 0.30f, ch * 0.22f);                    // one arrow key
-        float ra = Math.min(cwR * 0.26f, ch * 0.24f);                       // Action
+        final float bigger = 1.18f;                                         // all of these were made about 18 percent bigger after a first try
+        float rs = Math.min(narrow * 0.17f, ch * 0.12f) * bigger;           // Magic and Status
+        float bs = Math.min(narrow * 0.30f, ch * 0.22f) * bigger;           // one arrow key
+        float ra = Math.min(cwR * 0.26f, ch * 0.24f) * bigger;              // Action
         float gap = bs * 0.12f;
         float lcx = (colL0 + colL1) / 2f, rcx = (colR0 + colR1) / 2f;
         float rowY = areaT + rs + ch * 0.04f;
@@ -746,6 +747,14 @@ public class GameView extends View {
                             .setNegativeButton("Cancel", null).show();
                     return true;
                 }
+                if (modeRect.contains(x, y)) {                                  // one thumb (the d-pad) or two thumbs (the split keys)
+                    boolean on = !twoThumb;
+                    Settings.setTwoThumb(getContext(), on);
+                    setTwoThumb(on);
+                    android.widget.Toast.makeText(getContext(), on ? "Two-thumb movement: left thumb forward and back, right thumb turns"
+                            : "One-thumb movement: the d-pad", android.widget.Toast.LENGTH_SHORT).show();
+                    return true;
+                }
                 for (int g = Settings.CONTROL_GROUPS - 1; g >= 0 && grabbed < 0; g--) {   // later groups sit on top
                     if (!groupActive(g)) {
                         continue;
@@ -853,11 +862,25 @@ public class GameView extends View {
     }
 
     /** The "put the controls back" button, drawn over the top of the game picture while the controls are being arranged. */
+    /** White text centered in a button, made smaller until it fits. */
+    private void drawFitted(Canvas c, String s, RectF r) {
+        float size = dp(15);
+        text.setTextSize(size);
+        while (text.measureText(s) > r.width() - dp(16) && size > dp(9)) {
+            size -= 1f;
+            text.setTextSize(size);
+        }
+        text.setColor(Color.WHITE);
+        c.drawText(s, r.centerX(), r.centerY() + size / 3f, text);
+        text.setTextSize(dp(15));
+    }
+
     private void updateResetRect() {
-        float w = Math.min(getWidth() * 0.8f, dp(300)), h = dp(44);
+        float w = Math.min(Math.min(getWidth() * 0.8f, dp(300)), Math.max(dp(160), dst.width() - dp(8))), h = dp(44);   // (sideways, the picture is narrow: stay over it)
         float cx = (dst.left + dst.right) / 2f;
         float top = dst.top + dp(10);
         resetRect.set(cx - w / 2f, top, cx + w / 2f, top + h);
+        modeRect.set(cx - w / 2f, top + h + dp(8), cx + w / 2f, top + 2 * h + dp(8));
     }
 
     private int dp(int v) {
@@ -1015,7 +1038,11 @@ public class GameView extends View {
             c.drawRoundRect(resetRect, dp(10), dp(10), fill);
             text.setTextSize(dp(15));
             text.setColor(Color.WHITE);
-            c.drawText("Put the controls back", resetRect.centerX(), resetRect.centerY() + dp(5), text);
+            drawFitted(c, "Put the controls back", resetRect);
+            fill.setColor(0xFF2B4A7A);
+            c.drawRoundRect(modeRect, dp(10), dp(10), fill);
+            text.setColor(Color.WHITE);
+            drawFitted(c, twoThumb ? "Movement: two thumbs (tap for one)" : "Movement: one thumb (tap for two)", modeRect);
             String hint = "Drag to move, pinch to resize. Back when done.";
             float size = Math.max(getHeight() * 0.018f, dp(13));
             text.setTextSize(size);
