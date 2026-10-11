@@ -135,8 +135,23 @@ final class Settings {
 
     /** The two-thumb layout: forward and back, Magic and Status for the left thumb; turn left and right, Action for the right. */
     static boolean twoThumb(Context c) {
-        return prefs(c).getBoolean("two_thumb", false);
+        return prefs(c).getBoolean("two_thumb", true);                  // the default way to move (the owner's choice)
     }
+
+    /**
+     * The owner's arrangement of the two-thumb layout in portrait, which is the default: for each group (0 forward and back, 1 Action,
+     * 2 Magic, 3 Status, 4 to 6 the softkeys, 7 turn) how far from the layout's own place (as a fraction of the screen's width and
+     * height) and how much bigger or smaller. Worked out from a screenshot of the arrangement on the S23 Ultra (about 2 px accurate there);
+     * a control the player moved keeps the player's own place, and "Put the controls back" returns to these.
+     */
+    private static final float[][] TWO_THUMB_PORTRAIT = {
+            {-0.0783f, -0.0484f, 1.555f},     // forward and back: up and left, bigger
+            {-0.0086f, -0.0037f, 0.975f},     // Action
+            {0.2747f, 0.0283f, 1.411f},       // Magic: moved to the middle, bigger
+            {0.0600f, 0.1428f, 1.011f},       // Status: below Magic
+            {0f, 0f, 1f}, {0f, 0f, 1f}, {0f, 0f, 1f},
+            {-0.0402f, -0.0212f, 1.411f},     // turn left and right: up and left, bigger
+    };
 
     static void setTwoThumb(Context c, boolean v) {
         prefs(c).edit().putBoolean("two_thumb", v).apply();
@@ -150,7 +165,11 @@ final class Settings {
     /** Where the player moved a group of touch controls, as a fraction of the screen's width and height from the default
      *  place; kept apart for portrait and landscape. */
     static float[] controlOffset(Context c, boolean landscape, boolean twoThumb, int group) {
-        String v = prefs(c).getString("ctl2_" + place(landscape, twoThumb) + "_" + group, "");
+        String key = "ctl2_" + place(landscape, twoThumb) + "_" + group;
+        if (twoThumb && !landscape && !prefs(c).contains(key) && group < TWO_THUMB_PORTRAIT.length) {
+            return new float[]{TWO_THUMB_PORTRAIT[group][0], TWO_THUMB_PORTRAIT[group][1]};
+        }
+        String v = prefs(c).getString(key, "");
         String[] parts = v.split(",");
         try {
             if (parts.length == 2) {
@@ -172,6 +191,10 @@ final class Settings {
 
     /** How much bigger (above 1) or smaller (below 1) the player made a control; 1 is the default size. */
     static float controlScale(Context c, boolean landscape, boolean twoThumb, int group) {
+        if (twoThumb && !landscape && group < TWO_THUMB_PORTRAIT.length
+                && !prefs(c).contains("ctlscale_" + place(landscape, twoThumb) + "_" + group)) {
+            return TWO_THUMB_PORTRAIT[group][2];
+        }
         try {
             float v = Float.parseFloat(prefs(c).getString("ctlscale_" + place(landscape, twoThumb) + "_" + group, "1"));
             if (Float.isFinite(v)) {

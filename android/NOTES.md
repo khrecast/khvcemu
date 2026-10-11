@@ -705,13 +705,21 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 
 - **Why (the owner's idea):** the game was made for a phone keypad, played with two thumbs (forward and back with one, turning with the other). On the
   smartphone look one thumb on a d-pad has to steer and move, so a precise diagonal is needed and you can end up running in circles; the flip phone
-  keypad does not have that problem. "Two-thumb controls" (Options > Controls, off by default, smartphone look only) splits the d-pad.
+  keypad does not have that problem. "Two-thumb controls" (Options > Controls, now on by default, smartphone look only) splits the d-pad.
 - **Layout (the owner's choice: Magic and Status to the left, Action stays on the right):** left column, Magic and Status side by side with the **forward
   and back** keys (two stacked keys) under them; right column, Action with the **turn left and turn right** keys (side by side) under it. Four separate
   keys, so there are no diagonals to aim for and both thumbs can hold at once. They send the same Up, Down, Left and Right keys as the d-pad.
 - **Moving and resizing:** the forward/back pair is group 0 (the d-pad's place) and the turn pair is a new group 7; each pair moves and resizes as one box, in the
   controls editor, like the other groups. The two-thumb layout keeps its own saved places (`ctl2_port2_*`, `ctl2_land2_*`, `ctlscale_..._*`), apart from the
   normal layout's; "Put the controls back" clears both. `Settings.controlOffset`/`controlScale` and their setters take a `twoThumb` flag now.
+- **The default (the owner's own arrangement, from a screenshot they sent):** two-thumb movement is now on by default (`Settings.twoThumb` defaults to true;
+  "Restore the default settings" and a fresh install give it), and in portrait its keys start where the owner put them: forward and back as a tall pair at the
+  left, Magic in the middle column with Status small under it, Action at the right with the turn pair under it, pulled a little up and left. These are
+  the `TWO_THUMB_PORTRAIT` offsets and scales in `Settings.java`, worked out from the screenshot with the layout's own arithmetic (it reproduced the picture and the softkeys
+  to 2 px); a control the player moved keeps their place, and "Put the controls back" returns to this. Sideways has no built-in arrangement yet (the owner sent
+  only the portrait one). The exact saved values on the phone were not read (it was disconnected): they may differ by a few pixels. **Effects:** an existing install that never touched the switch moves from the d-pad to
+  two-thumb on update (the app is unreleased, so this is only the owner's phone); a player who moved only some groups keeps those and gets the built-in places for the rest; the
+  numbers are fractions of the S23 Ultra's size, so other screen shapes may have a control pulled in a little by the keep-inside-the-screen rule (not tried).
 - **Bigger, and a switch in the editor (the owner's next request):** all the two-thumb buttons are 18 percent bigger than first built (Magic, Status, Action and the
   four arrow keys). In "Move the controls" a second button under "Put the controls back" switches between two-thumb and one-thumb (the d-pad) movement; it
   saves the same setting as the Options switch. The editor's two buttons are kept as wide as the picture and their text shrinks to fit (a review found they could spill over the side columns sideways; seen sideways on the S23 after the fix: both stay over the picture and the text fits). Seen on the S23: the bigger keys in portrait, the editor with the new button, and switching to one thumb (the d-pad
