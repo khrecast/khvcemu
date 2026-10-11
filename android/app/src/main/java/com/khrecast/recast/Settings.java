@@ -141,16 +141,16 @@ final class Settings {
     /**
      * The owner's arrangement of the two-thumb layout in portrait, which is the default: for each group (0 forward and back, 1 Action,
      * 2 Magic, 3 Status, 4 to 6 the softkeys, 7 turn) how far from the layout's own place (as a fraction of the screen's width and
-     * height) and how much bigger or smaller. Worked out from a screenshot of the arrangement on the S23 Ultra (about 2 px accurate there);
+     * height) and how much bigger or smaller. Worked out from a screenshot of the arrangement on the S23 Ultra (about 2 px accurate there) and then tidied: the two pairs share a bottom edge, Magic and Status share a column, Status is level with the turn keys, Action is centered over them, and the side margins match;
      * a control the player moved keeps the player's own place, and "Put the controls back" returns to these.
      */
     private static final float[][] TWO_THUMB_PORTRAIT = {
-            {-0.0783f, -0.0484f, 1.555f},     // forward and back: up and left, bigger
-            {-0.0086f, -0.0037f, 0.975f},     // Action
-            {0.2747f, 0.0283f, 1.411f},       // Magic: moved to the middle, bigger
-            {0.0600f, 0.1428f, 1.011f},       // Status: below Magic
+            {-0.0787f, -0.0466f, 1.555f},     // forward and back: at the left, bigger; its bottom is level with the turn pair's
+            {-0.0185f, -0.0039f, 0.975f},     // Action: centered over the turn pair
+            {0.2426f, 0.0281f, 1.411f},       // Magic: in the middle, level with Action, in the same column as Status
+            {0.0722f, 0.1438f, 1.000f},       // Status: below Magic, level with the turn pair
             {0f, 0f, 1f}, {0f, 0f, 1f}, {0f, 0f, 1f},
-            {-0.0402f, -0.0212f, 1.411f},     // turn left and right: up and left, bigger
+            {-0.0185f, -0.0233f, 1.411f},     // turn left and right: bigger, the same margin from the right edge as forward/back from the left
     };
 
     static void setTwoThumb(Context c, boolean v) {

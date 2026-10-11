@@ -717,7 +717,8 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   left, Magic in the middle column with Status small under it, Action at the right with the turn pair under it, pulled a little up and left. These are
   the `TWO_THUMB_PORTRAIT` offsets and scales in `Settings.java`, worked out from the screenshot with the layout's own arithmetic (it reproduced the picture and the softkeys
   to 2 px); a control the player moved keeps their place, and "Put the controls back" returns to this. Sideways has no built-in arrangement yet (the owner sent
-  only the portrait one). The exact saved values on the phone were not read (it was disconnected): they may differ by a few pixels. **Effects:** an existing install that never touched the switch moves from the d-pad to
+  only the portrait one). After the owner said the screenshot was only the rough position and size, the numbers were tidied (up to about 40 px of movement): the forward/back and turn pairs share a bottom edge, Magic and Status
+  share a column, Status is level with the turn keys, Action is centered over them and the side margins match; Status is exactly its default size. The exact saved values on the phone were not read (it was disconnected): they may differ by a few pixels. **Effects:** an existing install that never touched the switch moves from the d-pad to
   two-thumb on update (the app is unreleased, so this is only the owner's phone); a player who moved only some groups keeps those and gets the built-in places for the rest; the
   numbers are fractions of the S23 Ultra's size, so other screen shapes may have a control pulled in a little by the keep-inside-the-screen rule (not tried).
 - **Bigger, and a switch in the editor (the owner's next request):** all the two-thumb buttons are 18 percent bigger than first built (Magic, Status, Action and the
