@@ -129,14 +129,28 @@ final class Settings {
         prefs(c).edit().putBoolean("share_scores", v).apply();
     }
 
-    /** The touch controls that can be moved and resized, each on its own: 0 the d-pad, 1 Action, 2 Magic, 3 Status, 4 Soft 1,
-     *  5 Back, 6 Soft 2. */
-    static final int CONTROL_GROUPS = 7;
+    /** The touch controls that can be moved and resized, each on its own: 0 the d-pad (in the two-thumb layout: forward and back),
+     *  1 Action, 2 Magic, 3 Status, 4 Soft 1, 5 Back, 6 Soft 2, 7 turn left and right (the two-thumb layout only). */
+    static final int CONTROL_GROUPS = 8;
+
+    /** The two-thumb layout: forward and back, Magic and Status for the left thumb; turn left and right, Action for the right. */
+    static boolean twoThumb(Context c) {
+        return prefs(c).getBoolean("two_thumb", false);
+    }
+
+    static void setTwoThumb(Context c, boolean v) {
+        prefs(c).edit().putBoolean("two_thumb", v).apply();
+    }
+
+    /** The key part for where controls were put: the orientation, and "2" for the two-thumb layout (it has its own places). */
+    private static String place(boolean landscape, boolean twoThumb) {
+        return (landscape ? "land" : "port") + (twoThumb ? "2" : "");
+    }
 
     /** Where the player moved a group of touch controls, as a fraction of the screen's width and height from the default
      *  place; kept apart for portrait and landscape. */
-    static float[] controlOffset(Context c, boolean landscape, int group) {
-        String v = prefs(c).getString("ctl2_" + (landscape ? "land" : "port") + "_" + group, "");
+    static float[] controlOffset(Context c, boolean landscape, boolean twoThumb, int group) {
+        String v = prefs(c).getString("ctl2_" + place(landscape, twoThumb) + "_" + group, "");
         String[] parts = v.split(",");
         try {
             if (parts.length == 2) {
@@ -151,15 +165,15 @@ final class Settings {
         return new float[]{0f, 0f};
     }
 
-    static void setControlOffset(Context c, boolean landscape, int group, float x, float y) {
-        prefs(c).edit().putString("ctl2_" + (landscape ? "land" : "port") + "_" + group,
+    static void setControlOffset(Context c, boolean landscape, boolean twoThumb, int group, float x, float y) {
+        prefs(c).edit().putString("ctl2_" + place(landscape, twoThumb) + "_" + group,
                 String.format(java.util.Locale.US, "%.4f,%.4f", x, y)).apply();
     }
 
     /** How much bigger (above 1) or smaller (below 1) the player made a control; 1 is the default size. */
-    static float controlScale(Context c, boolean landscape, int group) {
+    static float controlScale(Context c, boolean landscape, boolean twoThumb, int group) {
         try {
-            float v = Float.parseFloat(prefs(c).getString("ctlscale_" + (landscape ? "land" : "port") + "_" + group, "1"));
+            float v = Float.parseFloat(prefs(c).getString("ctlscale_" + place(landscape, twoThumb) + "_" + group, "1"));
             if (Float.isFinite(v)) {
                 return Math.max(0.5f, Math.min(2f, v));
             }
@@ -169,15 +183,15 @@ final class Settings {
         return 1f;
     }
 
-    static void setControlScale(Context c, boolean landscape, int group, float v) {
-        prefs(c).edit().putString("ctlscale_" + (landscape ? "land" : "port") + "_" + group,
+    static void setControlScale(Context c, boolean landscape, boolean twoThumb, int group, float v) {
+        prefs(c).edit().putString("ctlscale_" + place(landscape, twoThumb) + "_" + group,
                 String.format(java.util.Locale.US, "%.3f", v)).apply();
     }
 
-    /** Puts every touch control back where it started (both orientations). */
+    /** Puts every touch control back where it started (both orientations, both layouts). */
     static void resetControls(Context c) {
         SharedPreferences.Editor e = prefs(c).edit();
-        for (String o : new String[]{"port", "land"}) {
+        for (String o : new String[]{"port", "land", "port2", "land2"}) {
             for (int g = 0; g < CONTROL_GROUPS; g++) {
                 e.remove("ctl2_" + o + "_" + g);
                 e.remove("ctlscale_" + o + "_" + g);

@@ -701,6 +701,22 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   it; a pure-Python QCELP decoder would be the answer, not written). One first start of `sora_hit.pmd` showed no mixer channel (it played afterwards);
   not explained.
 
+## Two-thumb controls (2026-10-11, built; seen on the S23, not played with)
+
+- **Why (the owner's idea):** the game was made for a phone keypad, played with two thumbs (forward and back with one, turning with the other). On the
+  smartphone look one thumb on a d-pad has to steer and move, so a precise diagonal is needed and you can end up running in circles; the flip phone
+  keypad does not have that problem. "Two-thumb controls" (Options > Controls, off by default, smartphone look only) splits the d-pad.
+- **Layout (the owner's choice: Magic and Status to the left, Action stays on the right):** left column, Magic and Status side by side with the **forward
+  and back** keys (two stacked keys) under them; right column, Action with the **turn left and turn right** keys (side by side) under it. Four separate
+  keys, so there are no diagonals to aim for and both thumbs can hold at once. They send the same Up, Down, Left and Right keys as the d-pad.
+- **Moving and resizing:** the forward/back pair is group 0 (the d-pad's place) and the turn pair is a new group 7; each pair moves and resizes as one box, in the
+  controls editor, like the other groups. The two-thumb layout keeps its own saved places (`ctl2_port2_*`, `ctl2_land2_*`, `ctlscale_..._*`), apart from the
+  normal layout's; "Put the controls back" clears both. `Settings.controlOffset`/`controlScale` and their setters take a `twoThumb` flag now.
+- Sideways with the flip phone mode on (where the usual controls show), the two-thumb layout applies too when its option is on.
+- **Seen on the S23:** the layout in portrait and landscape (the keys at the bottom corners of each column, Magic and Status small in portrait) and an Up key lighting
+  while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved
+  places, and a switch for it in the game menu (it is in Options only).
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

@@ -150,6 +150,46 @@ final class ControlSkin {
         c.restore();
     }
 
+    /** One arrow key of the two-thumb layout: a glass key in the area `r` with a triangle pointing `deg` degrees from straight up. */
+    void drawKey(Canvas c, RectF r, float deg, boolean pressed) {
+        float rad = Math.min(r.width(), r.height()) * 0.28f;
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.FILL);
+        if (pressed) {
+            paint.setColor(0x338FC2FF);
+            box.set(r.left - dp(4), r.top - dp(4), r.right + dp(4), r.bottom + dp(4));
+            c.drawRoundRect(box, rad + dp(4), rad + dp(4), paint);
+        } else {
+            paint.setColor(0x66000000);
+            box.set(r.left, r.top + dp(2), r.right, r.bottom + dp(2));
+            c.drawRoundRect(box, rad, rad, paint);
+        }
+        Shader s = pressed ? pillHeld : pillIdle;
+        matrix.setScale(1f, r.height());
+        matrix.postTranslate(0f, r.top);
+        s.setLocalMatrix(matrix);
+        paint.setShader(s);
+        c.drawRoundRect(r, rad, rad, paint);
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(dp(1.5f), Math.min(r.width(), r.height()) * 0.025f));
+        paint.setColor(pressed ? RIM_HELD : 0xCC8FA9CC);
+        box.set(r.left + dp(0.75f), r.top + dp(0.75f), r.right - dp(0.75f), r.bottom - dp(0.75f));
+        c.drawRoundRect(box, rad, rad, paint);
+        paint.setStyle(Paint.Style.FILL);
+        float s2 = Math.min(r.width(), r.height()) * 0.24f, x = r.centerX(), y = r.centerY();
+        paint.setColor(pressed ? 0xFFFFFFFF : 0xFFAFC2DD);
+        c.save();
+        c.rotate(deg, x, y);
+        arrow.rewind();
+        arrow.moveTo(x, y - s2);
+        arrow.lineTo(x + s2 * 1.05f, y + s2 * 0.8f);
+        arrow.lineTo(x - s2 * 1.05f, y + s2 * 0.8f);
+        arrow.close();
+        c.drawPath(arrow, paint);
+        c.restore();
+    }
+
     /** A round button (Action, Magic, Status) in the area `r`; `accent` is BLUE, VIOLET or GOLD. */
     void drawBall(Canvas c, RectF r, String label, String word, int accent, boolean pressed) {
         float cx = r.centerX(), cy = r.centerY(), rad = r.width() / 2f * (pressed ? 0.96f : 1f);

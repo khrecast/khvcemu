@@ -116,6 +116,10 @@ public class OptionsActivity extends Activity {
                 + "with softkeys, a navigation ring, Call and End keys and a 12-key keypad (2, 4, 6, 8 move, 5 selects, * is Magic, "
                 + "0 is Status). The picture has a fixed size here. Turning the phone sideways uses the usual controls."));
         col.addView(flipColorRow());
+        col.addView(toggle("Two-thumb controls (smartphone look)", Settings.twoThumb(this), Settings::setTwoThumb));
+        col.addView(note("The game was made for a phone keypad, moved with two thumbs. Left thumb: forward and back, Magic and Status. "
+                + "Right thumb: turn left and right, Action. No diagonals to aim for, so you cannot run in circles. Move and resize "
+                + "each group from the game's menu; it keeps its own places."));
         col.addView(toggle("Small bezel: a bigger picture (needs the flip phone look)", Settings.flipSmallBezel(this), Settings::setFlipSmallBezel));
         col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
                 + "move it, pinch it with two fingers to make it bigger or smaller."));

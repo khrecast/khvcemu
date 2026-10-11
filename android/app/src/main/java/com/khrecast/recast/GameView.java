@@ -68,7 +68,12 @@ public class GameView extends View {
     private int pinchPointer = -1;
     private float pinchStartDist, pinchStartScale;
     private final RectF resetRect = new RectF();
-    private boolean offsetLandscape, offsetsLoaded;
+    private boolean offsetLandscape, offsetTwoThumb, offsetsLoaded;
+    // the two-thumb layout: the forward/back keys, the turn keys (each pair as one box) and the four keys inside them
+    private boolean twoThumb;
+    private final RectF moveRect = new RectF(), turnRect = new RectF();
+    private final RectF upR = new RectF(), downR = new RectF(), leftR = new RectF(), rightR = new RectF();
+    private float colL0, colL1, colR0, colR1, areaT, areaB;                 // the room the controls have: two columns and their height
     private volatile boolean editing;
     private boolean needDown;                    // after editing: ignore a finger that is still down from before
     private int grabbed = -1, grabPointer = -1;
@@ -123,6 +128,17 @@ public class GameView extends View {
     /** Flip phone mode (portrait only): the game on a clamshell phone with a keypad. Takes effect at once. */
     public void setEditEndedListener(Runnable r) {
         editEnded = r;
+    }
+
+    /** The two-thumb layout (smartphone look): forward and back, Magic and Status on the left; turn and Action on the right. */
+    public void setTwoThumb(boolean on) {
+        if (on != twoThumb) {
+            twoThumb = on;
+            releaseAll();
+            offsetsLoaded = false;                                          // it has its own saved places
+            layoutControls(getWidth(), getHeight());
+            postInvalidate();
+        }
     }
 
     public void setFlipSmallBezel(boolean on) {
@@ -516,6 +532,12 @@ public class GameView extends View {
 
         float areaTop = softTop + softH + free * 0.03f, areaBottom = bottom - free * 0.05f;
         float area = areaBottom - areaTop;
+        colL0 = left;
+        colL1 = gx;
+        colR0 = gx + gw;
+        colR1 = right;
+        areaT = areaTop;
+        areaB = areaBottom;
         padR = Math.min(leftW * 0.44f, area * 0.46f);
         padX = lc;
         padY = areaBottom - padR;
@@ -551,24 +573,71 @@ public class GameView extends View {
             return;                                                 // the phone has its own keys: no moved or resized controls
         }
         layoutBase(w, h);
+        if (twoThumb) {
+            layoutTwoThumb();
+        }
         boolean landscape = w > h;
-        if (!offsetsLoaded || offsetLandscape != landscape) {              // the other orientation has its own positions
+        if (!offsetsLoaded || offsetLandscape != landscape || offsetTwoThumb != twoThumb) {   // each has its own positions
             for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
-                float[] saved = Settings.controlOffset(getContext(), landscape, g);
+                float[] saved = Settings.controlOffset(getContext(), landscape, twoThumb, g);
                 offset[g][0] = saved[0];
                 offset[g][1] = saved[1];
-                scale[g] = Settings.controlScale(getContext(), landscape, g);
+                scale[g] = Settings.controlScale(getContext(), landscape, twoThumb, g);
             }
             offsetLandscape = landscape;
+            offsetTwoThumb = twoThumb;
             offsetsLoaded = true;
         }
         applyOffsets(w, h);
     }
 
+    /**
+     * The two-thumb places: the left column holds Magic and Status in a row with the forward and back keys under them, the right column
+     * Action with the turn keys under it. Everything is kept apart so that each thumb has its own keys and neither has to turn and
+     * move at once.
+     */
+    private void layoutTwoThumb() {
+        float cwL = colL1 - colL0, cwR = colR1 - colR0, ch = areaB - areaT;
+        float narrow = Math.max(1f, Math.min(cwL, cwR));
+        float rs = Math.min(narrow * 0.17f, ch * 0.12f);                    // Magic and Status
+        float bs = Math.min(narrow * 0.30f, ch * 0.22f);                    // one arrow key
+        float ra = Math.min(cwR * 0.26f, ch * 0.24f);                       // Action
+        float gap = bs * 0.12f;
+        float lcx = (colL0 + colL1) / 2f, rcx = (colR0 + colR1) / 2f;
+        float rowY = areaT + rs + ch * 0.04f;
+        setCircle(buttons.get(4), lcx - rs * 1.15f, rowY, rs);              // Magic
+        setCircle(buttons.get(5), lcx + rs * 1.15f, rowY, rs);              // Status
+        moveRect.set(lcx - bs / 2f, areaB - (2 * bs + gap), lcx + bs / 2f, areaB);
+        setCircle(buttons.get(3), rcx, areaT + ra + ch * 0.03f, ra);        // Action
+        turnRect.set(rcx - (2 * bs + gap) / 2f, areaB - bs, rcx + (2 * bs + gap) / 2f, areaB);
+        syncKeys();
+    }
+
+    /** The four keys inside the two pairs' boxes (after the boxes were sized or moved). */
+    private void syncKeys() {
+        float gm = moveRect.height() * 0.06f, hm = (moveRect.height() - gm) / 2f;
+        upR.set(moveRect.left, moveRect.top, moveRect.right, moveRect.top + hm);
+        downR.set(moveRect.left, moveRect.bottom - hm, moveRect.right, moveRect.bottom);
+        float gt = turnRect.width() * 0.06f, wt = (turnRect.width() - gt) / 2f;
+        leftR.set(turnRect.left, turnRect.top, turnRect.left + wt, turnRect.bottom);
+        rightR.set(turnRect.right - wt, turnRect.top, turnRect.right, turnRect.bottom);
+    }
+
+    /** Group 7 (the turn keys) exists only in the two-thumb layout. */
+    private boolean groupActive(int g) {
+        return g != 7 || twoThumb;
+    }
+
     /** The bounds of a group of controls, in pixels. */
     private RectF groupBounds(int g) {
         RectF r = new RectF();
-        if (g == 0) {
+        if (twoThumb && g == 0) {
+            r.set(moveRect);
+        } else if (g == 7) {
+            if (twoThumb) {
+                r.set(turnRect);
+            }
+        } else if (g == 0) {
             r.set(padX - padR, padY - padR, padX + padR, padY + padR);
         } else {
             r.set(buttons.get(buttonOf(g)).r);                             // every other group is one button
@@ -589,13 +658,20 @@ public class GameView extends View {
     private void applyOffsets(int w, int h) {
         float freeW = Math.max(1f, w - insetLeft - insetRight), freeH = Math.max(1f, h - insetTop - insetBottom);
         for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
+            if (!groupActive(g)) {
+                continue;
+            }
             RectF b = groupBounds(g);
             float floor = Math.max(0.5f, Math.min(1f, dp(44) / Math.max(1f, Math.min(b.width(), b.height()))));   // thumb-sized
             float s = Math.max(floor, Math.min(2f, scale[g]));
             s = Math.min(s, Math.min(freeW / Math.max(1f, b.width()), freeH / Math.max(1f, b.height())));
             scale[g] = s;
             if (Math.abs(s - 1f) > 0.0005f) {
-                if (g == 0) {
+                if (twoThumb && (g == 0 || g == 7)) {
+                    RectF r = g == 0 ? moveRect : turnRect;
+                    float cx = r.centerX(), cy = r.centerY(), hw = r.width() / 2f * s, hh = r.height() / 2f * s;
+                    r.set(cx - hw, cy - hh, cx + hw, cy + hh);
+                } else if (g == 0) {
                     padR *= s;
                 } else {
                     RectF r = buttons.get(buttonOf(g)).r;
@@ -605,18 +681,28 @@ public class GameView extends View {
             }
         }
         for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {                // (always: a bigger control may need pulling in)
+            if (!groupActive(g)) {
+                continue;
+            }
             RectF b = groupBounds(g);
             float dx = offset[g][0] * w, dy = offset[g][1] * h;
             dx = Math.max(insetLeft - b.left, Math.min(w - insetRight - b.right, dx));
             dy = Math.max(insetTop - b.top, Math.min(h - insetBottom - b.bottom, dy));
             offset[g][0] = dx / w;
             offset[g][1] = dy / h;
-            if (g == 0) {
+            if (twoThumb && g == 0) {
+                moveRect.offset(dx, dy);
+            } else if (twoThumb && g == 7) {
+                turnRect.offset(dx, dy);
+            } else if (g == 0) {
                 padX += dx;
                 padY += dy;
             } else {
                 buttons.get(buttonOf(g)).r.offset(dx, dy);
             }
+        }
+        if (twoThumb) {
+            syncKeys();
         }
     }
 
@@ -661,6 +747,9 @@ public class GameView extends View {
                     return true;
                 }
                 for (int g = Settings.CONTROL_GROUPS - 1; g >= 0 && grabbed < 0; g--) {   // later groups sit on top
+                    if (!groupActive(g)) {
+                        continue;
+                    }
                     RectF b = groupBounds(g);
                     b.inset(-dp(8), -dp(8));
                     if (b.contains(x, y)) {
@@ -736,8 +825,8 @@ public class GameView extends View {
 
     private void saveGrabbed() {
         if (grabbed >= 0) {
-            Settings.setControlOffset(getContext(), offsetLandscape, grabbed, offset[grabbed][0], offset[grabbed][1]);
-            Settings.setControlScale(getContext(), offsetLandscape, grabbed, scale[grabbed]);
+            Settings.setControlOffset(getContext(), offsetLandscape, offsetTwoThumb, grabbed, offset[grabbed][0], offset[grabbed][1]);
+            Settings.setControlScale(getContext(), offsetLandscape, offsetTwoThumb, grabbed, scale[grabbed]);
         }
     }
 
@@ -813,6 +902,12 @@ public class GameView extends View {
         float areaBottom = bottom - free * 0.04f;
         float area = areaBottom - areaTop;
         float cy = areaTop + area / 2f;
+        colL0 = left;
+        colL1 = left + width / 2f;
+        colR0 = left + width / 2f;
+        colR1 = right;
+        areaT = areaTop;
+        areaB = areaBottom;
         padR = Math.min(width * 0.24f, area * 0.46f);
         padX = left + width * 0.27f;
         padY = cy;
@@ -880,7 +975,14 @@ public class GameView extends View {
         }
         // the direction pad and the buttons (a controller's presses light them too)
         Set<String> down = allDown();
-        skin.drawPad(c, padX, padY, padR, down);
+        if (twoThumb) {
+            skin.drawKey(c, upR, 0, down.contains("UP"));
+            skin.drawKey(c, downR, 180, down.contains("DOWN"));
+            skin.drawKey(c, leftR, 270, down.contains("LEFT"));
+            skin.drawKey(c, rightR, 90, down.contains("RIGHT"));
+        } else {
+            skin.drawPad(c, padX, padY, padR, down);
+        }
         for (Button b : buttons) {
             boolean on = down.contains(b.key);
             if (b.round) {
@@ -899,6 +1001,9 @@ public class GameView extends View {
             }
             outline.setPathEffect(dashes);
             for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
+                if (!groupActive(g)) {
+                    continue;
+                }
                 outline.setColor(g == grabbed ? 0xFFFFD54F : 0xFFE6EEFB);
                 RectF b = groupBounds(g);
                 b.inset(-dp(6), -dp(6));
@@ -1048,6 +1153,10 @@ public class GameView extends View {
         }
     }
 
+    private static boolean inKey(RectF r, float x, float y, float slack) {
+        return x >= r.left - slack && x <= r.right + slack && y >= r.top - slack && y <= r.bottom + slack;
+    }
+
     private void keysAt(float x, float y, Set<String> out) {
         if (isFlipActive() && flip != null) {
             flip.keysAt(x, y, out);
@@ -1063,6 +1172,22 @@ public class GameView extends View {
             } else if (r.contains(x, y)) {
                 out.add(b.key);
             }
+        }
+        if (twoThumb) {                                                     // four separate keys, no diagonals to aim for
+            float slack = dp(2);                                            // (small: the two keys of a pair are only a few dp apart)
+            if (inKey(upR, x, y, slack)) {
+                out.add("UP");
+            }
+            if (inKey(downR, x, y, slack)) {
+                out.add("DOWN");
+            }
+            if (inKey(leftR, x, y, slack)) {
+                out.add("LEFT");
+            }
+            if (inKey(rightR, x, y, slack)) {
+                out.add("RIGHT");
+            }
+            return;
         }
         float dx = x - padX, dy = y - padY;
         if (dx * dx + dy * dy <= padR * padR * 1.4f && dx * dx + dy * dy >= padR * padR * 0.02f) {
