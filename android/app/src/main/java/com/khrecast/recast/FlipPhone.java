@@ -42,10 +42,10 @@ final class FlipPhone {
     private final float density;
     private final List<Key> keys = new ArrayList<>();
     private final RectF upper = new RectF(), lower = new RectF(), hinge = new RectF(), bezel = new RectF();
-    private final RectF screen = new RectF(), slot = new RectF();
+    private final RectF screen = new RectF(), slot = new RectF(), antenna = new RectF();
     private final Path arrowPath = new Path();
     private float navX, navY, navR;
-    private Shader shellUpper, shellLower, hingeShade, ringShade, hubUp, hubDown;
+    private Shader antennaShade, shellUpper, shellLower, hingeShade, ringShade, hubUp, hubDown;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -87,12 +87,13 @@ final class FlipPhone {
             sh = sw * GameView.H / GameView.W;
         }
         float cx = (left + right) / 2f;
-        upper.set(shellL, top + free * 0.005f, shellR, 0);
+        upper.set(shellL, top + free * 0.005f + dp(14), shellR, 0);          // room above for the antenna stub
         picture.set(cx - sw / 2f, upper.top + dp(28), cx + sw / 2f, upper.top + dp(28) + sh);
         screen.set(picture);
-        upper.bottom = picture.bottom + dp(24);
+        upper.bottom = picture.bottom + dp(34);                              // the strip under the screen holds the name
         bezel.set(picture.left - dp(8), picture.top - dp(8), picture.right + dp(8), picture.bottom + dp(8));
         slot.set(cx - dp(32), upper.top + dp(10), cx + dp(32), upper.top + dp(17));
+        antenna.set(shellR - dp(74), upper.top - dp(15), shellR - dp(62), upper.top + dp(12));
         hinge.set(shellL + shellW * 0.04f, upper.bottom + dp(2), shellR - shellW * 0.04f, upper.bottom + dp(10));
         lower.set(shellL, hinge.bottom - dp(2), shellR, bottom - free * 0.02f);
 
@@ -124,6 +125,8 @@ final class FlipPhone {
 
     /** The gradients that give the plastic its look: they depend on where things are, so they are made once per layout. */
     private void buildShaders() {
+        antennaShade = new LinearGradient(antenna.left, 0, antenna.right, 0,
+                new int[]{0xFF5E636B, 0xFFD9DCE0, 0xFF6F747C}, null, Shader.TileMode.CLAMP);
         shellUpper = vertical(upper, 0xFFEEF0F3, 0xFFC9CDD3, 0xFFA9AEB6);
         shellLower = vertical(lower, 0xFFC4C8CE, 0xFFB3B8BF, 0xFF989DA5);
         hingeShade = vertical(hinge, 0xFFE9EBEE, 0xFF8F949C, 0xFF5E636B);
@@ -159,6 +162,13 @@ final class FlipPhone {
     void drawBody(Canvas c) {
         fill.setStyle(Paint.Style.FILL);
         float cr = dp(34);
+        fill.setColor(Color.BLACK);                                             // the stub antenna, behind the shell
+        fill.setShader(antennaShade);
+        c.drawRoundRect(antenna, dp(6), dp(6), fill);
+        fill.setShader(null);
+        stroke.setStrokeWidth(dp(1.2f));
+        stroke.setColor(OUTLINE);
+        c.drawRoundRect(antenna, dp(6), dp(6), stroke);
         fill.setShader(shellUpper);
         c.drawRoundRect(upper, cr, cr, fill);
         fill.setShader(shellLower);
@@ -186,6 +196,18 @@ final class FlipPhone {
         for (int i = 0; i < 7; i++) {
             c.drawCircle(slot.left + dp(8) + i * (slot.width() - dp(16)) / 6f, slot.centerY(), dp(1.1f), fill);
         }
+        // a small status light by the speaker, and the name in a printed strip under the screen
+        fill.setColor(0xFF3F8F5A);
+        c.drawCircle(slot.right + dp(14), slot.centerY(), dp(2.4f), fill);
+        fill.setColor(0x66FFFFFF);
+        c.drawCircle(slot.right + dp(13.2f), slot.centerY() - dp(0.8f), dp(0.9f), fill);
+        text.setTextSize(dp(12));
+        text.setLetterSpacing(0.25f);
+        text.setColor(0xFFF4F5F7);                                              // a lit edge under dark print: a pressed-in logo
+        c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10) + dp(0.8f), text);
+        text.setColor(INK_SUB);
+        c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
+        text.setLetterSpacing(0f);
         // the dark frame round the screen, with a thin rim
         fill.setColor(0xFF1B1E23);
         c.drawRoundRect(bezel, dp(10), dp(10), fill);

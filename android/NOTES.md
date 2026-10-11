@@ -689,7 +689,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   round it (`FlipPhone.java`): speaker slot, black bezel, hinge, then the lower half with Soft 1 / Soft 2, a navigation ring with a
   center button, a green Call and a red End key, and a 12-key keypad. Held keys light up. It replaces the usual controls while on.
 - **Look:** gray and silver plastic like a 2005 handset: gradient shell halves with a lit inner edge, a hinge barrel, a speaker with
-  holes, pale raised keypad keys (darker silver softkeys) with dark print and soft shadows, a metal navigation ring, glossy green Call and red End; held keys turn blue.
+  holes, pale raised keypad keys (darker silver softkeys) with dark print and soft shadows, a metal navigation ring, glossy green Call and red End; held keys turn blue. Also a stub antenna on the top corner, a small status light by the speaker and "Re:Cast" printed under the screen (seen in a screenshot on the S23; the owner tried landscape and the key presses on the phone and found them fine).
 - **Keys:** 2, 4, 6, 8 send Up, Left, Right, Down and 5 sends Select (the game is steered with directions and Select, which the
   desktop's arrows and Enter send; the desktop's digit keys send digits, and whether the game also reads those is not checked); the ring does the same; * is Magic, 0 is Status; Soft 1 and Soft 2 as usual; End is
   Back; Call sends the phone's Send key, which the game ignores. 1, 3, 7, 9 and # send their keys, which the game also ignores.
