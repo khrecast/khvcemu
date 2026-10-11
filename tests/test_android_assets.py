@@ -110,6 +110,40 @@ class AndroidAssetCopyTests(unittest.TestCase):
         finally:
             sys.path.remove(py)
 
+    def test_sharp_text_hands_the_app_the_picture_and_its_strings_together(self):
+        import json
+        from types import SimpleNamespace
+        import numpy as np
+        py = os.path.join(ROOT, "android", "app", "src", "main", "python")
+        sys.path.insert(0, py)
+        try:
+            import recast_app
+            base = np.zeros((220, 176), np.uint16)
+            clean = base.copy()
+            clean[0, 0] = 7
+            item = {"text": "Hi", "font_id": 0x8000, "x": 10, "y": 20, "box": (10, 20, 30, 32), "fg": 0xFFFF, "size": (18, 12)}
+            emu = SimpleNamespace(last_frame=base, overlay=(clean, [item]))
+            old = recast_app._game
+            recast_app._game = SimpleNamespace(emu=emu, lm_pages=[], items_json="[]")
+            try:
+                got = np.frombuffer(recast_app.frame_bytes(), "<u2")
+                self.assertEqual(int(got[0]), 7, "the picture without its low-res text, not the plain frame")
+                items = json.loads(recast_app.frame_text())
+                self.assertEqual(items, [{"t": "Hi", "f": 0x8000, "x": 10, "y": 20, "w": 18, "h": 12, "c": 0xFFFF,
+                                          "b": [10, 20, 30, 32]}])
+                emu.overlay = None                                     # sharp text off, or nothing drawn: the plain frame, no strings
+                got = np.frombuffer(recast_app.frame_bytes(), "<u2")
+                self.assertEqual(int(got[0]), 0)
+                self.assertEqual(recast_app.frame_text(), "[]")
+                recast_app._game.lm_pages = [clean]                    # a lost-media page: that page, no strings
+                emu.overlay = (base, [item])
+                self.assertEqual(int(np.frombuffer(recast_app.frame_bytes(), "<u2")[0]), 7)
+                self.assertEqual(recast_app.frame_text(), "[]")
+            finally:
+                recast_app._game = old
+        finally:
+            sys.path.remove(py)
+
     def test_the_apps_leaderboard_address_is_the_launchers(self):
         from khvcemu.launcher import LEADERBOARD_URL
         path = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "khrecast", "recast", "Settings.java")

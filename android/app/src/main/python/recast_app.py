@@ -97,7 +97,7 @@ class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
     def __init__(self, native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-                 leaderboard="", font_size=11, music_files=""):
+                 leaderboard="", font_size=11, music_files="", hires_text=False):
         _prepare_unicorn(native_lib_dir)
         _install_decoder()
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -124,6 +124,8 @@ class _Game:
                 chapters.install_save(self.emu, start_world)
             except (SystemExit, OSError) as e:
                 self._log("start at %s failed: %s" % (start_world, e))
+        self.emu.hires_text = bool(hires_text)     # the core then remembers each string drawn on screen (Display.build_overlay)
+        self.items_json = "[]"                     # those strings for the Java side, taken together with each picture
         self.emu.font_size = max(8, min(16, int(font_size)))          # the game's own text size (Options)
         self.emu.leaderboard_url = str(leaderboard or "").strip()     # "": scores stay on the phone (the player's choice)
         self.stop_flag = False
@@ -414,7 +416,7 @@ def _music_files(text):
 
 
 def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-               leaderboard="", font_size=11, music_files=""):
+               leaderboard="", font_size=11, music_files="", hires_text=False):
     """Start the game thread (once). Returns the session number of the game that is running. start_world: seed the
     game save from that world's starting save first (chapters.install_save), so Load Game continues from there."""
     global _game, _sessions
@@ -426,7 +428,7 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
             game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music, leaderboard,
-                         font_size, music_files)
+                         font_size, music_files, hires_text)
             _sessions += 1
             game.session = _sessions
             game.thread.start()
@@ -494,7 +496,24 @@ def frame_bytes():
         return b""
     import numpy as np
     pages = list(_game.lm_pages)                        # a copy: the core thread changes the list
-    return np.ascontiguousarray(pages[0] if pages else _game.emu.last_frame, dtype="<u2").tobytes()
+    overlay = None if pages else getattr(_game.emu, "overlay", None)   # (picture without its low-res text, the strings), or None
+    _game.items_json = _items_json(list(overlay[1])) if overlay else "[]"      # (a copy: the core thread changes the list)
+    base = pages[0] if pages else (overlay[0] if overlay else _game.emu.last_frame)
+    return np.ascontiguousarray(base, dtype="<u2").tobytes()
+
+
+def _items_json(items):
+    """The strings the core drew on the screen, for the app to draw sharp at the screen's own size:
+    [{t: text, f: font id, x, y: where it starts, w, h: the size it took, c: RGB565 color, b: [x0, y0, x1, y1] the part that shows}]."""
+    import json
+    return json.dumps([{"t": it["text"], "f": int(it["font_id"]), "x": int(it["x"]), "y": int(it["y"]),
+                        "w": int(it["size"][0]), "h": int(it["size"][1]), "c": int(it["fg"]),
+                        "b": [int(v) for v in it["box"]]} for it in items], separators=(",", ":"))
+
+
+def frame_text():
+    """The strings that go with the picture frame_bytes() last returned ("[]" when sharp text is off)."""
+    return "[]" if _game is None else _game.items_json
 
 
 def key(name, down):

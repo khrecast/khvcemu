@@ -299,20 +299,120 @@ public class GameView extends View {
 
     /** New picture: 176*220 little-endian RGB565 pixels. Called from a worker thread. */
     public void setFrame(byte[] rgb565) {
+        setFrame(rgb565, null);
+    }
+
+    /**
+     * New picture and, with sharp text, the strings the game drew on it (JSON from recast_app.frame_text; the picture then
+     * has those strings taken out). Both change together. null means no sharp text.
+     */
+    public void setFrame(byte[] rgb565, String textJson) {
         if (rgb565 == null || rgb565.length != W * H * 2) {
             return;
         }
+        List<TextItem> parsed = textJson != null && textJson.equals(lastJson) ? items : parseItems(textJson);   // (same strings: no new parse)
+        lastJson = textJson;
         synchronized (frame) {
             frame.copyPixelsFromBuffer(ByteBuffer.wrap(rgb565));
             hasFrame = true;
+            items = parsed;
         }
         postInvalidate();
+    }
+
+    /** One string the game drew, to be drawn again sharp. */
+    private static final class TextItem {
+        String text;
+        boolean bold;
+        int x, y, w, h, color, bx0, by0, bx1, by1;
+    }
+
+    private volatile List<TextItem> items = java.util.Collections.emptyList();
+    private String lastJson;                                     // the pump thread's
+    private final Paint sharpPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+    private final java.util.HashMap<String, float[]> measured = new java.util.HashMap<>();   // text and weight -> width, height at 100
+
+    private static List<TextItem> parseItems(String json) {
+        if (json == null || json.length() < 3) {
+            return java.util.Collections.emptyList();
+        }
+        List<TextItem> out = new ArrayList<>();
+        try {
+            org.json.JSONArray all = new org.json.JSONArray(json);
+            for (int i = 0; i < all.length(); i++) {
+                org.json.JSONObject o = all.getJSONObject(i);
+                TextItem it = new TextItem();
+                it.text = o.getString("t");
+                int font = o.getInt("f");
+                it.bold = font == 0x8001 || font == 0x8002;      // AEE_FONT_BOLD and AEE_FONT_LARGE (khvcemu/display.py)
+                it.x = o.getInt("x");
+                it.y = o.getInt("y");
+                it.w = o.getInt("w");
+                it.h = o.getInt("h");
+                int c = o.getInt("c");
+                it.color = 0xFF000000 | ((((c >> 11) & 31) * 255 / 31) << 16) | ((((c >> 5) & 63) * 255 / 63) << 8) | ((c & 31) * 255 / 31);
+                org.json.JSONArray b = o.getJSONArray("b");
+                it.bx0 = b.getInt(0);
+                it.by0 = b.getInt(1);
+                it.bx1 = b.getInt(2);
+                it.by1 = b.getInt(3);
+                out.add(it);
+            }
+        } catch (org.json.JSONException e) {
+            return java.util.Collections.emptyList();
+        }
+        return out;
+    }
+
+    /** Draws the strings sharp over a picture drawn into `d`: each one in the system font, fitted to the box the game gave it. */
+    private void drawSharpText(Canvas c, RectF d, List<TextItem> list) {          // UI thread only (it shares one Paint and a cache)
+        if (list.isEmpty()) {
+            return;
+        }
+        float kx = d.width() / W, ky = d.height() / H;
+        for (TextItem it : list) {
+            sharpPaint.setTypeface(it.bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+            sharpPaint.setTextSize(100f);
+            String key = (it.bold ? "b" : "n") + it.text;
+            float[] m = measured.get(key);
+            if (m == null) {
+                Paint.FontMetrics fm = sharpPaint.getFontMetrics();
+                m = new float[]{Math.max(1f, sharpPaint.measureText(it.text)), fm.descent - fm.ascent, -fm.ascent};
+                if (measured.size() > 800) {
+                    measured.clear();
+                }
+                measured.put(key, m);
+            }
+            float sx = it.w * kx / m[0], sy = it.h * ky / m[1];
+            if (sx < 0.8f * sy || sx > 1.25f * sy) {
+                sx = sy = Math.min(sx, sy);                      // a font whose shape differs much: keep its own shape
+            }
+            sharpPaint.setColor(it.color);
+            c.save();
+            c.clipRect(d.left + it.bx0 * kx - 1, d.top + it.by0 * ky - 1, d.left + it.bx1 * kx + 1, d.top + it.by1 * ky + 1);
+            c.translate(d.left + it.x * kx, d.top + it.y * ky);
+            c.scale(sx, sy);
+            c.drawText(it.text, 0, m[2], sharpPaint);
+            c.restore();
+        }
     }
 
     /** A copy of the game's current picture (176 x 220), or null before the first frame. */
     public Bitmap snapshot() {
         synchronized (frame) {
-            return hasFrame ? frame.copy(Bitmap.Config.ARGB_8888, false) : null;
+            if (!hasFrame) {
+                return null;
+            }
+            if (items.isEmpty()) {
+                return frame.copy(Bitmap.Config.ARGB_8888, false);
+            }
+            int zoom = 4;                                        // sharp text: the picture enlarged here, with the strings drawn on it
+            Bitmap big = Bitmap.createBitmap(W * zoom, H * zoom, Bitmap.Config.ARGB_8888);
+            Canvas bc = new Canvas(big);
+            RectF all = new RectF(0, 0, W * zoom, H * zoom);
+            bc.drawBitmap(frame, null, all, pixels);
+            drawSharpText(bc, all, items);
+            return big;
         }
     }
 
@@ -706,7 +806,9 @@ public class GameView extends View {
             flip.drawBody(c);
         }
         epxPending = false;
+        List<TextItem> shown;
         synchronized (frame) {
+            shown = items;                                       // the strings that belong to the picture drawn here
             if (hasFrame) {
                 drawPicture(c);
             }
@@ -714,6 +816,7 @@ public class GameView extends View {
         if (epxPending) {
             finishScale2x(c);
         }
+        drawSharpText(c, dst, shown);
         if (flipping && flip != null) {
             flip.drawKeys(c, allDown());
             text.setTextSize(getHeight() * 0.012f);

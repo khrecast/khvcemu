@@ -31,7 +31,9 @@ final class Screenshots {
 
     /** Writes the picture and returns where it went (for a message), or throws. */
     static String save(Context context, Bitmap game) throws IOException {
-        Bitmap big = Bitmap.createScaledBitmap(game, game.getWidth() * ZOOM, game.getHeight() * ZOOM, false);   // no smoothing
+        // (a picture with sharp text is already made big by the screen: GameView.snapshot)
+        int zoom = game.getWidth() > GameView.W ? 1 : ZOOM;
+        Bitmap big = zoom == 1 ? game : Bitmap.createScaledBitmap(game, game.getWidth() * zoom, game.getHeight() * zoom, false);   // no smoothing
         String name = "Re-Cast_" + new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(new Date()) + ".png";
         if (Build.VERSION.SDK_INT >= 29) {
             ContentValues values = new ContentValues();

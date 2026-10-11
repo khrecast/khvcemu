@@ -215,7 +215,7 @@ pygame. This changed `khvcemu/`: the desktop path is untouched, the new code run
   Pillow writes the PNG). `Display._font` used to swallow the missing pygame and return "no font", which is why text
   silently never appeared.
 - **Tests (`tests/test_hostgfx.py`, 9, skipped without Pillow or pygame):** the Pillow decoder equals the pygame
-  decoder on synthetic RGBA, RGB, transparent-palette and BMP images and on all 6 of the game's own PNGs (colours
+  decoder on synthetic RGBA, RGB, transparent-palette and BMP images and on all 6 of the game's own PNGs (colors
   where visible, alpha everywhere); the font gives sensible metrics and masks; the core picks the Pillow font and the
   Pillow decoder when `import pygame` is made to fail.
 - **App:** `pip { install("Pillow==11.0.0") }` (Chaquopy's arm64 wheel for Python 3.12). Debug APK now 39.5 MB
@@ -605,6 +605,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   dialogs, the Setup screen's buttons and the text that changes with the player's data (a recording's name, a mix name).
 - **Verified on the S23 Ultra:** the question screen, the Options screen top to bottom, and the Sound screen (headings, greyed and
   active picture buttons, Play changing to Stop and back). **Not looked at:** the Saves import button, the Setup screen, landscape.
+
+## Sharp text (2026-10-11, done; seen on the S23)
+
+- **Options > "Sharp text"** (off by default; applies at the next game start). The core already remembers every string the game draws on the
+  screen (`Display._record_text`, `build_overlay`, used by the desktop's high-resolution text); with it on, `recast_app.frame_bytes()` hands
+  the app the picture with those glyphs taken out and `frame_text()` the strings (JSON: text, font id, where, the size it took, RGB565
+  color, the box that shows), both from the same overlay. `GameView` draws each string again at the screen's scale with the phone's font
+  (bold for the game's bold and large fonts), stretched to the box the game gave it (kept to its own shape when the phone's font
+  differs by more than a quarter), clipped to the visible box. A string the game paints over falls back to the plain picture, as on the desktop.
+- **Verified on the S23 Ultra:** with it on, the title menu and the game's Options screen show crisp text over the pixel picture, the
+  strings follow changes (Sound Medium to High to Off and back to Medium) with no ghost of the old text, 25 fps and no faults.
+  **Not tried:** in-world dialogue and menus, the flip phone layout, and the screenshot with text on.
+- **Screenshots** with sharp text on are taken at four times the size with the text drawn on them (`GameView.snapshot`).
+- **No core change.** Not done: the Wonderland pages and the Re:Cast pages (they are pictures), the flip phone layout draws through the same code and was not looked at.
 
 ## Sharing high scores (2026-10-10, done; no score was posted)
 

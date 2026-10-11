@@ -329,6 +329,15 @@ final class Settings {
         prefs(c).edit().putBoolean("style_chosen", v).apply();
     }
 
+    /** Sharp text: the game's own text drawn at the screen's resolution instead of enlarged with the picture. */
+    static boolean hiresText(Context c) {
+        return prefs(c).getBoolean("hires_text", false);
+    }
+
+    static void setHiresText(Context c, boolean v) {
+        prefs(c).edit().putBoolean("hires_text", v).apply();
+    }
+
     /** The recording chosen for a tune on the Sound screen: the copy's path, or "" for none. */
     static String recFile(Context c, String tune) {
         String path = prefs(c).getString("rec_file_" + tune, "");

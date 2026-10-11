@@ -91,6 +91,10 @@ public class OptionsActivity extends Activity {
         col.addView(textBar);
         col.addView(note("11 is the usual size. Applies the next time the game starts."));
 
+        col.addView(toggle("Sharp text", Settings.hiresText(this), Settings::setHiresText));
+        col.addView(note("Draws the game's text at the screen's own resolution, with the phone's font, instead of enlarging the "
+                + "game's small pixels. The picture stays as it is. Applies the next time the game starts."));
+
         col.addView(heading("Speed"));
         col.addView(toggle("Steady frame rate", Settings.frameLock(this), Settings::setFrameLock));
         col.addView(note("Lets the game run at its own 25 frames a second whenever the phone keeps up. The game's speed and "
