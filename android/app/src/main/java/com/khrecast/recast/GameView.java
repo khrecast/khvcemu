@@ -77,7 +77,7 @@ public class GameView extends View {
     private android.graphics.DashPathEffect dashes;
     private int insetTop, insetBottom, insetLeft, insetRight;  // the system bars, in pixels
     private Runnable editEnded;                  // told when the layout (not the player) ends the controls editor
-    private boolean flipMode;
+    private boolean flipMode, flipGraphite;
     private FlipPhone flip;
     private int filter = Settings.FILTER_PIXELS;
     private final Paint smoothPaint = new Paint(Paint.FILTER_BITMAP_FLAG);   // bilinear: for the soft last step of a filter
@@ -120,6 +120,14 @@ public class GameView extends View {
     /** Flip phone mode (portrait only): the game on a clamshell phone with a keypad. Takes effect at once. */
     public void setEditEndedListener(Runnable r) {
         editEnded = r;
+    }
+
+    public void setFlipGraphite(boolean on) {
+        flipGraphite = on;
+        if (flip != null) {
+            flip.setGraphite(on);
+        }
+        postInvalidate();
     }
 
     public void setFlipMode(boolean on) {
@@ -369,6 +377,7 @@ public class GameView extends View {
             }
             if (flip == null) {
                 flip = new FlipPhone(getContext());
+                flip.setGraphite(flipGraphite);
             }
             flip.layout(insetLeft, insetTop, w - insetRight, h - insetBottom, dst);
             statusY = h - insetBottom - (h - insetTop - insetBottom) * 0.004f;

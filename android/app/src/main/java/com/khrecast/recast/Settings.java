@@ -256,6 +256,15 @@ final class Settings {
         return prefs(c).getBoolean("flip_phone", false);
     }
 
+    /** The flip phone in dark graphite instead of silver. */
+    static boolean flipGraphite(Context c) {
+        return prefs(c).getBoolean("flip_graphite", false);
+    }
+
+    static void setFlipGraphite(Context c, boolean v) {
+        prefs(c).edit().putBoolean("flip_graphite", v).apply();
+    }
+
     static void setFlipPhone(Context c, boolean v) {
         prefs(c).edit().putBoolean("flip_phone", v).apply();
     }

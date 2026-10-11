@@ -37,7 +37,37 @@ final class FlipPhone {
         }
     }
 
-    private static final int OUTLINE = 0xFF6B7078, EDGE_LIGHT = 0xFFF7F8FA, INK = 0xFF2A2E34, INK_SUB = 0xFF5B616A;
+    private boolean graphite;                    // the dark gray body instead of silver
+    private int outline() { return graphite ? 0xFF1F2226 : 0xFF6B7078; }
+    private int edgeLight() { return graphite ? 0xFF7C828C : 0xFFF7F8FA; }
+    private int ink() { return graphite ? 0xFFEEF0F3 : 0xFF2A2E34; }
+    private int inkSub() { return graphite ? 0xFFB4BAC3 : 0xFF5B616A; }
+
+    /** A silver colour as the graphite body shows it: the same light and shade, much darker. */
+    private int tone(int c) {
+        if (!graphite) {
+            return c;
+        }
+        return (c & 0xFF000000) | (((c >> 16 & 0xFF) * 38 / 100) << 16) | (((c >> 8 & 0xFF) * 40 / 100) << 8) | ((c & 0xFF) * 44 / 100);
+    }
+
+    private int[] tones(int... colors) {
+        int[] out = new int[colors.length];
+        for (int i = 0; i < colors.length; i++) {
+            out[i] = tone(colors[i]);
+        }
+        return out;
+    }
+
+    /** Silver or graphite; takes effect at once. */
+    void setGraphite(boolean on) {
+        if (on != graphite) {
+            graphite = on;
+            if (upper.width() > 0) {
+                buildShaders();
+            }
+        }
+    }
 
     private final float density;
     private final List<Key> keys = new ArrayList<>();
@@ -126,15 +156,15 @@ final class FlipPhone {
     /** The gradients that give the plastic its look: they depend on where things are, so they are made once per layout. */
     private void buildShaders() {
         antennaShade = new LinearGradient(antenna.left, 0, antenna.right, 0,
-                new int[]{0xFF5E636B, 0xFFD9DCE0, 0xFF6F747C}, null, Shader.TileMode.CLAMP);
-        shellUpper = vertical(upper, 0xFFEEF0F3, 0xFFC9CDD3, 0xFFA9AEB6);
-        shellLower = vertical(lower, 0xFFC4C8CE, 0xFFB3B8BF, 0xFF989DA5);
-        hingeShade = vertical(hinge, 0xFFE9EBEE, 0xFF8F949C, 0xFF5E636B);
+                tones(0xFF5E636B, 0xFFD9DCE0, 0xFF6F747C), null, Shader.TileMode.CLAMP);
+        shellUpper = vertical(upper, tones(0xFFEEF0F3, 0xFFC9CDD3, 0xFFA9AEB6));
+        shellLower = vertical(lower, tones(0xFFC4C8CE, 0xFFB3B8BF, 0xFF989DA5));
+        hingeShade = vertical(hinge, tones(0xFFE9EBEE, 0xFF8F949C, 0xFF5E636B));
         ringShade = new RadialGradient(navX - navR * 0.25f, navY - navR * 0.3f, navR * 1.4f,
-                new int[]{0xFFF4F5F7, 0xFFC5C9CF, 0xFF8D929A}, null, Shader.TileMode.CLAMP);
+                tones(0xFFF4F5F7, 0xFFC5C9CF, 0xFF8D929A), null, Shader.TileMode.CLAMP);
         float hr = navR * 0.34f;
         hubUp = new RadialGradient(navX - hr * 0.3f, navY - hr * 0.35f, hr * 1.5f,
-                new int[]{0xFFD7DADF, 0xFF9CA1A9, 0xFF70757D}, null, Shader.TileMode.CLAMP);
+                tones(0xFFD7DADF, 0xFF9CA1A9, 0xFF70757D), null, Shader.TileMode.CLAMP);
         hubDown = new RadialGradient(navX, navY, hr * 1.3f,
                 new int[]{0xFF8BB6F2, 0xFF5B8FDA, 0xFF3D6DB5}, null, Shader.TileMode.CLAMP);
         for (Key k : keys) {
@@ -148,11 +178,11 @@ final class FlipPhone {
                     k.down = vertical(k.r, 0xFFD2685B, 0xFF9C2A1E, 0xFF7E2017);
                     break;
                 case 1:
-                    k.up = vertical(k.r, 0xFFDDE0E4, 0xFFAEB3BA, 0xFF8D929A);
+                    k.up = vertical(k.r, tones(0xFFDDE0E4, 0xFFAEB3BA, 0xFF8D929A));
                     k.down = vertical(k.r, 0xFFA8C6F0, 0xFF7FA6DE, 0xFF5E86C2);
                     break;
                 default:
-                    k.up = vertical(k.r, 0xFFF9FAFB, 0xFFDCDFE3, 0xFFB6BBC2);
+                    k.up = vertical(k.r, tones(0xFFF9FAFB, 0xFFDCDFE3, 0xFFB6BBC2));
                     k.down = vertical(k.r, 0xFFBBD2F2, 0xFF98B8E6, 0xFF7A9ACD);
             }
         }
@@ -167,7 +197,7 @@ final class FlipPhone {
         c.drawRoundRect(antenna, dp(6), dp(6), fill);
         fill.setShader(null);
         stroke.setStrokeWidth(dp(1.2f));
-        stroke.setColor(OUTLINE);
+        stroke.setColor(outline());
         c.drawRoundRect(antenna, dp(6), dp(6), stroke);
         fill.setShader(shellUpper);
         c.drawRoundRect(upper, cr, cr, fill);
@@ -177,17 +207,17 @@ final class FlipPhone {
         for (int h = 0; h < 2; h++) {
             RectF half = h == 0 ? upper : lower;
             stroke.setStrokeWidth(dp(2));
-            stroke.setColor(OUTLINE);
+            stroke.setColor(outline());
             c.drawRoundRect(half, cr, cr, stroke);
             stroke.setStrokeWidth(dp(1.2f));                                    // the lit edge inside the outline
-            stroke.setColor(EDGE_LIGHT);
+            stroke.setColor(edgeLight());
             c.drawRoundRect(half.left + dp(3), half.top + dp(3), half.right - dp(3), half.bottom - dp(3), cr - dp(3), cr - dp(3), stroke);
         }
         fill.setShader(hingeShade);
         c.drawRoundRect(hinge, dp(5), dp(5), fill);
         fill.setShader(null);
         stroke.setStrokeWidth(dp(1.2f));
-        stroke.setColor(OUTLINE);
+        stroke.setColor(outline());
         c.drawRoundRect(hinge, dp(5), dp(5), stroke);
         // the speaker: a dark slot over a row of small holes
         fill.setColor(0xFF4A4F57);
@@ -196,6 +226,14 @@ final class FlipPhone {
         for (int i = 0; i < 7; i++) {
             c.drawCircle(slot.left + dp(8) + i * (slot.width() - dp(16)) / 6f, slot.centerY(), dp(1.1f), fill);
         }
+        // a small camera lens left of the speaker
+        float lx = slot.left - dp(18), ly = slot.centerY();
+        fill.setColor(0xFF2C3036);
+        c.drawCircle(lx, ly, dp(5.5f), fill);
+        fill.setColor(0xFF0B0C10);
+        c.drawCircle(lx, ly, dp(3.6f), fill);
+        fill.setColor(0xAA6E7DE0);
+        c.drawCircle(lx - dp(1), ly - dp(1), dp(1.2f), fill);
         // a small status light by the speaker, and the name in a printed strip under the screen
         fill.setColor(0xFF3F8F5A);
         c.drawCircle(slot.right + dp(14), slot.centerY(), dp(2.4f), fill);
@@ -203,10 +241,14 @@ final class FlipPhone {
         c.drawCircle(slot.right + dp(13.2f), slot.centerY() - dp(0.8f), dp(0.9f), fill);
         text.setTextSize(dp(12));
         text.setLetterSpacing(0.25f);
-        text.setColor(0xFFF4F5F7);                                              // a lit edge under dark print: a pressed-in logo
+        text.setColor(graphite ? 0xFF14161A : 0xFFF4F5F7);                      // a lit edge under the print: a pressed-in logo
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10) + dp(0.8f), text);
-        text.setColor(INK_SUB);
+        text.setColor(inkSub());
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
+        text.setTextSize(dp(8.5f));                                             // the network name, small, at the left of the strip
+        text.setLetterSpacing(0.12f);
+        text.setColor(inkSub());
+        c.drawText("V CAST", upper.left + dp(52), upper.bottom - dp(11), text);
         text.setLetterSpacing(0f);
         // the dark frame round the screen, with a thin rim
         fill.setColor(0xFF1B1E23);
@@ -233,7 +275,7 @@ final class FlipPhone {
             c.drawRoundRect(k.r, radius, radius, fill);
             fill.setShader(null);
             stroke.setStrokeWidth(dp(1.2f));
-            stroke.setColor(OUTLINE);
+            stroke.setColor(outline());
             c.drawRoundRect(k.r, radius, radius, stroke);
             if (k.kind <= 1) {                                                  // a bright line just inside the edge of a plastic key
                 stroke.setStrokeWidth(dp(1));
@@ -241,14 +283,14 @@ final class FlipPhone {
                 c.drawRoundRect(k.r.left + dp(2), k.r.top + dp(2), k.r.right - dp(2), k.r.bottom - dp(2),
                         radius - dp(2), radius - dp(2), stroke);
             }
-            text.setColor(k.kind >= 2 ? Color.WHITE : INK);
+            text.setColor(k.kind >= 2 ? Color.WHITE : ink());
             if (k.kind == 0) {
                 boolean hasSub = !k.sub.isEmpty();
                 text.setTextSize(k.r.height() * (hasSub ? 0.46f : 0.58f));
                 c.drawText(k.label, k.r.centerX(), k.r.centerY() + (hasSub ? -k.r.height() * 0.02f : k.r.height() * 0.2f), text);
                 if (hasSub) {
                     text.setTextSize(k.r.height() * 0.2f);
-                    text.setColor(INK_SUB);
+                    text.setColor(inkSub());
                     c.drawText(k.sub, k.r.centerX(), k.r.bottom - k.r.height() * 0.14f, text);
                 }
             } else {
@@ -264,7 +306,7 @@ final class FlipPhone {
         fill.setShader(ringShade);
         c.drawCircle(navX, navY, navR, fill);
         fill.setShader(null);
-        stroke.setColor(OUTLINE);
+        stroke.setColor(outline());
         stroke.setStrokeWidth(dp(1.6f));
         c.drawCircle(navX, navY, navR, stroke);
         arrow(c, "UP", down, navX, navY - navR * 0.68f, 0);
@@ -280,7 +322,7 @@ final class FlipPhone {
 
     private void arrow(Canvas c, String key, Set<String> down, float x, float y, float deg) {
         float s = navR * 0.17f;
-        fill.setColor(down.contains(key) ? 0xFF2F66C4 : 0xFF3A3F47);
+        fill.setColor(down.contains(key) ? (graphite ? 0xFF8DB8F5 : 0xFF2F66C4) : (graphite ? 0xFFD5D9DF : 0xFF3A3F47));
         c.save();
         c.rotate(deg, x, y);
         arrowPath.rewind();
