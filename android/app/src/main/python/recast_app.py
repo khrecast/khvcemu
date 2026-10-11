@@ -506,11 +506,17 @@ def frame_bytes():
 
 def _items_json(items):
     """The strings the core drew on the screen, for the app to draw sharp at the screen's own size:
-    [{t: text, f: font id, x, y: where it starts, w, h: the size it took, c: RGB565 color, b: [x0, y0, x1, y1] the part that shows}]."""
+    [{t: text, f: font id, x, y: where it starts, w, h: the size it took, c: RGB565 color, g: RGB565 color behind it, b: [x0, y0, x1, y1] the part that shows}]."""
     import json
-    return json.dumps([{"t": it["text"], "f": int(it["font_id"]), "x": int(it["x"]), "y": int(it["y"]),
-                        "w": int(it["size"][0]), "h": int(it["size"][1]), "c": int(it["fg"]),
-                        "b": [int(v) for v in it["box"]]} for it in items], separators=(",", ":"))
+    import numpy as np
+    out = []
+    for it in items:
+        bg = np.asarray(it["bg"])
+        back = int(np.median(bg)) if bg.size else 0                 # the color behind the text (the banner's own color)
+        out.append({"t": it["text"], "f": int(it["font_id"]), "x": int(it["x"]), "y": int(it["y"]),
+                    "w": int(it["size"][0]), "h": int(it["size"][1]), "c": int(it["fg"]), "g": back,
+                    "b": [int(v) for v in it["box"]]})
+    return json.dumps(out, separators=(",", ":"))
 
 
 def frame_text():

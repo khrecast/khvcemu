@@ -72,6 +72,19 @@ final class ControlSkin {
                 names.put(files[i][0], b);
             }
         }
+        Bitmap slash = BitmapFactory.decodeResource(context.getResources(), R.drawable.menu_c_action_slash, options);
+        if (slash != null) {
+            names.put("Action/", slash);
+        }
+        String[] banner = {"Open", "Attack", "Grab", "Jump", "Talk", "Interact", "Use"};
+        int[] bannerIds = {R.drawable.menu_w_open, R.drawable.menu_w_attack, R.drawable.menu_w_grab, R.drawable.menu_w_jump,
+                R.drawable.menu_w_talk, R.drawable.menu_w_interact, R.drawable.menu_w_use};
+        for (int i = 0; i < banner.length; i++) {
+            Bitmap b = BitmapFactory.decodeResource(context.getResources(), bannerIds[i], options);
+            if (b != null) {
+                names.put(banner[i], b);
+            }
+        }
     }
 
     private static int lighter(int c) {
@@ -136,7 +149,7 @@ final class ControlSkin {
     }
 
     /** A round button (Action, Magic, Status) in the area `r`; `accent` is BLUE, VIOLET or GOLD. */
-    void drawBall(Canvas c, RectF r, String label, int accent, boolean pressed) {
+    void drawBall(Canvas c, RectF r, String label, String word, int accent, boolean pressed) {
         float cx = r.centerX(), cy = r.centerY(), rad = r.width() / 2f * (pressed ? 0.96f : 1f);
         paint.setShader(null);
         paint.setStyle(Paint.Style.FILL);
@@ -164,7 +177,24 @@ final class ControlSkin {
         paint.setColor(0x33FFFFFF);
         c.drawCircle(cx, cy, rad - paint.getStrokeWidth() * 3f, paint);
         paint.setStyle(Paint.Style.FILL);
-        name(c, label, cx, cy, rad * 1.6f, rad * 0.8f);
+        if (word != null) {                                                    // what Action does right now, from the game's own banner
+            Bitmap known = names.get(word.substring(0, 1).toUpperCase(java.util.Locale.US) + word.substring(1).toLowerCase(java.util.Locale.US));   // (Open, Attack, Grab...)
+            if (known != null) {
+                name(c, known, cx, cy, rad * 1.6f, rad * 0.8f);
+            } else {
+                words.setTextSize(rad * 0.5f);
+                while (words.measureText(word) > rad * 1.6f && words.getTextSize() > dp(9)) {
+                    words.setTextSize(words.getTextSize() - 1f);
+                }
+                c.drawText(word, cx, cy + words.getTextSize() * 0.35f, words);
+            }
+        } else if (label.equals("Action") && names.get("Jump") != null) {
+            // nothing to act on: the key still jumps, so it says both, Action above and to the left, Jump below and to the right
+            name(c, names.containsKey("Action/") ? "Action/" : label, cx - rad * 0.14f, cy - rad * 0.22f, rad * 1.3f, rad * 0.5f);
+            name(c, names.get("Jump"), cx + rad * 0.18f, cy + rad * 0.24f, rad * 1.3f, rad * 0.5f);
+        } else {
+            name(c, label, cx, cy, rad * 1.6f, rad * 0.8f);
+        }
     }
 
     /** A softkey or Back: a rounded bar in the area `r`. */
@@ -209,7 +239,10 @@ final class ControlSkin {
 
     /** The control's name, in the menu font, as large as fits the control (a whole number when that is nearly exact, else smoothed). */
     private void name(Canvas c, String label, float cx, float cy, float maxW, float maxH) {
-        Bitmap b = names.get(label);
+        name(c, names.get(label), cx, cy, maxW, maxH);
+    }
+
+    private void name(Canvas c, Bitmap b, float cx, float cy, float maxW, float maxH) {
         if (b == null) {
             return;
         }

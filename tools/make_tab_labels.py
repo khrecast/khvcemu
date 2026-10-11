@@ -62,7 +62,10 @@ MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen
                "b_clear_cache": "Clear the made music", "b_no_cache": "No made music is kept",
                # the names on the touch controls
                "c_action": "Action", "c_magic": "Magic", "c_status": "Status", "c_soft1": "Soft 1", "c_back": "Back",
-               "c_soft2": "Soft 2"}
+               "c_soft2": "Soft 2", "c_action_slash": "Action/",
+               # the words the game's banner puts over Action (Open, Attack, Grab seen; the others are likely)
+               "w_open": "Open", "w_attack": "Attack", "w_grab": "Grab", "w_jump": "Jump", "w_talk": "Talk",
+               "w_interact": "Interact", "w_use": "Use"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:
@@ -86,11 +89,33 @@ def silver(mask: np.ndarray, top, bottom) -> np.ndarray:
     return out
 
 
-def render(font, text: str, selected: bool) -> pygame.Surface:
+def _mask(font, text: str) -> np.ndarray:
     glyphs = font.render(text, False, (255, 255, 255))
     a = pygame.surfarray.array_alpha(glyphs).T if glyphs.get_flags() & pygame.SRCALPHA else \
         (pygame.surfarray.array3d(glyphs).sum(axis=2).T > 0)
-    mask = np.pad(np.asarray(a) > 0, 1)
+    return np.asarray(a) > 0
+
+
+def _spaced_mask(font, text: str, gap: int) -> np.ndarray:
+    """The text letter by letter with `gap` empty columns between them (the font draws some pairs, such as l and k, touching)."""
+    parts = []
+    for ch in text:
+        if ch == " ":
+            parts.append(np.zeros((1, 3 + gap), bool))
+        else:
+            m = _mask(font, ch)
+            if m.any():
+                cols = np.where(m.any(axis=0))[0]
+                parts.append(m[:, cols[0]:cols[-1] + 1])                  # trim the letter's own side space
+        parts.append(np.zeros((1, gap), bool))
+    parts = [p for p in parts if p.size] or [np.zeros((1, 1), bool)]
+    h = max(p.shape[0] for p in parts)
+    cells = [np.pad(p, ((0, h - p.shape[0]), (0, 0))) for p in parts]
+    return np.hstack(cells[:-1])                                          # (no gap after the last letter)
+
+
+def render(font, text: str, selected: bool, gap: int = 0) -> pygame.Surface:
+    mask = np.pad(_spaced_mask(font, text, gap) if gap else _mask(font, text), 1)
     if selected:                       # bright silver on the blue selected tab
         rgba = silver(mask, (255, 255, 255), (176, 188, 204))
     else:                              # the muted silver of an idle tab
@@ -116,7 +141,7 @@ def main(font_path: str = FONT):
     os.makedirs(MENU_OUT, exist_ok=True)
     for key, text in MENU_LABELS.items():
         path = os.path.join(MENU_OUT, f"{key}.png")
-        pygame.image.save(render(font, text, True), path)
+        pygame.image.save(render(font, text, True, gap=1 if key.startswith("w_") else 0), path)
         if os.path.isdir(ANDROID_RES):
             shutil.copyfile(path, os.path.join(ANDROID_RES, f"menu_{key}.png"))
     print(f"wrote {len(MENU_LABELS)} app menu labels to {MENU_OUT}"

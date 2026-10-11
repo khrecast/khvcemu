@@ -346,11 +346,30 @@ public class GameView extends View {
         return best;
     }
 
+    /**
+     * The word in the banner the game slides in at the top of its screen to say what Action will do ("Open", "Attack", "Grab"...),
+     * or null when there is none: a single short word of letters, on a pink or red banner, in the top strip. The other banners ("Munny = 11", "Game Saved",
+     * "Obtained Gem 1 of 4") have digits or spaces, so they do not count. The newest one drawn wins.
+     */
+    private String actionWord() {
+        String best = null;
+        for (TextItem it : items) {
+            String word = it.text.trim();
+            int red = it.back >> 16 & 0xFF, green = it.back >> 8 & 0xFF;
+            // (the banner slides in from y -11 and rests at y 6, its box ending at row 20)
+            boolean pinkOrRed = red >= 140 && green * 10 <= red * 7;           // the action banner is pink or red; the info banners are yellow (the text on them is dark)
+            if (pinkOrRed && it.y > -20 && it.y <= 8 && it.by1 <= 22 && it.by1 > it.by0 && word.length() >= 3 && word.length() <= 10 && word.matches("[A-Za-z]+")) {
+                best = word;
+            }
+        }
+        return best;
+    }
+
     /** One string the game drew, to be drawn again sharp. */
     private static final class TextItem {
         String text;
         boolean bold;
-        int x, y, w, h, color, bx0, by0, bx1, by1;
+        int x, y, w, h, color, back, bx0, by0, bx1, by1;
     }
 
     private volatile List<TextItem> items = java.util.Collections.emptyList();
@@ -376,6 +395,8 @@ public class GameView extends View {
                 it.y = o.getInt("y");
                 it.w = o.getInt("w");
                 it.h = o.getInt("h");
+                int g = o.optInt("g", 0);
+                it.back = 0xFF000000 | ((((g >> 11) & 31) * 255 / 31) << 16) | ((((g >> 5) & 63) * 255 / 63) << 8) | ((g & 31) * 255 / 31);
                 int c = o.getInt("c");
                 it.color = 0xFF000000 | ((((c >> 11) & 31) * 255 / 31) << 16) | ((((c >> 5) & 63) * 255 / 63) << 8) | ((c & 31) * 255 / 31);
                 org.json.JSONArray b = o.getJSONArray("b");
@@ -858,7 +879,7 @@ public class GameView extends View {
         for (Button b : buttons) {
             boolean on = down.contains(b.key);
             if (b.round) {
-                skin.drawBall(c, b.r, b.label, b.key.equals("SELECT") ? ControlSkin.BLUE
+                skin.drawBall(c, b.r, b.label, b.key.equals("SELECT") ? actionWord() : null, b.key.equals("SELECT") ? ControlSkin.BLUE
                         : b.key.equals("STAR") ? ControlSkin.VIOLET : ControlSkin.GOLD, on);
             } else {
                 String word = b.key.equals("SOFT1") ? softkeyWord(true) : b.key.equals("SOFT2") ? softkeyWord(false) : null;
