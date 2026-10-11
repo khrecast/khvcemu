@@ -328,14 +328,15 @@ public class GameView extends View {
 
     /**
      * The words the game shows at the bottom left (left = true) or bottom right of its screen, where its softkey labels sit
-     * ("Select", "Back", "Continue"...), or null when there are none. Read from the strings the core drew.
+     * ("Select", "Back", "Continue"...), or null when there are none. Read from the strings the core drew. They are drawn at y 199;
+     * the last entry of the title menu ("Quit") starts near y 190, so it must not count.
      */
     private String softkeyWord(boolean left) {
         String best = null;
         float bestY = -1;
         for (TextItem it : items) {
             float mid = (it.bx0 + it.bx1) / 2f;
-            if (it.by0 >= 188 && it.bx1 - it.bx0 < W * 0.45f && (mid < W * 0.45f ? left : mid > W * 0.55f && !left) && it.by0 >= bestY) {
+            if (it.y >= 195 && it.by0 >= 195 && it.bx1 - it.bx0 < W * 0.45f && (mid < W * 0.45f ? left : mid > W * 0.55f && !left) && it.by0 >= bestY) {
                 String word = it.text.trim();
                 if (!word.isEmpty() && word.length() <= 14) {         // a key's word is short: not a line of dialogue
                     best = word;

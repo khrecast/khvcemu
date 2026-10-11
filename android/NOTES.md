@@ -628,7 +628,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   and moved with a matrix, so no Java objects are made while drawing. The flip phone has its own look and is unchanged.
 - **Button names follow the game:** Options > Controls > "Button names follow the game" (on by default; applies at the next game start). The
   core's remembered strings (as for sharp text, which is not needed) at the bottom of the game's screen name the keys: a string whose box
-  starts at game row 188 or lower, in the left 45 percent of the width, is Soft 1's word, in the right 45 percent Soft 2's. They are drawn on
+  starts at game row 195 or lower (the real softkey words are drawn at row 199; the title menu's own "Quit" entry starts near 190 and was wrongly taken for a softkey word before), in the left 45 percent of the width, is Soft 1's word, in the right 45 percent Soft 2's. They are drawn on
   the pills in the system font; with no word there, the pill stays blank. The picture is sent unchanged unless Sharp text is also on (the core still remembers the strings every frame, the same work as for sharp text). Only short words (14 characters or fewer, in a box under 45 percent of the width) count.
 - **Action says what it will do (checked with a temporary log of the strings the game draws, played by the owner):** the game slides a text
   banner in at the top of its screen ("Open" at a chest, "Attack" at an enemy, "Grab"; the y of the string runs from about minus 12 to 2 as it
