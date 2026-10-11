@@ -693,7 +693,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   blank darker-silver softkeys (no print), a metal navigation ring, glossy green Call and red End; held keys turn blue.
 - **Name strip:** "Re:Cast" printed under the screen, and the defunct V CAST logo on a small light plate beside it
   (`res/drawable-nodpi/vcast_logo.png`, the owner's image of Verizon's old logo: a third party's mark, covered only by the project's
-  fan-game disclaimer). The logo and the blank softkeys were built but NOT seen on a screen (the phone was disconnected).
+  fan-game disclaimer; the plate is light in both colors, since the logo is black and red on white). The logo and the blank softkeys were built but NOT seen on a screen (the phone was disconnected).
 - **Graphite:** Options has "Graphite flip phone" (the same body in dark gray, `flip_graphite`); both colors were seen in screenshots
   on the S23. The Options wording ("Play it the way it was meant to be played: on a flip phone") was not looked at on screen. The
   owner tried landscape and the key presses (before the graphite color) and found them fine.

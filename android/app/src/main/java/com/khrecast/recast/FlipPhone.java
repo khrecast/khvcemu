@@ -250,8 +250,8 @@ final class FlipPhone {
         text.setColor(inkSub());
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
         if (vcast != null) {                                                    // the V CAST logo on a small light plate, left of the name
-            float ph = dp(17), pw = ph * vcast.getWidth() / vcast.getHeight() + dp(8);
-            plate.set(upper.left + dp(34), upper.bottom - dp(26), upper.left + dp(34) + pw, upper.bottom - dp(26) + ph);
+            float ph = dp(17), pw = (ph - dp(4)) * vcast.getWidth() / vcast.getHeight() + dp(8);   // the logo keeps its shape inside the plate
+            plate.set(upper.left + dp(34), upper.bottom - dp(23.5f), upper.left + dp(34) + pw, upper.bottom - dp(23.5f) + ph);
             fill.setColor(0xFFF1F2F4);
             c.drawRoundRect(plate, dp(4), dp(4), fill);
             stroke.setStrokeWidth(dp(1));
