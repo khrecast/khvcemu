@@ -38,16 +38,18 @@ public class StyleActivity extends Activity {
         logo.setMaxHeight(Math.min(dp(140), Math.round(getResources().getDisplayMetrics().heightPixels * (wide ? 0.12f : 0.16f))));
         col.addView(logo, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        TextView title = text("How do you want to play?", 22, 0xFFFFFFFF);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, dp(16), 0, dp(4));
+        ImageView title = Labels.picture(this, R.drawable.menu_style_title, 24, Labels.maxWidth(this), false,
+                "How do you want to play?");
+        ((LinearLayout.LayoutParams) title.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+        ((LinearLayout.LayoutParams) title.getLayoutParams()).topMargin = dp(16);
+        ((LinearLayout.LayoutParams) title.getLayoutParams()).bottomMargin = dp(4);
         col.addView(title);
         TextView sub = text("You can change this any time in Options.", 14, 0xFF9FB0C3);
         sub.setGravity(Gravity.CENTER);
         sub.setPadding(0, 0, 0, dp(16));
         col.addView(sub);
 
-        col.addView(choice("Smartphone style", false,
+        col.addView(choice(R.drawable.menu_style_smart, "Smartphone style", false,
                 "Touch controls round the picture, and the biggest picture. Turn the phone sideways for a wider view.",
                 v -> done(false, false, false)));
 
@@ -62,11 +64,12 @@ public class StyleActivity extends Activity {
         bezel.setText("Small bezel (a bigger picture)");
         bezel.setTextColor(0xFFCFD8DC);
         bezel.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFF9CC4F5));
-        Button flip = button("Play in flip phone style", true, v -> done(true, graphite.isChecked(), bezel.isChecked()));
+        View flip = Labels.pictureButton(this, R.drawable.menu_style_flip, 24, 64, true, "Play in flip phone style",
+                v -> done(true, graphite.isChecked(), bezel.isChecked()));
         col.addView(flipNote);                                          // the choices come first: the button below goes on
         col.addView(graphite);
         col.addView(bezel);
-        col.addView(flip, lp());
+        col.addView(flip);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -76,29 +79,14 @@ public class StyleActivity extends Activity {
         Edge.pad(scroll, col, dp(24), dp(16), dp(24), dp(32));
     }
 
-    private View choice(String label, boolean primary, String note, android.view.View.OnClickListener l) {
+    private View choice(int picture, String label, boolean primary, String note, android.view.View.OnClickListener l) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.addView(button(label, primary, l), lp());
+        box.addView(Labels.pictureButton(this, picture, 24, 64, primary, label, l));
         TextView t = text(note, 14, 0xFFCFD8DC);
         t.setPadding(0, dp(8), 0, 0);
         box.addView(t);
         return box;
-    }
-
-    private Button button(String label, boolean primary, android.view.View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-        Labels.theme(b, primary);
-        b.setOnClickListener(l);
-        return b;
-    }
-
-    private LinearLayout.LayoutParams lp() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64));
-        p.topMargin = dp(8);
-        return p;
     }
 
     private void done(boolean flip, boolean graphite, boolean smallBezel) {

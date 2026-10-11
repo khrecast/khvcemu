@@ -40,16 +40,19 @@ public class SoundActivity extends Activity {
     private final SeekBar[] bars = new SeekBar[SoundSettings.SLIDERS.length];
     private final TextView[] values = new TextView[SoundSettings.SLIDERS.length];
     private Spinner mix;
-    private Button deleteMix, favoriteMix, renameMix, clearCache;
+    private android.widget.FrameLayout favoriteMix, clearCache;
+    private TextView cacheNote;
+    private android.widget.FrameLayout deleteMix, renameMix;     // picture buttons (the menu font)
     private java.util.List<String> mixNames = new java.util.ArrayList<>();   // ready-made mixes, saved mixes, then "Custom"
     private boolean loading;                            // true while the screen sets the sliders itself
     private Spinner tune;
-    private Button playButton;
+    private android.widget.FrameLayout playButton;
     private TextView tuneStatus;
     private AudioTrack track;                           // the tune being played (looping), or null
     private boolean wantPlaying;                        // the player pressed Play and has not pressed Stop
     private boolean recMode;                            // what plays is the recording, not the built-in version
-    private Button recPlayButton, recChoose, recRemove, recMatch;
+    private android.widget.FrameLayout recPlayButton;
+    private android.widget.FrameLayout recChoose, recRemove, recMatch;
     private TextView recStatus, recGainText;
     private SeekBar recGainBar;
     private Switch recInGame;
@@ -79,10 +82,7 @@ public class SoundActivity extends Activity {
         }
         tune.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, tuneNames));
         col.addView(tune);
-        playButton = new Button(this);
-        playButton.setText("Play");
-        Labels.theme(playButton, true);
-        playButton.setOnClickListener(v -> {
+        playButton = Labels.pictureButton(this, R.drawable.menu_b_play, 22, 56, true, "Play", v -> {
             if (wantPlaying && !recMode) {
                 stopTune();
             } else {
@@ -91,9 +91,7 @@ public class SoundActivity extends Activity {
                 startTune();
             }
         });
-        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
-        playLp.topMargin = dp(6);
-        col.addView(playButton, playLp);
+        col.addView(playButton);
         tuneStatus = note("Plays the tune with the sliders below, over and over. Move a slider and it is made again a moment "
                 + "later, so you can tune by ear. Pick another tune while it plays to change over.");
         col.addView(tuneStatus);
@@ -120,19 +118,14 @@ public class SoundActivity extends Activity {
         col.addView(recStatus);
         LinearLayout recRow = new LinearLayout(this);
         recRow.setOrientation(LinearLayout.HORIZONTAL);
-        recChoose = new Button(this);
-        recChoose.setText("Choose a file...");
-        Labels.theme(recChoose, false);
-        recChoose.setOnClickListener(v -> {
+        recChoose = Labels.pictureButton(this, R.drawable.menu_b_choose_file, 18, 48, false, "Choose a file", halfPicture(), v -> {
             Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             pick.addCategory(Intent.CATEGORY_OPENABLE);
             pick.setType("audio/*");
             startActivityForResult(pick, PICK_RECORDING);
         });
-        recRemove = new Button(this);
-        recRemove.setText("Remove it");
-        Labels.theme(recRemove, false);
-        recRemove.setOnClickListener(v -> removeRecording());
+        recRemove = Labels.pictureButton(this, R.drawable.menu_b_remove_recording, 18, 48, false, "Remove it", halfPicture(),
+                v -> removeRecording());
         LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, dp(48), 1f);
         rl.rightMargin = dp(4);
         LinearLayout.LayoutParams rr = new LinearLayout.LayoutParams(0, dp(48), 1f);
@@ -143,10 +136,7 @@ public class SoundActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         recRowLp.topMargin = dp(6);
         col.addView(recRow, recRowLp);
-        recPlayButton = new Button(this);
-        recPlayButton.setText("Play the recording");
-        Labels.theme(recPlayButton, true);
-        recPlayButton.setOnClickListener(v -> {
+        recPlayButton = Labels.pictureButton(this, R.drawable.menu_b_play_recording, 20, 52, true, "Play the recording", v -> {
             if (wantPlaying && recMode) {
                 stopTune();
             } else {
@@ -155,9 +145,7 @@ public class SoundActivity extends Activity {
                 startTune();
             }
         });
-        LinearLayout.LayoutParams recPlayLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        recPlayLp.topMargin = dp(6);
-        col.addView(recPlayButton, recPlayLp);
+        col.addView(recPlayButton);
         LinearLayout gainHead = new LinearLayout(this);
         gainHead.setOrientation(LinearLayout.HORIZONTAL);
         gainHead.setPadding(0, dp(10), 0, 0);
@@ -191,13 +179,9 @@ public class SoundActivity extends Activity {
             }
         });
         col.addView(recGainBar);
-        recMatch = new Button(this);
-        recMatch.setText("Match its loudness to the built-in version");
-        Labels.theme(recMatch, false);
-        recMatch.setOnClickListener(v -> matchLevel());
-        LinearLayout.LayoutParams matchLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
-        matchLp.topMargin = dp(6);
-        col.addView(recMatch, matchLp);
+        recMatch = Labels.pictureButton(this, R.drawable.menu_b_match, 18, 52, false, "Match its loudness to the built-in version",
+                v -> matchLevel());
+        col.addView(recMatch);
         recInGame = new Switch(this);
         recInGame.setText("Use the recording in the game");
         recInGame.setTextColor(Color.WHITE);
@@ -219,14 +203,10 @@ public class SoundActivity extends Activity {
         col.addView(mix);
         LinearLayout mixButtons = new LinearLayout(this);
         mixButtons.setOrientation(LinearLayout.HORIZONTAL);
-        Button saveMix = new Button(this);
-        saveMix.setText("Save this mix...");
-        Labels.theme(saveMix, false);
-        saveMix.setOnClickListener(v -> askMixName());
-        deleteMix = new Button(this);
-        deleteMix.setText("Delete this mix");
-        Labels.theme(deleteMix, false);
-        deleteMix.setOnClickListener(v -> confirmDeleteMix());
+        android.widget.FrameLayout saveMix = Labels.pictureButton(this, R.drawable.menu_b_save_mix, 18, 48, false, "Save this mix",
+                halfPicture(), v -> askMixName());
+        deleteMix = Labels.pictureButton(this, R.drawable.menu_b_delete_mix, 18, 48, false, "Delete this mix", halfPicture(),
+                v -> confirmDeleteMix());
         LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, dp(48), 1f);
         half.rightMargin = dp(4);
         LinearLayout.LayoutParams halfRight = new LinearLayout.LayoutParams(0, dp(48), 1f);
@@ -239,14 +219,10 @@ public class SoundActivity extends Activity {
         col.addView(mixButtons, mixRow);
         LinearLayout mixButtons2 = new LinearLayout(this);
         mixButtons2.setOrientation(LinearLayout.HORIZONTAL);
-        favoriteMix = new Button(this);
-        favoriteMix.setText("Star this mix");
-        Labels.theme(favoriteMix, false);
-        favoriteMix.setOnClickListener(v -> toggleFavorite());
-        renameMix = new Button(this);
-        renameMix.setText("Rename this mix...");
-        Labels.theme(renameMix, false);
-        renameMix.setOnClickListener(v -> askRename());
+        favoriteMix = Labels.pictureButton(this, R.drawable.menu_b_star, 18, 48, false, "Star this mix", halfPicture(),
+                v -> toggleFavorite());
+        renameMix = Labels.pictureButton(this, R.drawable.menu_b_rename_mix, 18, 48, false, "Rename this mix", halfPicture(),
+                v -> askRename());
         LinearLayout.LayoutParams half3 = new LinearLayout.LayoutParams(0, dp(48), 1f);
         half3.rightMargin = dp(4);
         LinearLayout.LayoutParams half4 = new LinearLayout.LayoutParams(0, dp(48), 1f);
@@ -270,21 +246,15 @@ public class SoundActivity extends Activity {
             col.addView(slider(i));
         }
 
-        Button reset = new Button(this);
-        reset.setText("Back to the sound the game was tuned to");
-        Labels.theme(reset, false);
-        reset.setOnClickListener(v -> setAll(""));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
-        lp.topMargin = dp(20);
-        col.addView(reset, lp);
-        clearCache = new Button(this);
-        Labels.theme(clearCache, false);
-        clearCache.setOnClickListener(v -> confirmClearCache());
-        LinearLayout.LayoutParams cacheLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
-        cacheLp.topMargin = dp(8);
-        col.addView(clearCache, cacheLp);
-        col.addView(note("The music the game made for each mix is kept so the game starts faster; clearing it only means the "
-                + "next start makes it again."));
+        android.widget.FrameLayout reset = Labels.pictureButton(this, R.drawable.menu_b_back_tuned, 18, 56, false,
+                "Back to the sound the game was tuned to", v -> setAll(""));
+        ((LinearLayout.LayoutParams) reset.getLayoutParams()).topMargin = dp(20);
+        col.addView(reset);
+        clearCache = Labels.pictureButton(this, R.drawable.menu_b_clear_cache, 18, 56, false, "Clear the made music",
+                v -> confirmClearCache());
+        col.addView(clearCache);
+        cacheNote = note("");
+        col.addView(cacheNote);
         showCacheSize();
 
         ScrollView scroll = new ScrollView(this);
@@ -525,8 +495,11 @@ public class SoundActivity extends Activity {
 
     /** The two Play buttons say Stop for the one that is playing. */
     private void showButtons() {
-        playButton.setText(wantPlaying && !recMode ? "Stop" : "Play");
-        recPlayButton.setText(wantPlaying && recMode ? "Stop the recording" : "Play the recording");
+        boolean tunePlaying = wantPlaying && !recMode, recPlaying = wantPlaying && recMode;
+        Labels.setFace(this, playButton, tunePlaying ? R.drawable.menu_b_stop : R.drawable.menu_b_play, 22, Labels.maxWidth(this),
+                tunePlaying ? "Stop" : "Play");
+        Labels.setFace(this, recPlayButton, recPlaying ? R.drawable.menu_b_stop_recording : R.drawable.menu_b_play_recording, 20,
+                Labels.maxWidth(this), recPlaying ? "Stop the recording" : "Play the recording");
     }
 
     /** Samples (16-bit little-endian) at another volume, clipped rather than wrapped. */
@@ -555,10 +528,10 @@ public class SoundActivity extends Activity {
         recLoading = true;
         boolean has = !file.isEmpty();
         recStatus.setText(has ? "Recording: " + new java.io.File(file).getName() : "No recording chosen for this tune.");
-        recChoose.setEnabled(true);
-        recRemove.setEnabled(has);
-        recPlayButton.setEnabled(has);
-        recMatch.setEnabled(has);
+        Labels.enable(recChoose, true);
+        Labels.enable(recRemove, has);
+        Labels.enable(recPlayButton, has);
+        Labels.enable(recMatch, has);
         recGainBar.setEnabled(has);
         recInGame.setEnabled(has);
         recGainBar.setProgress(Math.round(Settings.recGain(this, name) * 100f));
@@ -594,7 +567,7 @@ public class SoundActivity extends Activity {
     /** Keeps a copy of the chosen file in the app's own folder (the picker gives access to it only now), then matches its level. */
     private void copyRecording(Uri uri, String tuneFile) {
         recStatus.setText("Copying the recording...");
-        recChoose.setEnabled(false);                                  // one copy at a time
+        Labels.enable(recChoose, false);                              // one copy at a time
         new Thread(() -> {
             try {
                 String display = "recording";
@@ -673,7 +646,7 @@ public class SoundActivity extends Activity {
         if (file.isEmpty()) {
             return;
         }
-        recMatch.setEnabled(false);
+        Labels.enable(recMatch, false);
         recStatus.setText("Matching the loudness...");
         final String settings = Settings.music(this);
         new Thread(() -> {
@@ -793,10 +766,12 @@ public class SoundActivity extends Activity {
     private void updateDeleteButton(int position) {
         boolean own = position >= SoundSettings.PRESETS.length && position < mixNames.size() - 1;
         boolean real = position >= 0 && position < mixNames.size() - 1;
-        deleteMix.setEnabled(own);
-        renameMix.setEnabled(own);
-        favoriteMix.setEnabled(real);
-        favoriteMix.setText(real && Settings.mixFavorites(this).contains(mixNames.get(position)) ? "Unstar this mix" : "Star this mix");
+        Labels.enable(deleteMix, own);
+        Labels.enable(renameMix, own);
+        Labels.enable(favoriteMix, real);
+        boolean starred = real && Settings.mixFavorites(this).contains(mixNames.get(position));
+        Labels.setFace(this, favoriteMix, starred ? R.drawable.menu_b_unstar : R.drawable.menu_b_star, 18, halfPicture(),
+                starred ? "Unstar this mix" : "Star this mix");
     }
 
     private void askMixName() {
@@ -889,9 +864,12 @@ public class SoundActivity extends Activity {
 
     private void showCacheSize() {
         long bytes = sizeOf(cacheDir());
-        clearCache.setText(bytes == 0 ? "No made music is kept" : String.format(Locale.US,
-                "Clear the made music (%.1f MB)", bytes / 1048576.0));
-        clearCache.setEnabled(bytes > 0);
+        Labels.setFace(this, clearCache, bytes == 0 ? R.drawable.menu_b_no_cache : R.drawable.menu_b_clear_cache, 18,
+                Labels.maxWidth(this), bytes == 0 ? "No made music is kept" : "Clear the made music");
+        Labels.enable(clearCache, bytes > 0);
+        cacheNote.setText((bytes == 0 ? "Nothing is kept now. " : String.format(Locale.US, "%.1f MB is kept. ", bytes / 1048576.0))
+                + "The music the game made for each mix is kept so the game starts faster; clearing it only means the next start "
+                + "makes it again.");
     }
 
     private void confirmClearCache() {
@@ -967,10 +945,23 @@ public class SoundActivity extends Activity {
                 .setNegativeButton("Cancel", null).show();
     }
 
-    private TextView heading(String s) {
-        TextView t = text(s, 18, 0xFF5B9DFF);
-        t.setPadding(0, dp(22), 0, dp(6));
-        return t;
+    /** The widest a picture may be on a button that takes half the row. */
+    private int halfPicture() {
+        int row = getResources().getDisplayMetrics().widthPixels - 2 * dp(20);
+        return (row - dp(8)) / 2 - dp(20);
+    }
+
+    /** A heading in the menu font (the pictures are made by tools/make_tab_labels.py). */
+    private View heading(String s) {
+        int res;
+        switch (s) {
+            case "Try the music": res = R.drawable.menu_h_try; break;
+            case "A recording of this tune": res = R.drawable.menu_h_recording; break;
+            case "Mix": res = R.drawable.menu_h_mix; break;
+            case "How loud": res = R.drawable.menu_h_loud; break;
+            default: res = R.drawable.menu_h_instruments; break;
+        }
+        return Labels.heading(this, res, s);
     }
 
     private TextView note(String s) {

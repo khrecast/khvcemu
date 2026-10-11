@@ -40,12 +40,36 @@ final class Labels {
         view.setScaleType(ImageView.ScaleType.FIT_XY);
         view.setContentDescription(description);
         int w = bm.getWidth() * scale, h = bm.getHeight() * scale;
+        if (w > maxWidthPx && maxWidthPx > 0) {                // even 1x is too wide (a long label, a narrow screen): shrink it to fit
+            h = Math.max(1, Math.round(h * (float) maxWidthPx / w));
+            w = maxWidthPx;
+            drawable.setFilterBitmap(true);
+        }
         if (centeredInFrame) {
             view.setLayoutParams(new FrameLayout.LayoutParams(w, h, Gravity.CENTER));
         } else {
             view.setLayoutParams(new LinearLayout.LayoutParams(w, h));
         }
         return view;
+    }
+
+    /** A section heading in the menu font: a smaller picture label with room above and below it. */
+    static ImageView heading(Context context, int resId, String description) {
+        ImageView v = picture(context, resId, 20, maxWidth(context), false, description);
+        float density = context.getResources().getDisplayMetrics().density;
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
+        lp.topMargin = Math.round(22 * density);
+        lp.bottomMargin = Math.round(8 * density);
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            v.setAccessibilityHeading(true);                   // TalkBack can jump from heading to heading
+        }
+        return v;
+    }
+
+    /** Enables or greys a picture button (the picture dims with it). */
+    static void enable(FrameLayout pictureButton, boolean on) {
+        pictureButton.getChildAt(0).setEnabled(on);
+        pictureButton.getChildAt(1).setAlpha(on ? 1f : 0.4f);
     }
 
     /** The width a label may use on this screen: the screen minus the screen padding and a little room inside a button. */
@@ -88,6 +112,24 @@ final class Labels {
         button.setAllCaps(false);
     }
 
+    private static ImageView face(Context context, int resId, int targetDp, int maxWidthPx, String description) {
+        ImageView pic = picture(context, resId, targetDp, maxWidthPx, true, description);
+        pic.setClickable(false);
+        pic.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);   // the Button already says it
+        pic.setElevation(12 * context.getResources().getDisplayMetrics().density);            // a Button is raised: the picture sits above it
+        return pic;
+    }
+
+    /** Puts another picture on a picture button (for a button that changes what it says, such as Play and Stop). */
+    static void setFace(Context context, FrameLayout pictureButton, int resId, int targetDp, int maxWidthPx, String description) {
+        boolean enabled = pictureButton.getChildAt(0).isEnabled();
+        pictureButton.removeViewAt(1);
+        ImageView pic = face(context, resId, targetDp, maxWidthPx, description);
+        pic.setAlpha(enabled ? 1f : 0.4f);
+        pictureButton.addView(pic);
+        pictureButton.getChildAt(0).setContentDescription(description);
+    }
+
     /** A button face made of a picture label: a normal Button with the picture centered on top (touches go to the button). */
     static FrameLayout pictureButton(Context context, int resId, int targetDp, int heightDp, boolean primary,
                                      String description, android.view.View.OnClickListener listener) {
@@ -104,12 +146,8 @@ final class Labels {
         button.setContentDescription(description);
         box.addView(button, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
-        ImageView pic = picture(context, resId, targetDp, maxWidthPx, true, description);
-        pic.setClickable(false);
-        pic.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);   // the Button already says it
+        box.addView(face(context, resId, targetDp, maxWidthPx, description));
         float density = context.getResources().getDisplayMetrics().density;
-        pic.setElevation(12 * density);                        // a Button is raised: the picture must sit above it
-        box.addView(pic);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 Math.round(heightDp * density));
         lp.topMargin = Math.round(8 * density);

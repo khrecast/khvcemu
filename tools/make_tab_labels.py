@@ -41,7 +41,25 @@ ANDROID_RES = os.path.join(ROOT, "android", "app", "src", "main", "res", "drawab
 MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen", "saved_games": "Saved games",
                "options": "Options", "game_files": "Game files", "set_up": "Set up the game files",
                "load_saved": "Load a saved game", "save_slot": "Save to a slot", "understand": "I understand",
-               "start_world": "Start at a world", "sound": "Sound"}
+               "start_world": "Start at a world", "sound": "Sound",
+               # headings of the Options and Sound screens
+               "h_picture_size": "Picture size", "h_picture_filter": "Picture filter", "h_text_size": "Text size",
+               "h_speed": "Speed", "h_controls": "Controls", "h_online": "Online scores", "h_autosave": "Autosave",
+               "h_try": "Try the music", "h_recording": "A recording of this tune", "h_mix": "Mix", "h_loud": "How loud",
+               "h_instruments": "How the instruments sound",
+               # the first-run question
+               "style_title": "How do you want to play?", "style_smart": "Smartphone style",
+               "style_flip": "Play in flip phone style",
+               # buttons that always say the same thing
+               "b_controls_reset": "Put the controls back to the default", "b_music_mix": "Music mix and sliders",
+               "b_test_connection": "Test the connection", "b_restore": "Restore the default settings",
+               "b_choose_file": "Choose a file", "b_remove_recording": "Remove it",
+               "b_match": "Match its loudness", "b_save_mix": "Save this mix",
+               "b_delete_mix": "Delete this mix", "b_rename_mix": "Rename this mix",
+               "b_back_tuned": "Back to the sound the game was tuned to", "b_import": "Import a state file",
+               "b_play": "Play", "b_stop": "Stop", "b_play_recording": "Play the recording",
+               "b_stop_recording": "Stop the recording", "b_star": "Star this mix", "b_unstar": "Unstar this mix",
+               "b_clear_cache": "Clear the made music", "b_no_cache": "No made music is kept"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:

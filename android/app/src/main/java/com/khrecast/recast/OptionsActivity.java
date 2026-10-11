@@ -112,40 +112,27 @@ public class OptionsActivity extends Activity {
         col.addView(toggle("Small bezel: a bigger picture (needs the flip phone look)", Settings.flipSmallBezel(this), Settings::setFlipSmallBezel));
         col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
                 + "move it, pinch it with two fingers to make it bigger or smaller."));
-        Button resetControls = new Button(this);
-        resetControls.setText("Put the controls back to the default");
-        Labels.theme(resetControls, false);
-        resetControls.setOnClickListener(v -> {
-            Settings.resetControls(this);
-            android.widget.Toast.makeText(this, "The controls are back in their usual places",
-                    android.widget.Toast.LENGTH_SHORT).show();
-        });
-        LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        resetParams.topMargin = dp(8);
-        col.addView(resetControls, resetParams);
+        col.addView(Labels.pictureButton(this, R.drawable.menu_b_controls_reset, 20, 56, false,
+                "Put the controls back to the default", v -> {
+                    Settings.resetControls(this);
+                    android.widget.Toast.makeText(this, "The controls are back in their usual places",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }));
 
         col.addView(heading("Sound"));
         col.addView(toggle("Mute the game", Settings.muted(this), Settings::setMuted));
-        Button sound = new Button(this);
-        sound.setText("Music mix and sliders...");
-        Labels.theme(sound, false);
-        sound.setOnClickListener(v -> startActivity(new Intent(this, SoundActivity.class)));
-        LinearLayout.LayoutParams soundParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        soundParams.topMargin = dp(8);
-        col.addView(sound, soundParams);
+        col.addView(Labels.pictureButton(this, R.drawable.menu_b_music_mix, 20, 56, false, "Music mix and sliders",
+                v -> startActivity(new Intent(this, SoundActivity.class))));
 
         col.addView(heading("Online scores"));
         col.addView(toggle("Share high scores", Settings.shareScores(this), Settings::setShareScores));
         col.addView(note("Posts only the world, score, time, Munny, EXP and level to the project's leaderboard "
                 + "(scores.khrecast.com). No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are always kept on this phone too. Applies "
                 + "the next time the game starts."));
-        Button test = new Button(this);
-        test.setText("Test the connection");
-        Labels.theme(test, false);
-        test.setOnClickListener(v -> testConnection(test));
-        LinearLayout.LayoutParams testParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        testParams.topMargin = dp(8);
-        col.addView(test, testParams);
+        final android.widget.FrameLayout[] test = new android.widget.FrameLayout[1];
+        test[0] = Labels.pictureButton(this, R.drawable.menu_b_test_connection, 20, 56, false, "Test the connection",
+                v -> testConnection(test[0]));
+        col.addView(test[0]);
 
         col.addView(heading("Autosave"));
         col.addView(toggle("Autosave", Settings.autosave(this), Settings::setAutosave));
@@ -176,16 +163,13 @@ public class OptionsActivity extends Activity {
         col.addView(every);
         col.addView(note("Autosaves only happen when you have played since the last save or load."));
 
-        Button defaults = new Button(this);
-        defaults.setText("Restore the default settings");
-        Labels.theme(defaults, false);
-        defaults.setOnClickListener(v -> {
-            Settings.restoreDefaults(this);
-            build();                                           // show the defaults
-        });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        lp.topMargin = dp(24);
-        col.addView(defaults, lp);
+        android.widget.FrameLayout defaults = Labels.pictureButton(this, R.drawable.menu_b_restore, 20, 56, false,
+                "Restore the default settings", v -> {
+                    Settings.restoreDefaults(this);
+                    build();                                   // show the defaults
+                });
+        ((LinearLayout.LayoutParams) defaults.getLayoutParams()).topMargin = dp(24);
+        col.addView(defaults);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -195,9 +179,8 @@ public class OptionsActivity extends Activity {
     }
 
     /** Asks the leaderboard for its top list (nothing is posted) and says whether it answered. */
-    private void testConnection(Button button) {
-        button.setEnabled(false);
-        button.setText("Testing...");
+    private void testConnection(android.widget.FrameLayout button) {
+        Labels.enable(button, false);                              // greyed while the test runs
         new Thread(() -> {
             String result;
             try {
@@ -214,8 +197,7 @@ public class OptionsActivity extends Activity {
                 if (isFinishing() || isDestroyed()) {
                     return;                                            // the screen was closed while the test ran
                 }
-                button.setEnabled(true);
-                button.setText("Test the connection");
+                Labels.enable(button, true);
                 new android.app.AlertDialog.Builder(this).setTitle("Connection test").setMessage(shown)
                         .setPositiveButton("OK", null).show();
             });
@@ -248,10 +230,20 @@ public class OptionsActivity extends Activity {
         return s;
     }
 
-    private TextView heading(String s) {
-        TextView t = text(s, 18, 0xFF5B9DFF);
-        t.setPadding(0, dp(22), 0, dp(6));
-        return t;
+    /** A heading in the menu font (the pictures are made by tools/make_tab_labels.py). */
+    private View heading(String s) {
+        int res;
+        switch (s) {
+            case "Picture size": res = R.drawable.menu_h_picture_size; break;
+            case "Picture filter": res = R.drawable.menu_h_picture_filter; break;
+            case "Text size": res = R.drawable.menu_h_text_size; break;
+            case "Speed": res = R.drawable.menu_h_speed; break;
+            case "Controls": res = R.drawable.menu_h_controls; break;
+            case "Sound": res = R.drawable.menu_sound; break;     // (the screen title's picture, smaller)
+            case "Online scores": res = R.drawable.menu_h_online; break;
+            default: res = R.drawable.menu_h_autosave; break;
+        }
+        return Labels.heading(this, res, s);
     }
 
     private TextView note(String s) {

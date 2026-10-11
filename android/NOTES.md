@@ -592,6 +592,20 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Not possible here:** a SoundFont. It needs `fluidsynth`, a program that does not run inside an app; the built-in synth and recordings
   are the two ways to change the sound on the phone.
 
+## The menu font on the rest of the app (2026-10-11, done; seen on the S23)
+
+- **What changed:** the section headings and the buttons that always say the same thing are now pictures in the KHMenu font (Televo's, via
+  `tools/make_tab_labels.py`, which now makes 46 app labels; the font file itself stays in the gitignored `reference/`): the Options and
+  Sound headings, the first-run question (its title and both choices), Options' four buttons, the Saves import button, and on the
+  Sound screen Play / Stop, Play / Stop the recording, Choose a file, Remove it, Match its loudness, Save / Delete / Rename / Star / Unstar this
+  mix, Back to the sound the game was tuned to, and Clear the made music (with "No made music is kept" when there is none; the size is in
+  the note under it). A button that changes what it says swaps its picture (`Labels.setFace`); a greyed button dims its picture
+  (`Labels.enable`); `Labels.heading` is the heading. The font has no usable "..." (it draws an underscore), so those labels lost their dots.
+- **Left as plain text on purpose:** switches and radio buttons (the system draws them), the notes, the mix and tune lists, slider names,
+  dialogs, the Setup screen's buttons and the text that changes with the player's data (a recording's name, a mix name).
+- **Verified on the S23 Ultra:** the question screen, the Options screen top to bottom, and the Sound screen (headings, greyed and
+  active picture buttons, Play changing to Stop and back). **Not looked at:** the Saves import button, the Setup screen, landscape.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is
