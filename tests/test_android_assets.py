@@ -65,6 +65,51 @@ class AndroidAssetCopyTests(unittest.TestCase):
         finally:
             sys.path.remove(os.path.join(ROOT, "android", "app", "src", "main", "python"))
 
+    def test_the_apps_recordings_reach_the_core_only_when_the_files_exist(self):
+        import json
+        import tempfile
+        py = os.path.join(ROOT, "android", "app", "src", "main", "python")
+        sys.path.insert(0, py)
+        try:
+            import recast_app
+            from khvcemu import audio
+            with tempfile.TemporaryDirectory() as tmp:
+                have = os.path.join(tmp, "t.flac")
+                open(have, "wb").close()
+                text = json.dumps({"Training.mid": {"path": have, "gain": 2.5},
+                                   "island.mid": {"path": os.path.join(tmp, "gone.flac")},
+                                   "bad.mid": 3})
+                self.assertEqual(recast_app._music_files(text), {"training.mid": {"path": have, "gain": 2.5}})
+            self.assertEqual(recast_app._music_files(""), {})
+            self.assertEqual(recast_app._music_files("not json"), {})
+            old = audio.FILE_DECODER
+            try:
+                recast_app._install_decoder()
+                self.assertIs(audio.FILE_DECODER, recast_app._decode_with_android)
+            finally:
+                audio.FILE_DECODER = old
+        finally:
+            sys.path.remove(py)
+
+    def test_match_gain_aims_at_the_built_in_tunes_level(self):
+        import numpy as np
+        from unittest import mock
+        py = os.path.join(ROOT, "android", "app", "src", "main", "python")
+        sys.path.insert(0, py)
+        try:
+            import recast_app
+            import tempfile
+            ours = (np.sin(np.arange(22050) / 10.0) * 6000).astype(np.int16)     # RMS about 4240, above the 3000 floor
+            quiet = (ours // 4).astype(np.int16)
+            with tempfile.TemporaryDirectory() as tmp:
+                pcm = os.path.join(tmp, "q.pcm")
+                quiet.tofile(pcm)
+                with mock.patch.object(recast_app, "render_tune", return_value=ours.tobytes()):
+                    gain = recast_app.match_gain(".", "training.mid", "", pcm)
+            self.assertAlmostEqual(gain, 4.0, delta=0.15)                       # four times quieter: about 4 (the most allowed)
+        finally:
+            sys.path.remove(py)
+
     def test_the_apps_leaderboard_address_is_the_launchers(self):
         from khvcemu.launcher import LEADERBOARD_URL
         path = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "khrecast", "recast", "Settings.java")

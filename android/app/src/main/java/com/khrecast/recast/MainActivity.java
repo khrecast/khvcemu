@@ -116,7 +116,8 @@ public class MainActivity extends Activity {
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath(), world == null ? "" : world, Settings.speedOff(this),
                     Settings.frameLock(this), Settings.music(this),
-                    Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "", Settings.textSize(this)).toInt();
+                    Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "", Settings.textSize(this),
+                    Settings.musicFilesJson(this)).toInt();
             app = module;
             String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {

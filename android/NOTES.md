@@ -563,6 +563,35 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   game running behind (the Sound screen can be opened from the game's menu) may run slower while a tune is made; not measured.
 - **Still not done here:** the comparison with a recording and "use a recording in the game" (a decoder for FLAC and MP3).
 
+## Recordings, favorite mixes and clearing the music (2026-10-11, done; sound not heard)
+
+- **A recording per tune (Sound screen, "A recording of this tune"):** Choose a file (the system picker; a copy is kept in the app's
+  `files/recordings`, since the picker gives access only once), Remove it, **Play the recording** (to compare with the built-in
+  version, same loop player), a recording volume 0 to 400 percent, **Match its loudness** (`recast_app.match_gain`, the launcher's
+  `MusicPreview.match_gain`: aims at the built-in tune's level, never below the floor of 3000 RMS) and **Use the recording in the
+  game**. Choosing a file also matches its level once. The game gets the ones with the switch on as JSON
+  (`Settings.musicFilesJson` -> `start_game(..., music_files)` -> `Emulator(music_files=...)`): the core's existing replacement (cut or
+  padded to the MIDI's length, with a short fade; the Music volume and the recording volume apply, the sliders do not).
+- **The decoder:** `RecordingDecoder.java` reads FLAC, MP3, AAC/M4A, OGG and WAV with Android's own `MediaExtractor`/`MediaCodec` to mono 16-bit at
+  22,050 Hz (linear resampling with a little smoothing) into a `.22050.pcm` file next to the recording, kept until the recording changes.
+  The core reads it through the new `audio.FILE_DECODER` hook (commit `5b7f456`; used only when there is no ffmpeg).
+- **Limits and care:** a recording longer than ten minutes is cut there when decoded; a decode that gets no answer from the codec for
+  about five seconds gives up; two decodes of one file take turns; a new file is copied beside the old one, test-decoded, and only then
+  takes its place (a file that cannot be read leaves the old recording as it was); moving a Mix slider does not restart a playing
+  recording. "Restore the default settings" keeps the chosen recordings (they are the player's own files), like the mixes and stars.
+- **Favorite mixes:** "Star this mix" / "Unstar" for any mix (a star shows in the list; the order does not change); "Rename this mix..."
+  for the player's own; both are kept by "Restore the default settings". **Clear the made music** deletes the music the game made and kept
+  (`files/data/audio_cache`, shown in MB) after asking.
+- **Verified on the S23 Ultra:** a 1.7 MB FLAC (the reference "Obstacle Course" recording, copied into the app's folder by adb) decoded to
+  64.6 s of samples; Play the recording started an AudioTrack (listed as started by the system); Match loudness set 337 percent; with
+  "Use in game" on, the game started and its audio showed a different peak (about 6,400 against 5,200 for the built-in tune) with no
+  "could not use" line. **A bug the test found:** the class and its methods had to be `public` for Python to see them (the game had quietly
+  played the built-in tune). Star / Unstar and the star in the list, and Clear the made music (6.6 MB to none, after asking), also worked.
+- **Not tried:** the system file picker itself (the copy step after it: only reached by adb in this test), renaming a mix, a recording in MP3 or M4A, the
+  game's timing with a recording over a long play, and nothing could be heard.
+- **Not possible here:** a SoundFont. It needs `fluidsynth`, a program that does not run inside an app; the built-in synth and recordings
+  are the two ways to change the sound on the phone.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

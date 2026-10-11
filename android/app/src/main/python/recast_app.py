@@ -97,8 +97,9 @@ class _Game:
     """The core running in real time on its own thread. The Java side only calls the small functions below."""
 
     def __init__(self, native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-                 leaderboard="", font_size=11):
+                 leaderboard="", font_size=11, music_files=""):
         _prepare_unicorn(native_lib_dir)
+        _install_decoder()
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
         from khvcemu.keys import AVK
         from khvcemu.pcmmixer import PcmMixer
@@ -115,6 +116,7 @@ class _Game:
         patches = [n for n in swerve_patch.NAMES if n not in off]
         self.emu = Emulator(game_dir, data_dir, realtime=True, audio=True, audio_mixer=self.mixer, log=self._log,
                              speed_patches=patches, music=music_settings.parse(music, strict=False),
+                             music_files=_music_files(music_files),   # the player's recordings that replace tunes (Sound screen)
                              frame_locked_clock=bool(frame_lock))     # steady 25 fps when the phone keeps up (Emulator.__init__)
         if start_world:                # "Start at a world": the world's starting save replaces the game save (a backup is kept)
             from khvcemu import chapters
@@ -396,8 +398,23 @@ _start_lock = threading.Lock()
 _sessions = 0                       # counts the games started; a screen stops only the game it started
 
 
+def _music_files(text):
+    """The Sound screen's recordings as JSON {tune file: {"path": ..., "gain": ...}} -> the dict the core takes (only files that
+    exist; a damaged text means none)."""
+    import json
+    try:
+        got = json.loads(text) if text else {}
+    except ValueError:
+        return {}
+    out = {}
+    for name, v in (got.items() if isinstance(got, dict) else ()):
+        if isinstance(v, dict) and os.path.isfile(str(v.get("path", ""))):
+            out[str(name).lower()] = {"path": str(v["path"]), "gain": float(v.get("gain", 1.0))}
+    return out
+
+
 def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="", frame_lock=True, music="",
-               leaderboard="", font_size=11):
+               leaderboard="", font_size=11, music_files=""):
     """Start the game thread (once). Returns the session number of the game that is running. start_world: seed the
     game save from that world's starting save first (chapters.install_save), so Load Game continues from there."""
     global _game, _sessions
@@ -409,7 +426,7 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
         if _game is None or _game.stop_flag or not _game.thread.is_alive():   # not started, stopping or ended: start afresh
             os.makedirs(data_dir, exist_ok=True)
             game = _Game(native_lib_dir, game_dir, data_dir, start_world, speed_off, frame_lock, music, leaderboard,
-                         font_size)
+                         font_size, music_files)
             _sessions += 1
             game.session = _sessions
             game.thread.start()
@@ -418,6 +435,30 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
             print("[core] a game is already running: the new start settings (world %r, speed off %r, frame lock %s) were not "
                   "applied" % (start_world, speed_off, frame_lock), flush=True)
         return _game.session
+
+
+def _decode_with_android(path):
+    """audio.FILE_DECODER on the phone: the app's own decoder (Android's codecs) makes a mono 22,050 Hz copy of the recording
+    next to it (kept until the recording changes), which is read back as samples."""
+    import numpy as np
+    from java import jclass
+    pcm_path = str(jclass("com.khrecast.recast.RecordingDecoder").decodedPath(path))
+    return np.fromfile(pcm_path, dtype="<i2")
+
+
+def _install_decoder():
+    from khvcemu import audio
+    audio.FILE_DECODER = _decode_with_android
+
+
+def match_gain(game_dir, tune, music_text, pcm_path):
+    """The volume (0.05 to 4) that makes a recording (a decoded copy: mono 16-bit at 22,050 Hz) as loud as the built-in
+    version of the tune with these settings; the launcher's Match level."""
+    from khvcemu.music_preview import MusicPreview
+    ours = bytes(render_tune(game_dir, tune, music_text))
+    with open(pcm_path, "rb") as f:
+        theirs = f.read()
+    return float(MusicPreview.match_gain(ours, theirs))
 
 
 def render_tune(game_dir, tune, music_text):

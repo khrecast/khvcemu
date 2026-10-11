@@ -5,6 +5,8 @@ import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,6 +19,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -37,7 +40,7 @@ public class SoundActivity extends Activity {
     private final SeekBar[] bars = new SeekBar[SoundSettings.SLIDERS.length];
     private final TextView[] values = new TextView[SoundSettings.SLIDERS.length];
     private Spinner mix;
-    private Button deleteMix;
+    private Button deleteMix, favoriteMix, renameMix, clearCache;
     private java.util.List<String> mixNames = new java.util.ArrayList<>();   // ready-made mixes, saved mixes, then "Custom"
     private boolean loading;                            // true while the screen sets the sliders itself
     private Spinner tune;
@@ -45,6 +48,14 @@ public class SoundActivity extends Activity {
     private TextView tuneStatus;
     private AudioTrack track;                           // the tune being played (looping), or null
     private boolean wantPlaying;                        // the player pressed Play and has not pressed Stop
+    private boolean recMode;                            // what plays is the recording, not the built-in version
+    private Button recPlayButton, recChoose, recRemove, recMatch;
+    private TextView recStatus, recGainText;
+    private SeekBar recGainBar;
+    private Switch recInGame;
+    private boolean recLoading;                         // true while the screen sets the recording controls itself
+    private static final int PICK_RECORDING = 41;
+    private static final int REC_GAIN_STEPS = 400;      // percent, 0 to 400
     private int renderToken;                            // a newer request makes an older render's result obsolete
     private boolean rendering;                          // one tune is made at a time (the interpreter is shared with the game)
     private boolean renderAgain;                        // asked again while one was being made: make it again when it ends
@@ -72,10 +83,11 @@ public class SoundActivity extends Activity {
         playButton.setText("Play");
         Labels.theme(playButton, true);
         playButton.setOnClickListener(v -> {
-            if (wantPlaying) {
+            if (wantPlaying && !recMode) {
                 stopTune();
             } else {
                 wantPlaying = true;
+                recMode = false;
                 startTune();
             }
         });
@@ -88,8 +100,13 @@ public class SoundActivity extends Activity {
         tune.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                refreshRecordingUi();
                 if (wantPlaying) {
-                    startTune();
+                    if (recMode && Settings.recFile(SoundActivity.this, currentTune()).isEmpty()) {
+                        stopTune();                                  // this tune has no recording to play
+                    } else {
+                        startTune();
+                    }
                 }
             }
 
@@ -97,6 +114,105 @@ public class SoundActivity extends Activity {
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
+
+        col.addView(heading("A recording of this tune"));
+        recStatus = text("", 14, Color.WHITE);
+        col.addView(recStatus);
+        LinearLayout recRow = new LinearLayout(this);
+        recRow.setOrientation(LinearLayout.HORIZONTAL);
+        recChoose = new Button(this);
+        recChoose.setText("Choose a file...");
+        Labels.theme(recChoose, false);
+        recChoose.setOnClickListener(v -> {
+            Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            pick.addCategory(Intent.CATEGORY_OPENABLE);
+            pick.setType("audio/*");
+            startActivityForResult(pick, PICK_RECORDING);
+        });
+        recRemove = new Button(this);
+        recRemove.setText("Remove it");
+        Labels.theme(recRemove, false);
+        recRemove.setOnClickListener(v -> removeRecording());
+        LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        rl.rightMargin = dp(4);
+        LinearLayout.LayoutParams rr = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        rr.leftMargin = dp(4);
+        recRow.addView(recChoose, rl);
+        recRow.addView(recRemove, rr);
+        LinearLayout.LayoutParams recRowLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        recRowLp.topMargin = dp(6);
+        col.addView(recRow, recRowLp);
+        recPlayButton = new Button(this);
+        recPlayButton.setText("Play the recording");
+        Labels.theme(recPlayButton, true);
+        recPlayButton.setOnClickListener(v -> {
+            if (wantPlaying && recMode) {
+                stopTune();
+            } else {
+                wantPlaying = true;
+                recMode = true;
+                startTune();
+            }
+        });
+        LinearLayout.LayoutParams recPlayLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        recPlayLp.topMargin = dp(6);
+        col.addView(recPlayButton, recPlayLp);
+        LinearLayout gainHead = new LinearLayout(this);
+        gainHead.setOrientation(LinearLayout.HORIZONTAL);
+        gainHead.setPadding(0, dp(10), 0, 0);
+        TextView gainLabel = text("Recording volume", 16, Color.WHITE);
+        gainLabel.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        gainHead.addView(gainLabel);
+        recGainText = text("100%", 14, 0xFF8EA4BF);
+        gainHead.addView(recGainText);
+        col.addView(gainHead);
+        recGainBar = new SeekBar(this);
+        recGainBar.setMax(REC_GAIN_STEPS);
+        recGainBar.setContentDescription("Recording volume");
+        recGainBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar b, int progress, boolean fromUser) {
+                recGainText.setText(progress + "%");
+                if (fromUser && !recLoading) {
+                    Settings.setRecGain(SoundActivity.this, currentTune(), progress / 100f);
+                    if (wantPlaying && recMode) {
+                        scheduleRestart();
+                    }
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar b) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar b) {
+            }
+        });
+        col.addView(recGainBar);
+        recMatch = new Button(this);
+        recMatch.setText("Match its loudness to the built-in version");
+        Labels.theme(recMatch, false);
+        recMatch.setOnClickListener(v -> matchLevel());
+        LinearLayout.LayoutParams matchLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+        matchLp.topMargin = dp(6);
+        col.addView(recMatch, matchLp);
+        recInGame = new Switch(this);
+        recInGame.setText("Use the recording in the game");
+        recInGame.setTextColor(Color.WHITE);
+        recInGame.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        recInGame.setPadding(0, dp(12), 0, dp(4));
+        recInGame.setOnCheckedChangeListener((b, on) -> {
+            if (!recLoading) {
+                Settings.setRecInGame(this, currentTune(), on);
+            }
+        });
+        col.addView(recInGame);
+        col.addView(note("Your own recording of the tune (FLAC, MP3, M4A, OGG...). Play it, then the built-in version above, to "
+                + "compare. \"Use the recording in the game\" plays it in place of this tune the next time the game starts, "
+                + "cut or padded to the tune's length so the game's timing does not change. The mix and the sliders do not "
+                + "apply to it; the game's Music volume and this volume do."));
 
         col.addView(heading("Mix"));
         mix = new Spinner(this);
@@ -121,6 +237,26 @@ public class SoundActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         mixRow.topMargin = dp(6);
         col.addView(mixButtons, mixRow);
+        LinearLayout mixButtons2 = new LinearLayout(this);
+        mixButtons2.setOrientation(LinearLayout.HORIZONTAL);
+        favoriteMix = new Button(this);
+        favoriteMix.setText("Star this mix");
+        Labels.theme(favoriteMix, false);
+        favoriteMix.setOnClickListener(v -> toggleFavorite());
+        renameMix = new Button(this);
+        renameMix.setText("Rename this mix...");
+        Labels.theme(renameMix, false);
+        renameMix.setOnClickListener(v -> askRename());
+        LinearLayout.LayoutParams half3 = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        half3.rightMargin = dp(4);
+        LinearLayout.LayoutParams half4 = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        half4.leftMargin = dp(4);
+        mixButtons2.addView(favoriteMix, half3);
+        mixButtons2.addView(renameMix, half4);
+        LinearLayout.LayoutParams mixRow2 = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        mixRow2.topMargin = dp(6);
+        col.addView(mixButtons2, mixRow2);
         col.addView(note("Pick a ready-made mix, or move the sliders for your own. Press Play above to hear it now; the game uses it the next time it starts. "
                 + "The game's own sound effects are not changed. The first start after a change takes a few seconds longer "
                 + "while the music is made."));
@@ -141,6 +277,15 @@ public class SoundActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
         lp.topMargin = dp(20);
         col.addView(reset, lp);
+        clearCache = new Button(this);
+        Labels.theme(clearCache, false);
+        clearCache.setOnClickListener(v -> confirmClearCache());
+        LinearLayout.LayoutParams cacheLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
+        cacheLp.topMargin = dp(8);
+        col.addView(clearCache, cacheLp);
+        col.addView(note("The music the game made for each mix is kept so the game starts faster; clearing it only means the "
+                + "next start makes it again."));
+        showCacheSize();
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -149,6 +294,8 @@ public class SoundActivity extends Activity {
         Edge.pad(scroll, col, pad, dp(16), pad, dp(32));
 
         rebuildMixList();
+        showButtons();
+        refreshRecordingUi();
         setAll(Settings.music(this), false);
         mix.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -231,7 +378,9 @@ public class SoundActivity extends Activity {
         loading = false;
         if (save) {
             Settings.setMusic(this, normalized(text));                // exactly what was chosen, not re-read from the sliders
-            scheduleRestart();
+            if (!recMode) {
+                scheduleRestart();
+            }
         }
         showMixName();
     }
@@ -261,7 +410,9 @@ public class SoundActivity extends Activity {
         }
         Settings.setMusic(this, SoundSettings.text(now));
         showMixName();
-        scheduleRestart();
+        if (!recMode) {
+            scheduleRestart();                                        // (the sliders do not apply to a recording)
+        }
     }
 
     /** While a tune is playing, a changed setting makes it again after the player pauses (a slider sends many changes). */
@@ -279,8 +430,8 @@ public class SoundActivity extends Activity {
         }
         ui.removeCallbacks(restart);
         silence();
-        playButton.setText("Stop");
-        tuneStatus.setText("Making the music...");
+        showButtons();
+        tuneStatus.setText(recMode ? "Reading the recording..." : "Making the music...");
         if (rendering) {
             renderAgain = true;                                     // not two at once: this one starts when the first ends
             return;
@@ -289,6 +440,9 @@ public class SoundActivity extends Activity {
         final int token = ++renderToken;
         final String name = SoundSettings.TUNES[Math.max(0, tune.getSelectedItemPosition())][0];
         final String settings = Settings.music(this);
+        final boolean asRecording = recMode;
+        final String recPath = Settings.recFile(this, name);
+        final float recGain = Settings.recGain(this, name);
         new Thread(() -> {
             try {
                 synchronized (PYTHON_START) {
@@ -297,8 +451,14 @@ public class SoundActivity extends Activity {
                     }
                 }
                 PyObject app = Python.getInstance().getModule("recast_app");
-                byte[] pcm = app.callAttr("render_tune", GameInstaller.gameDir(this).getAbsolutePath(), name, settings)
-                        .toJava(byte[].class);
+                byte[] pcm;
+                if (asRecording) {
+                    pcm = gained(java.nio.file.Files.readAllBytes(new java.io.File(RecordingDecoder.decodedPath(recPath)).toPath()),
+                            recGain);
+                } else {
+                    pcm = app.callAttr("render_tune", GameInstaller.gameDir(this).getAbsolutePath(), name, settings)
+                            .toJava(byte[].class);
+                }
                 runOnUiThread(() -> {
                     rendering = false;
                     if (renderAgain) {
@@ -314,7 +474,7 @@ public class SoundActivity extends Activity {
                     renderAgain = false;
                     if (token == renderToken && !isDestroyed()) {
                         wantPlaying = false;
-                        playButton.setText("Play");
+                        showButtons();
                         tuneStatus.setText("Could not make that tune: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
                     }
                 });
@@ -340,13 +500,13 @@ public class SoundActivity extends Activity {
             t.setLoopPoints(0, pcm.length / 2, -1);
             t.play();
             track = t;
-            tuneStatus.setText("Playing. Move the sliders to change it.");
+            tuneStatus.setText(recMode ? "Playing the recording." : "Playing. Move the sliders to change it.");
         } catch (RuntimeException e) {
             if (t != null) {
                 t.release();
             }
             wantPlaying = false;
-            playButton.setText("Play");
+            showButtons();
             tuneStatus.setText("Could not play it: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
         }
     }
@@ -363,13 +523,195 @@ public class SoundActivity extends Activity {
         }
     }
 
+    /** The two Play buttons say Stop for the one that is playing. */
+    private void showButtons() {
+        playButton.setText(wantPlaying && !recMode ? "Stop" : "Play");
+        recPlayButton.setText(wantPlaying && recMode ? "Stop the recording" : "Play the recording");
+    }
+
+    /** Samples (16-bit little-endian) at another volume, clipped rather than wrapped. */
+    private static byte[] gained(byte[] pcm, float gain) {
+        if (Math.abs(gain - 1f) < 1e-6f) {
+            return pcm;
+        }
+        byte[] out = new byte[pcm.length];
+        for (int i = 0; i + 1 < pcm.length; i += 2) {
+            int s = (short) ((pcm[i] & 0xFF) | (pcm[i + 1] << 8));
+            int v = Math.max(-32768, Math.min(32767, Math.round(s * gain)));
+            out[i] = (byte) v;
+            out[i + 1] = (byte) (v >> 8);
+        }
+        return out;
+    }
+
+    private String currentTune() {
+        return SoundSettings.TUNES[Math.max(0, tune.getSelectedItemPosition())][0];
+    }
+
+    /** Shows the chosen tune's recording: its name, volume and whether the game uses it. */
+    private void refreshRecordingUi() {
+        String name = currentTune();
+        String file = Settings.recFile(this, name);
+        recLoading = true;
+        boolean has = !file.isEmpty();
+        recStatus.setText(has ? "Recording: " + new java.io.File(file).getName() : "No recording chosen for this tune.");
+        recChoose.setEnabled(true);
+        recRemove.setEnabled(has);
+        recPlayButton.setEnabled(has);
+        recMatch.setEnabled(has);
+        recGainBar.setEnabled(has);
+        recInGame.setEnabled(has);
+        recGainBar.setProgress(Math.round(Settings.recGain(this, name) * 100f));
+        recGainText.setText(recGainBar.getProgress() + "%");
+        recInGame.setChecked(has && Settings.recInGame(this, name));
+        recLoading = false;
+    }
+
+    private void removeRecording() {
+        String name = currentTune();
+        String file = Settings.recFile(this, name);
+        if (wantPlaying && recMode) {
+            stopTune();
+        }
+        if (!file.isEmpty()) {
+            new java.io.File(file).delete();
+            new java.io.File(file + ".22050.pcm").delete();
+        }
+        Settings.setRecFile(this, name, "");
+        Settings.setRecInGame(this, name, false);
+        Settings.setRecGain(this, name, 1f);
+        refreshRecordingUi();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_RECORDING && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            copyRecording(data.getData(), currentTune());
+        }
+    }
+
+    /** Keeps a copy of the chosen file in the app's own folder (the picker gives access to it only now), then matches its level. */
+    private void copyRecording(Uri uri, String tuneFile) {
+        recStatus.setText("Copying the recording...");
+        recChoose.setEnabled(false);                                  // one copy at a time
+        new Thread(() -> {
+            try {
+                String display = "recording";
+                try (android.database.Cursor c = getContentResolver().query(uri, null, null, null, null)) {
+                    if (c != null && c.moveToFirst()) {
+                        int i = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                        if (i >= 0 && c.getString(i) != null) {
+                            display = c.getString(i);
+                        }
+                    }
+                }
+                String ext = display.contains(".") ? display.substring(display.lastIndexOf('.')).replaceAll("[^A-Za-z0-9.]", "") : "";
+                java.io.File dir = new java.io.File(getFilesDir(), "recordings");
+                dir.mkdirs();
+                if (ext.length() > 8) {
+                    ext = ext.substring(ext.length() - 8);
+                }
+                java.io.File dest = new java.io.File(dir, tuneFile.replace(".mid", "") + ext);
+                java.io.File fresh = new java.io.File(dir, tuneFile.replace(".mid", "") + ".new" + ext);   // the old copy stays until this one works
+                java.io.File freshPcm = new java.io.File(fresh.getAbsolutePath() + ".22050.pcm");
+                try {
+                    try (java.io.InputStream in = getContentResolver().openInputStream(uri);
+                         java.io.OutputStream out = new java.io.FileOutputStream(fresh)) {
+                        byte[] buf = new byte[1 << 16];
+                        int n;
+                        while (in != null && (n = in.read(buf)) > 0) {
+                            out.write(buf, 0, n);
+                        }
+                    }
+                    freshPcm.delete();
+                    RecordingDecoder.decodedPath(fresh.getAbsolutePath());               // fail now, with a message, if it cannot be read
+                } catch (Throwable failed) {
+                    fresh.delete();
+                    freshPcm.delete();
+                    throw failed;
+                }
+                String old = Settings.recFile(this, tuneFile);                           // it works: the new copy takes the old one's place
+                if (!old.isEmpty()) {
+                    new java.io.File(old).delete();
+                    new java.io.File(old + ".22050.pcm").delete();
+                }
+                new java.io.File(dest.getAbsolutePath() + ".22050.pcm").delete();
+                dest.delete();
+                if (!fresh.renameTo(dest) || !freshPcm.renameTo(new java.io.File(dest.getAbsolutePath() + ".22050.pcm"))) {
+                    throw new java.io.IOException("could not keep the recording");
+                }
+                Settings.setRecFile(this, tuneFile, dest.getAbsolutePath());          // now, so a closed screen cannot lose the choice
+                Settings.setRecInGame(this, tuneFile, false);
+                Settings.setRecGain(this, tuneFile, 1f);
+                runOnUiThread(() -> {
+                    if (isDestroyed()) {
+                        return;
+                    }
+                    refreshRecordingUi();
+                    if (tuneFile.equals(currentTune())) {
+                        matchLevel();
+                    }
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    if (isDestroyed()) {
+                        return;
+                    }
+                    refreshRecordingUi();
+                    android.widget.Toast.makeText(this, "Could not use that file: "
+                            + (e.getMessage() == null ? e.toString() : e.getMessage()), android.widget.Toast.LENGTH_LONG).show();
+                });
+            }
+        }, "recording-copy").start();
+    }
+
+    /** Sets the recording's volume so it is as loud as the built-in version (the launcher's Match level). */
+    private void matchLevel() {
+        final String name = currentTune();
+        final String file = Settings.recFile(this, name);
+        if (file.isEmpty()) {
+            return;
+        }
+        recMatch.setEnabled(false);
+        recStatus.setText("Matching the loudness...");
+        final String settings = Settings.music(this);
+        new Thread(() -> {
+            try {
+                synchronized (PYTHON_START) {
+                    if (!Python.isStarted()) {
+                        Python.start(new AndroidPlatform(getApplicationContext()));
+                    }
+                }
+                String pcm = RecordingDecoder.decodedPath(file);
+                float gain = Python.getInstance().getModule("recast_app").callAttr("match_gain",
+                        GameInstaller.gameDir(this).getAbsolutePath(), name, settings, pcm).toFloat();
+                runOnUiThread(() -> {
+                    if (isDestroyed()) {
+                        return;
+                    }
+                    Settings.setRecGain(this, name, gain);
+                    if (name.equals(currentTune())) {
+                        refreshRecordingUi();
+                    }
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    refreshRecordingUi();
+                    android.widget.Toast.makeText(this, "Could not match the loudness: "
+                            + (e.getMessage() == null ? e.toString() : e.getMessage()), android.widget.Toast.LENGTH_LONG).show();
+                });
+            }
+        }, "recording-match").start();
+    }
+
     private void stopTune() {
         wantPlaying = false;
         renderAgain = false;
         renderToken++;
         ui.removeCallbacks(restart);
         silence();
-        playButton.setText("Play");
+        showButtons();
         tuneStatus.setText("Stopped.");
     }
 
@@ -418,7 +760,12 @@ public class SoundActivity extends Activity {
         }
         mixNames.add("Custom");
         // (the picker reports its starting choice after the next layout; the callback ignores a mix that is already in force)
-        mix.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, mixNames));
+        java.util.Set<String> stars = Settings.mixFavorites(this);
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        for (String n : mixNames) {
+            labels.add(stars.contains(n) ? "\u2605 " + n : n);               // a star marks a favorite
+        }
+        mix.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, labels));
     }
 
     /** Which entry of the Mix list the current sliders are: a ready-made mix, a saved one, or "Custom". */
@@ -445,7 +792,11 @@ public class SoundActivity extends Activity {
     /** "Delete this mix" is for the player's own saved mixes only. */
     private void updateDeleteButton(int position) {
         boolean own = position >= SoundSettings.PRESETS.length && position < mixNames.size() - 1;
+        boolean real = position >= 0 && position < mixNames.size() - 1;
         deleteMix.setEnabled(own);
+        renameMix.setEnabled(own);
+        favoriteMix.setEnabled(real);
+        favoriteMix.setText(real && Settings.mixFavorites(this).contains(mixNames.get(position)) ? "Unstar this mix" : "Star this mix");
     }
 
     private void askMixName() {
@@ -508,6 +859,96 @@ public class SoundActivity extends Activity {
         rebuildMixList();
         showMixName();
         android.widget.Toast.makeText(this, "Saved as " + name, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private java.io.File cacheDir() {
+        return new java.io.File(new java.io.File(getFilesDir(), "data"), "audio_cache");
+    }
+
+    private static long sizeOf(java.io.File f) {
+        long n = 0;
+        java.io.File[] kids = f.listFiles();
+        if (kids == null) {
+            return f.isFile() ? f.length() : 0;
+        }
+        for (java.io.File k : kids) {
+            n += sizeOf(k);
+        }
+        return n;
+    }
+
+    private static void deleteTree(java.io.File f, boolean self) {
+        java.io.File[] kids = f.listFiles();
+        for (java.io.File k : kids == null ? new java.io.File[0] : kids) {
+            deleteTree(k, true);
+        }
+        if (self) {
+            f.delete();
+        }
+    }
+
+    private void showCacheSize() {
+        long bytes = sizeOf(cacheDir());
+        clearCache.setText(bytes == 0 ? "No made music is kept" : String.format(Locale.US,
+                "Clear the made music (%.1f MB)", bytes / 1048576.0));
+        clearCache.setEnabled(bytes > 0);
+    }
+
+    private void confirmClearCache() {
+        new android.app.AlertDialog.Builder(this).setTitle("Clear the made music?")
+                .setMessage("Your mixes and recordings stay. The next time the game starts it makes the music again, which takes a "
+                        + "few seconds longer.")
+                .setPositiveButton("Clear", (d, w) -> {
+                    deleteTree(cacheDir(), false);
+                    showCacheSize();
+                })
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void toggleFavorite() {
+        int position = mix.getSelectedItemPosition();
+        if (position < 0 || position >= mixNames.size() - 1) {
+            return;
+        }
+        Settings.toggleMixFavorite(this, mixNames.get(position));
+        rebuildMixList();
+        showMixName();
+    }
+
+    private void askRename() {
+        int position = mix.getSelectedItemPosition();
+        if (position < SoundSettings.PRESETS.length || position >= mixNames.size() - 1) {
+            return;
+        }
+        String old = mixNames.get(position);
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(old);
+        input.setSelectAllOnFocus(true);
+        input.setSingleLine(true);
+        input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(40)});
+        new android.app.AlertDialog.Builder(this).setTitle("Rename " + old).setView(input)
+                .setPositiveButton("Rename", (d, w) -> renameTo(old, Settings.cleanMixName(input.getText().toString())))
+                .setNegativeButton("Cancel", null).show();
+    }
+
+    private void renameTo(String old, String name) {
+        if (name.isEmpty() || name.equals(old)) {
+            return;
+        }
+        boolean taken = name.equalsIgnoreCase("Custom");
+        for (String[] p : SoundSettings.PRESETS) {
+            taken |= p[0].equalsIgnoreCase(name);
+        }
+        for (String saved : Settings.mixes(this).keySet()) {
+            taken |= saved.equalsIgnoreCase(name) && !saved.equals(old);
+        }
+        if (taken) {
+            android.widget.Toast.makeText(this, "That name is already used: pick another", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        Settings.renameMix(this, old, name);
+        rebuildMixList();
+        showMixName();
     }
 
     private void confirmDeleteMix() {

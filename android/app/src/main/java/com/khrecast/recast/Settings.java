@@ -237,10 +237,52 @@ final class Settings {
         writeMixes(c, all);
     }
 
+    /** Mixes (ready-made or the player's own) marked with a star on the Sound screen. */
+    static java.util.Set<String> mixFavorites(Context c) {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (String line : prefs(c).getString("music_favorites", "").split("\n")) {
+            if (!line.trim().isEmpty()) {
+                out.add(line.trim());
+            }
+        }
+        return out;
+    }
+
+    static void toggleMixFavorite(Context c, String name) {
+        java.util.Set<String> all = mixFavorites(c);
+        if (!all.remove(name)) {
+            all.add(name);
+        }
+        writeFavorites(c, all);
+    }
+
+    private static void writeFavorites(Context c, java.util.Set<String> all) {
+        prefs(c).edit().putString("music_favorites", android.text.TextUtils.join("\n", all)).apply();
+    }
+
+    /** Gives one of the player's mixes another name (same place in the list, same star). */
+    static void renameMix(Context c, String oldName, String newName) {
+        java.util.LinkedHashMap<String, String> all = mixes(c);
+        java.util.LinkedHashMap<String, String> renamed = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<String, String> e : all.entrySet()) {
+            renamed.put(e.getKey().equals(oldName) ? newName : e.getKey(), e.getValue());
+        }
+        writeMixes(c, renamed);
+        java.util.Set<String> stars = mixFavorites(c);
+        if (stars.remove(oldName)) {
+            stars.add(newName);
+            writeFavorites(c, stars);
+        }
+    }
+
     static void deleteMix(Context c, String name) {
         java.util.LinkedHashMap<String, String> all = mixes(c);
         all.remove(name);
         writeMixes(c, all);
+        java.util.Set<String> stars = mixFavorites(c);
+        if (stars.remove(name)) {
+            writeFavorites(c, stars);
+        }
     }
 
     private static void writeMixes(Context c, java.util.Map<String, String> all) {
@@ -287,9 +329,73 @@ final class Settings {
         prefs(c).edit().putBoolean("style_chosen", v).apply();
     }
 
+    /** The recording chosen for a tune on the Sound screen: the copy's path, or "" for none. */
+    static String recFile(Context c, String tune) {
+        String path = prefs(c).getString("rec_file_" + tune, "");
+        return path.isEmpty() || new java.io.File(path).isFile() ? path : "";
+    }
+
+    /** A recording's own volume (1 = as it is); the Sound screen's slider, 0 to 4. */
+    static float recGain(Context c, String tune) {
+        return Math.max(0f, Math.min(4f, prefs(c).getFloat("rec_gain_" + tune, 1f)));
+    }
+
+    /** True when the game plays the recording in place of the tune. */
+    static boolean recInGame(Context c, String tune) {
+        return prefs(c).getBoolean("rec_ingame_" + tune, false);
+    }
+
+    static void setRecFile(Context c, String tune, String path) {
+        prefs(c).edit().putString("rec_file_" + tune, path).apply();
+    }
+
+    static void setRecGain(Context c, String tune, float gain) {
+        prefs(c).edit().putFloat("rec_gain_" + tune, gain).apply();
+    }
+
+    static void setRecInGame(Context c, String tune, boolean on) {
+        prefs(c).edit().putBoolean("rec_ingame_" + tune, on).apply();
+    }
+
+    /** The recordings the game should play instead of tunes, as JSON for recast_app.start_game ("" when there are none). */
+    static String musicFilesJson(Context c) {
+        org.json.JSONObject all = new org.json.JSONObject();
+        try {
+            for (String[] tune : SoundSettings.TUNES) {
+                String file = recFile(c, tune[0]);
+                if (!file.isEmpty() && recInGame(c, tune[0])) {
+                    all.put(tune[0], new org.json.JSONObject().put("path", file).put("gain", recGain(c, tune[0])));
+                }
+            }
+        } catch (org.json.JSONException e) {
+            return "";
+        }
+        return all.length() == 0 ? "" : all.toString();
+    }
+
     static void restoreDefaults(Context c) {
         String mixes = prefs(c).getString("music_mixes", "");           // the player's own saved mixes are not a setting
+        String stars = prefs(c).getString("music_favorites", "");       // nor are the stars on them
         boolean asked = styleChosen(c);                                 // and the first-run question is not asked again
-        prefs(c).edit().clear().putString("music_mixes", mixes).putBoolean("style_chosen", asked).apply();
+        android.content.SharedPreferences.Editor keep = prefs(c).edit();
+        java.util.Map<String, ?> before = prefs(c).getAll();
+        java.util.Map<String, Object> recordings = new java.util.HashMap<>();   // the chosen recordings are the player's own files
+        for (java.util.Map.Entry<String, ?> e : before.entrySet()) {
+            if (e.getKey().startsWith("rec_")) {
+                recordings.put(e.getKey(), e.getValue());
+            }
+        }
+        keep.clear().putString("music_mixes", mixes).putString("music_favorites", stars).putBoolean("style_chosen", asked);
+        for (java.util.Map.Entry<String, Object> e : recordings.entrySet()) {
+            Object v = e.getValue();
+            if (v instanceof String) {
+                keep.putString(e.getKey(), (String) v);
+            } else if (v instanceof Boolean) {
+                keep.putBoolean(e.getKey(), (Boolean) v);
+            } else if (v instanceof Float) {
+                keep.putFloat(e.getKey(), (Float) v);
+            }
+        }
+        keep.apply();
     }
 }
