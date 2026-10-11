@@ -190,8 +190,8 @@ final class ControlSkin {
             }
         } else if (label.equals("Action") && names.get("Jump") != null) {
             // nothing to act on: the key still jumps, so it says both, Action above and to the left, Jump below and to the right
-            name(c, names.containsKey("Action/") ? "Action/" : label, cx - rad * 0.14f, cy - rad * 0.22f, rad * 1.3f, rad * 0.5f);
-            name(c, names.get("Jump"), cx + rad * 0.18f, cy + rad * 0.24f, rad * 1.3f, rad * 0.5f);
+            name(c, names.containsKey("Action/") ? "Action/" : label, cx - rad * 0.16f, cy - rad * 0.12f, rad * 1.5f, rad * 0.6f);
+            name(c, names.get("Jump"), cx + rad * 0.2f, cy + rad * 0.28f, rad * 1.3f, rad * 0.5f);
         } else {
             name(c, label, cx, cy, rad * 1.6f, rad * 0.8f);
         }
