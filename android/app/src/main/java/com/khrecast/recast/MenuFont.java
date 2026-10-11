@@ -53,7 +53,6 @@ final class MenuFont {
     /** The width of the text at scale 1, or 0 when it has nothing this font can draw. */
     private float width(String text) {
         float total = 0;
-        boolean any = true;
         for (int i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
             if (ch == ' ') {
@@ -66,7 +65,7 @@ final class MenuFont {
                 total += cell[1];
             }
         }
-        return any && total > 0 ? total : 0f;
+        return total;
     }
 
     /** Draws the text centered on cx, cy as large as fits maxW x maxH. False when the font cannot draw it (nothing is drawn). */
