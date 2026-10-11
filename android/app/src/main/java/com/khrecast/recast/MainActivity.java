@@ -479,6 +479,7 @@ public class MainActivity extends Activity {
             view.setPictureScale(scale);
             view.setFilter(Settings.pictureFilter(MainActivity.this));
             view.setFlipGraphite(Settings.flipGraphite(MainActivity.this));
+            view.setFlipSmallBezel(Settings.flipSmallBezel(MainActivity.this));
             view.setFlipMode(Settings.flipPhone(MainActivity.this));
             view.reloadControlOffsets();                       // the controls may have been reset in Options
         });      // (this may run on the thread that starts the game)

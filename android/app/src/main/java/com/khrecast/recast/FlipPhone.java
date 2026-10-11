@@ -38,6 +38,7 @@ final class FlipPhone {
     }
 
     private boolean graphite;                    // the dark gray body instead of silver
+    private boolean smallBezel;                  // a thin frame round the screen: a bigger picture
     private int outline() { return graphite ? 0xFF1F2226 : 0xFF6B7078; }
     private int edgeLight() { return graphite ? 0xFF7C828C : 0xFFF7F8FA; }
     private int ink() { return graphite ? 0xFFEEF0F3 : 0xFF2A2E34; }
@@ -57,6 +58,11 @@ final class FlipPhone {
             out[i] = tone(colors[i]);
         }
         return out;
+    }
+
+    /** A thin frame and less shell round the screen; the caller lays the phone out again. */
+    void setSmallBezel(boolean on) {
+        smallBezel = on;
     }
 
     /** Silver or graphite; takes effect at once. */
@@ -114,18 +120,21 @@ final class FlipPhone {
     /** Lays the phone out inside the free area (pixels) and sets `screen` to where the game's picture goes. */
     void layout(float left, float top, float right, float bottom, RectF picture) {
         float width = right - left, free = bottom - top;
-        float shellL = left + width * 0.03f, shellR = right - width * 0.03f, shellW = shellR - shellL;
-        float sh = free * 0.36f, sw = sh * GameView.W / GameView.H;
-        if (sw > shellW * 0.72f) {
-            sw = shellW * 0.72f;
+        float side = smallBezel ? 0.02f : 0.03f;
+        float shellL = left + width * side, shellR = right - width * side, shellW = shellR - shellL;
+        float sh = free * (smallBezel ? 0.44f : 0.36f), sw = sh * GameView.W / GameView.H;
+        float widest = smallBezel ? 0.90f : 0.72f;
+        if (sw > shellW * widest) {
+            sw = shellW * widest;
             sh = sw * GameView.H / GameView.W;
         }
         float cx = (left + right) / 2f;
         upper.set(shellL, top + free * 0.005f + dp(14), shellR, 0);          // room above for the antenna stub
-        picture.set(cx - sw / 2f, upper.top + dp(28), cx + sw / 2f, upper.top + dp(28) + sh);
+        float above = smallBezel ? dp(24) : dp(28), edge = smallBezel ? dp(3) : dp(8);
+        picture.set(cx - sw / 2f, upper.top + above, cx + sw / 2f, upper.top + above + sh);
         screen.set(picture);
-        upper.bottom = picture.bottom + dp(34);                              // the strip under the screen holds the name
-        bezel.set(picture.left - dp(8), picture.top - dp(8), picture.right + dp(8), picture.bottom + dp(8));
+        upper.bottom = picture.bottom + (smallBezel ? dp(30) : dp(34));                              // the strip under the screen holds the name
+        bezel.set(picture.left - edge, picture.top - edge, picture.right + edge, picture.bottom + edge);
         slot.set(cx - dp(32), upper.top + dp(10), cx + dp(32), upper.top + dp(17));
         antenna.set(shellR - dp(74), upper.top - dp(15), shellR - dp(62), upper.top + dp(12));
         hinge.set(shellL + shellW * 0.04f, upper.bottom + dp(2), shellR - shellW * 0.04f, upper.bottom + dp(10));

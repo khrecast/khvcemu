@@ -269,8 +269,27 @@ final class Settings {
         prefs(c).edit().putBoolean("flip_phone", v).apply();
     }
 
+    /** The flip phone with a thin frame round the screen, so the picture is bigger. */
+    static boolean flipSmallBezel(Context c) {
+        return prefs(c).getBoolean("flip_small_bezel", false);
+    }
+
+    static void setFlipSmallBezel(Context c, boolean v) {
+        prefs(c).edit().putBoolean("flip_small_bezel", v).apply();
+    }
+
+    /** True once the player has answered the first-run question (smartphone style or flip phone style). */
+    static boolean styleChosen(Context c) {
+        return prefs(c).getBoolean("style_chosen", false);
+    }
+
+    static void setStyleChosen(Context c, boolean v) {
+        prefs(c).edit().putBoolean("style_chosen", v).apply();
+    }
+
     static void restoreDefaults(Context c) {
         String mixes = prefs(c).getString("music_mixes", "");           // the player's own saved mixes are not a setting
-        prefs(c).edit().clear().putString("music_mixes", mixes).apply();
+        boolean asked = styleChosen(c);                                 // and the first-run question is not asked again
+        prefs(c).edit().clear().putString("music_mixes", mixes).putBoolean("style_chosen", asked).apply();
     }
 }

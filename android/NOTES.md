@@ -706,6 +706,21 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   (softkeys, Call, End, * and 0), multi-finger presses, other screen sizes. The picture is smaller than in the usual layout (it is about
   a third of the phone's height, since the keypad needs the rest).
 
+## First-run style question and the small bezel (2026-10-10, built; NOT seen on a screen, the phone was disconnected)
+
+- **The question:** the first time the app is opened, "I understand" on the opening notice leads to `StyleActivity` instead of the
+  home screen: "How do you want to play?" with **Smartphone style** (touch controls round the picture) or **Flip phone style** ("the
+  most authentic 2005 V CAST experience") with two tick boxes above its button, "Graphite instead of silver" and "Small bezel (a
+  bigger picture)". The answer is stored (`style_chosen`, plus `flip_phone`, `flip_graphite`, `flip_small_bezel`) and the question is
+  not asked again; "Restore the default settings" keeps `style_chosen` (a player who already answered is not asked again). Everything
+  can be changed later in Options. Players who had the app before this build are asked once. Starting `HomeActivity` straight from adb skips the question and
+  leaves the defaults (smartphone style); `StyleActivity` can be started the same way for testing.
+- **Small bezel:** `FlipPhone.setSmallBezel`: the picture may use 44 percent of the free height and 90 percent of the shell's width
+  (36 and 72 percent otherwise; about a fifth larger by the numbers), the frame round it is 3 dp instead of 8, the shell's side margin
+  2 percent instead of 3, and the keypad is correspondingly shorter. Options has the switch too ("needs the flip phone look").
+- **Not done or not seen:** how the question screen looks (its buttons are plain themed text, not the menu-font pictures); how the
+  bigger picture and the shorter keypad look and whether the keys are still comfortable; landscape with the new settings.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

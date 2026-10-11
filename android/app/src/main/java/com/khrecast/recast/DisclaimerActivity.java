@@ -50,7 +50,7 @@ public class DisclaimerActivity extends Activity {
 
         android.widget.FrameLayout ok = Labels.pictureButton(this, R.drawable.menu_understand, 30, wide ? 56 : 72, true,
                 "I understand", v -> {
-                    startActivity(new Intent(this, HomeActivity.class));
+                    startActivity(new Intent(this, Settings.styleChosen(this) ? HomeActivity.class : StyleActivity.class));
                     finish();
                 });
         col.addView(ok);
