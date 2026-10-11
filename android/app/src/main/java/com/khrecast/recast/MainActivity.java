@@ -240,28 +240,18 @@ public class MainActivity extends Activity {
             return;
         }
         final boolean flipOn = Settings.flipPhone(this);
-        final String[] rest = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
-                "Load a saved game...", "Take a screenshot", "Move the controls", "Options...",
+        // always the same ten items in the same places; the second one belongs to the mode: the controls can only be moved on the
+        // smartphone look (the flip phone has fixed keys), and the flip phone has its color and bezel
+        final String[] items = {flipOn ? "Switch to smartphone mode" : "Switch to flip phone mode",
+                flipOn ? "Flip phone color and bezel..." : "Move the controls", "Resume", "Quick save (slot 1)",
+                "Quick load (slot 1)", "Save to a slot...", "Load a saved game...", "Take a screenshot", "Options...",
                 "Quit and go to the Re:Cast menu"};
-        // the first item switches the mode; in flip phone mode a second one opens the color and bezel choices without leaving it
-        final int extra = flipOn ? 1 : 0;
-        final String[] items = new String[rest.length + 1 + extra];
-        items[0] = flipOn ? "Switch to smartphone mode" : "Switch to flip phone mode";
-        if (flipOn) {
-            items[1] = "Flip phone color and bezel...";
-        }
-        System.arraycopy(rest, 0, items, 1 + extra, rest.length);
         menuOpen = true;
         releaseController();
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
                 .setTitle("Re:Cast")
-                .setItems(items, (d, picked) -> {
-                    if (flipOn && picked == 1) {
-                        flipDialogPending = true;                  // opens when this menu has closed (the game stays held)
-                        return;
-                    }
-                    final int which = picked == 0 ? 0 : picked - extra;   // the number the cases below use: 0 is the mode switch, 1 is Resume
+                .setItems(items, (d, which) -> {
                     switch (which) {
                         case 0:
                             Settings.setFlipPhone(this, !flipOn);
@@ -270,29 +260,28 @@ public class MainActivity extends Activity {
                                 flipDialogPending = true;          // the color and bezel choices open when this menu has closed
                             }
                             break;
-                        case 2:
-                            requestState("save", "1");
+                        case 1:
+                            if (flipOn) {
+                                flipDialogPending = true;          // (the game stays held: that dialog opens before it resumes)
+                            } else {
+                                view.setEditing(true);
+                                applyLifecycle();                  // hold the game while the controls are arranged
+                            }
                             break;
                         case 3:
-                            requestState("load", "1");
+                            requestState("save", "1");
                             break;
                         case 4:
+                            requestState("load", "1");
+                            break;
                         case 5:
+                        case 6:
                             inner = true;
                             startActivityForResult(new Intent(this, SavesActivity.class)
-                                    .putExtra(SavesActivity.EXTRA_MODE, which == 4 ? "save" : "load"), REQ_SAVES);
-                            break;
-                        case 6:
-                            takeScreenshot();
+                                    .putExtra(SavesActivity.EXTRA_MODE, which == 5 ? "save" : "load"), REQ_SAVES);
                             break;
                         case 7:
-                            if (view.isFlipActive()) {
-                                Toast.makeText(this, "The flip phone has fixed keys: turn it off in Options to move the controls",
-                                        Toast.LENGTH_LONG).show();
-                                break;
-                            }
-                            view.setEditing(true);
-                            applyLifecycle();                  // hold the game while the controls are arranged
+                            takeScreenshot();
                             break;
                         case 8:
                             inner = true;
@@ -303,7 +292,7 @@ public class MainActivity extends Activity {
                             finish();                  // the core autosaves on the way out (if anything was played)
                             break;
                         default:
-                            break;
+                            break;                     // 2: Resume
                     }
                 })
                 .setOnDismissListener(d -> {
