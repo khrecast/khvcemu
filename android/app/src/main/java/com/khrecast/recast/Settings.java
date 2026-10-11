@@ -299,7 +299,7 @@ final class Settings {
     }
 
     /** The flip phone's body colors, by number (what FlipPhone.setColor takes). All are the plastics and metallics of 2005 handsets. */
-    static final String[] FLIP_COLORS = {"Silver", "Graphite", "Sky blue", "Rose pink", "Champagne gold"};
+    static final String[] FLIP_COLORS = {"Silver", "Graphite", "Sky blue", "Rose pink", "Champagne gold", "Red", "Re:Cast blue"};
 
     /** Which of FLIP_COLORS the flip phone wears (an earlier build kept only "graphite or not"). */
     static int flipColor(Context c) {

@@ -37,20 +37,30 @@ final class FlipPhone {
         }
     }
 
-    private int scheme;                          // 0 silver, 1 graphite, 2 sky blue, 3 rose pink, 4 champagne gold (Settings.FLIP_COLORS)
+    private int scheme;                          // 0 silver, 1 graphite, 2 sky blue, 3 rose pink, 4 champagne gold, 5 red, 6 Re:Cast blue (Settings.FLIP_COLORS)
     private boolean smallBezel;                  // a thin frame round the screen: a bigger picture
     private boolean graphite() {
         return scheme == 1;
     }
 
     // the two ends of each tinted body: the shade of a silver of brightness 0.15 and of 1.0 (index = scheme - 2)
-    private static final int[][] TINT_DARK = {{0x0E, 0x22, 0x5E}, {0x86, 0x1B, 0x55}, {0x6E, 0x50, 0x14}};
-    private static final int[][] TINT_LIGHT = {{0xC9, 0xDC, 0xFF}, {0xFF, 0xD2, 0xE5}, {0xFF, 0xF0, 0xC4}};
+    private static final int[][] TINT_DARK = {{0x0E, 0x22, 0x5E}, {0x86, 0x1B, 0x55}, {0x6E, 0x50, 0x14}, {0x24, 0x02, 0x08}, {0x02, 0x08, 0x26}};
+    private static final int[][] TINT_LIGHT = {{0xC9, 0xDC, 0xFF}, {0xFF, 0xD2, 0xE5}, {0xFF, 0xF0, 0xC4}, {0xB8, 0x1C, 0x30}, {0x25, 0x5A, 0xC0}};
 
-    private int outline() { return graphite() ? 0xFF1F2226 : tone(0xFF6B7078); }
-    private int edgeLight() { return graphite() ? 0xFF7C828C : tone(0xFFF7F8FA); }
-    private int ink() { return graphite() ? 0xFFEEF0F3 : tone(0xFF2A2E34); }
-    private int inkSub() { return graphite() ? 0xFFB4BAC3 : tone(0xFF5B616A); }
+    /** A dark body (graphite, cherry red, the Re:Cast blue): the key print and the arrows are light on it. */
+    private boolean dark() {
+        return scheme == 1 || scheme == 5 || scheme == 6;
+    }
+
+    /** The light print of a tinted dark body (like the red LG phone's glowing keys). Graphite has its own grays. */
+    private int pale(boolean sub) {                                  // (scheme 5 pink-white print, scheme 6 blue-white)
+        return scheme == 5 ? (sub ? 0xFFFFC0C8 : 0xFFFFE9EC) : (sub ? 0xFFC4D8FA : 0xFFEAF2FF);
+    }
+
+    private int outline() { return graphite() ? 0xFF1F2226 : dark() ? tone(0xFF1F2226) : tone(0xFF6B7078); }
+    private int edgeLight() { return graphite() ? 0xFF7C828C : dark() ? tone(0xFF7C828C) : tone(0xFFF7F8FA); }
+    private int ink() { return graphite() ? 0xFFEEF0F3 : dark() ? pale(false) : tone(0xFF2A2E34); }
+    private int inkSub() { return graphite() ? 0xFFB4BAC3 : dark() ? pale(true) : tone(0xFF5B616A); }
 
     /** A silver as the chosen body shows it: the same light and shade (graphite: much darker; the others: tinted). */
     private int tone(int c) {
@@ -203,8 +213,13 @@ final class FlipPhone {
                     k.down = vertical(k.r, 0xFF4FB86F, 0xFF1F8140, 0xFF176A33);
                     break;
                 case 3:
-                    k.up = vertical(k.r, 0xFFFF8E80, 0xFFD2402F, 0xFF9C2A1E);
-                    k.down = vertical(k.r, 0xFFD2685B, 0xFF9C2A1E, 0xFF7E2017);
+                    if (scheme == 5) {                                          // a brighter, more orange End key stands out on a red body
+                        k.up = vertical(k.r, 0xFFFFB08A, 0xFFFF6A3C, 0xFFC4300F);
+                        k.down = vertical(k.r, 0xFFE8825A, 0xFFC4300F, 0xFF9A230A);
+                    } else {
+                        k.up = vertical(k.r, 0xFFFF8E80, 0xFFD2402F, 0xFF9C2A1E);
+                        k.down = vertical(k.r, 0xFFD2685B, 0xFF9C2A1E, 0xFF7E2017);
+                    }
                     break;
                 case 1:
                     k.up = vertical(k.r, tones(0xFFDDE0E4, 0xFFAEB3BA, 0xFF8D929A));
@@ -270,7 +285,7 @@ final class FlipPhone {
         c.drawCircle(slot.right + dp(13.2f), slot.centerY() - dp(0.8f), dp(0.9f), fill);
         text.setTextSize(dp(12));
         text.setLetterSpacing(0.25f);
-        text.setColor(graphite() ? 0xFF14161A : tone(0xFFF4F5F7));                // a lit edge under the print: a pressed-in logo
+        text.setColor(dark() ? 0xFF05080F : tone(0xFFF4F5F7));                // a lit edge under the print: a pressed-in logo
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10) + dp(0.8f), text);
         text.setColor(inkSub());
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
@@ -360,7 +375,7 @@ final class FlipPhone {
 
     private void arrow(Canvas c, String key, Set<String> down, float x, float y, float deg) {
         float s = navR * 0.17f;
-        fill.setColor(down.contains(key) ? (graphite() ? 0xFF8DB8F5 : 0xFF2F66C4) : (graphite() ? 0xFFD5D9DF : tone(0xFF3A3F47)));
+        fill.setColor(down.contains(key) ? (dark() ? (scheme == 6 ? 0xFFD5E6FF : 0xFF8DB8F5) : 0xFF2F66C4) : (graphite() ? 0xFFD5D9DF : dark() ? pale(false) : tone(0xFF3A3F47)));
         c.save();
         c.rotate(deg, x, y);
         arrowPath.rewind();

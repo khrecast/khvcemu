@@ -670,7 +670,11 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   and End stay green and red, and the screen's frame stays dark. A throwaway Python mock-up of the five bodies (not kept) looked right; the app was only built.
   The color is stored as `flip_color` (an older build's `flip_graphite` is read as Graphite until a color is chosen). The same list is in Options
   ("Flip phone color", replacing the Graphite switch) and in the first-run question.
-- **Not tried on the phone:** any of it: the menu item, the pop-up's look and its live changes, the three new colors on the real shape, the held state of
+- **Two more colors (same day):** **Red**, a deep cherry red like the glossy red LG Chocolate, a Verizon V CAST phone (the owner's reference picture; the
+  keys are red too, with pale pink print), and **Re:Cast blue**, a deep blue close to the logo's. Both are dark bodies like Graphite (`dark()`: pale key print
+  and arrows, `FlipPhone.dark()` and `pale()`). The list is now Silver, Graphite, Sky blue, Rose pink, Champagne gold, Red, Re:Cast blue; judged only
+  from a Python mock-up, not on the phone.
+- **Not tried on the phone:** any of it: the menu item, the pop-up's look and its live changes, the new colors on the real shape (End is a brighter orange-red on the Red body so it stands out), the held state of
   the game behind the pop-up, and the migration of an old setting.
 
 ## Sharing high scores (2026-10-10, done; no score was posted)
