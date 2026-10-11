@@ -240,15 +240,28 @@ public class MainActivity extends Activity {
             return;
         }
         final boolean flipOn = Settings.flipPhone(this);
-        final String[] items = {flipOn ? "Switch to smartphone mode" : "Switch to flip phone mode", "Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
+        final String[] rest = {"Resume", "Quick save (slot 1)", "Quick load (slot 1)", "Save to a slot...",
                 "Load a saved game...", "Take a screenshot", "Move the controls", "Options...",
                 "Quit and go to the Re:Cast menu"};
+        // the first item switches the mode; in flip phone mode a second one opens the color and bezel choices without leaving it
+        final int extra = flipOn ? 1 : 0;
+        final String[] items = new String[rest.length + 1 + extra];
+        items[0] = flipOn ? "Switch to smartphone mode" : "Switch to flip phone mode";
+        if (flipOn) {
+            items[1] = "Flip phone color and bezel...";
+        }
+        System.arraycopy(rest, 0, items, 1 + extra, rest.length);
         menuOpen = true;
         releaseController();
         applyLifecycle();
         menu = new AlertDialog.Builder(this)
                 .setTitle("Re:Cast")
-                .setItems(items, (d, which) -> {
+                .setItems(items, (d, picked) -> {
+                    if (flipOn && picked == 1) {
+                        flipDialogPending = true;                  // opens when this menu has closed (the game stays held)
+                        return;
+                    }
+                    final int which = picked == 0 ? 0 : picked - extra;   // the number the cases below use: 0 is the mode switch, 1 is Resume
                     switch (which) {
                         case 0:
                             Settings.setFlipPhone(this, !flipOn);

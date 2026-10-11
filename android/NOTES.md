@@ -664,7 +664,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **The in-game menu (Back) starts with "Switch to flip phone mode" or "Switch to smartphone mode"** (whichever is not on). Choosing flip phone
   closes the menu and opens a **Flip phone** pop-up over the game, which stays held: the body color (a list) and "Small bezel (a bigger
   picture)". Both apply at once; "Done" closes it and the game goes on. In landscape the pop-up says the flip phone shows when the phone is upright.
-  Smartphone mode switches back without a pop-up. The other menu items moved down one place; the code uses their position.
+  Smartphone mode switches back without a pop-up. In flip phone mode the menu also has "Flip phone color and bezel..." (second item), which opens the same pop-up without leaving flip phone mode, so colors can be tried one after another. The other menu items moved down one place; the code uses their position.
 - **Colors (`Settings.FLIP_COLORS`, `FlipPhone.setColor`):** Silver, Graphite, Sky blue, Rose pink and Champagne gold. The three new ones tint the
   silver's light and shade between a dark and a light end of the color (`TINT_DARK`, `TINT_LIGHT`), so the shell, hinge, ring and keys all follow; Call
   and End stay green and red, and the screen's frame stays dark. A throwaway Python mock-up of the five bodies (not kept) looked right; the app was only built.
