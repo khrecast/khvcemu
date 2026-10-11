@@ -716,6 +716,11 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   four arrow keys). In "Move the controls" a second button under "Put the controls back" switches between two-thumb and one-thumb (the d-pad) movement; it
   saves the same setting as the Options switch. The editor's two buttons are kept as wide as the picture and their text shrinks to fit (a review found they could spill over the side columns sideways; seen sideways on the S23 after the fix: both stay over the picture and the text fits). Seen on the S23: the bigger keys in portrait, the editor with the new button, and switching to one thumb (the d-pad
   returns) and back to two thumbs, each with a message.
+- **Action says "Select" on the game's menus (the owner's request):** with no banner word, `GameView.onMenuScreen()` looks at the text the game drew: two or more
+  lines of three letters or more across the middle of the screen (rows 25 to 186) is a menu (the title menu, Options, the Status screen), where the key picks the
+  highlighted entry, so Action reads **Select** (a menu-font picture `w_select`); in the 3D world, which draws only a banner at the top and the softkey words at the
+  bottom, it still reads Action/Jump. Seen on the S23: Select on the title menu and the Status screen, Action/Jump on the loading splash and in the world. The dialogue
+  pages also draw several text lines, so they read Select as well (not looked at).
 - Sideways with the flip phone mode on (where the usual controls show), the two-thumb layout applies too when its option is on.
 - **Seen on the S23:** the layout in portrait and landscape (the keys at the bottom corners of each column, Magic and Status small in portrait) and an Up key lighting
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved

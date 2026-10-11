@@ -65,7 +65,7 @@ MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen
                "c_soft2": "Soft 2", "c_action_slash": "Action/",
                # the words the game's banner puts over Action (Open, Attack, Grab seen; the others are likely)
                "w_open": "Open", "w_attack": "Attack", "w_grab": "Grab", "w_jump": "Jump", "w_talk": "Talk",
-               "w_interact": "Interact", "w_use": "Use"}
+               "w_interact": "Interact", "w_use": "Use", "w_select": "Select"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:

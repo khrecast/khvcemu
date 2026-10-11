@@ -380,7 +380,25 @@ public class GameView extends View {
                 best = word;
             }
         }
+        if (best == null && onMenuScreen()) {
+            return "Select";                                         // on a menu the key picks the highlighted entry
+        }
         return best;
+    }
+
+    /**
+     * True on one of the game's menus (the title menu, Options, the status screen...): they draw their entries as two or more text
+     * lines across the middle of the screen, which the 3D world never does (its text is a banner at the top and the softkey words at
+     * the bottom).
+     */
+    private boolean onMenuScreen() {
+        int lines = 0;
+        for (TextItem it : items) {
+            if (it.by0 >= 25 && it.by1 <= 186 && it.text.trim().length() >= 3) {
+                lines++;
+            }
+        }
+        return lines >= 2;
     }
 
     /** One string the game drew, to be drawn again sharp. */
