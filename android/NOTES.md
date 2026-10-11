@@ -682,6 +682,12 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   or earlier), the old setting's migration. The rest of the earlier list: the menu item, the pop-up's look and its live changes, the new colors on the real shape (End is a brighter orange-red on the Red body so it stands out), the held state of
   the game behind the pop-up, and the migration of an old setting.
 
+## Restoring the defaults no longer asks about sharing scores again (2026-10-11)
+
+- "Restore the default settings" wiped the answer to the sharing question, so the game asked again at its next start. It now keeps the question answered
+  and sets sharing to off (the default). If the player was never asked, they still are asked once. The first-run style answer was already kept.
+  (The repeated questions the owner saw were mostly from the developer's test runs resetting the app's settings on the phone, not from the app.)
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

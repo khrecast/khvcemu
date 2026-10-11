@@ -400,6 +400,7 @@ final class Settings {
         String mixes = prefs(c).getString("music_mixes", "");           // the player's own saved mixes are not a setting
         String stars = prefs(c).getString("music_favorites", "");       // nor are the stars on them
         boolean asked = styleChosen(c);                                 // and the first-run question is not asked again
+        boolean shareAnswered = shareAsked(c);                          // nor the question about sharing scores (the default is: do not share)
         android.content.SharedPreferences.Editor keep = prefs(c).edit();
         java.util.Map<String, ?> before = prefs(c).getAll();
         java.util.Map<String, Object> recordings = new java.util.HashMap<>();   // the chosen recordings are the player's own files
@@ -409,6 +410,9 @@ final class Settings {
             }
         }
         keep.clear().putString("music_mixes", mixes).putString("music_favorites", stars).putBoolean("style_chosen", asked);
+        if (shareAnswered) {
+            keep.putBoolean("share_scores", false);
+        }
         for (java.util.Map.Entry<String, Object> e : recordings.entrySet()) {
             Object v = e.getValue();
             if (v instanceof String) {
