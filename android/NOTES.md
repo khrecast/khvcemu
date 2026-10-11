@@ -547,15 +547,18 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   in the game" (needs a decoder for FLAC and MP3 without ffmpeg: Android's `MediaCodec`), the SoundFont option and clearing the
   music cache.
 
-## The Sound screen plays the tunes (2026-10-10, built; NOT tried on the phone, it was not authorized for adb)
+## The Sound screen plays the tunes (2026-10-10, done; sound not heard)
 
 - **"Try the music" at the top of the Sound screen:** a list of the game's nine tunes (`SoundSettings.TUNES`, the launcher's list; a
   test keeps it equal to `music_preview.TUNES`) and a Play / Stop button. Play asks Python for the tune made with the saved
   slider text (`recast_app.render_tune`: `music_preview.tune_path` finds the file in the game's `mod` folder, `midi_synth.render_midi`
   makes it, mono 16-bit at 22,050 Hz) on a worker thread, and plays it in a loop with a static `AudioTrack`. Moving a slider or picking
   a mix makes it again 0.7 s after the last change; picking another tune changes over; leaving the screen stops it.
-- **Measured on the PC, not the phone:** rendering `keyblade.mid` took 0.4 s on the desktop (157,718 bytes). How long the long tunes
-  take on the S23 is not measured, and nothing could be heard here; the status line says "Making the music..." meanwhile.
+- **Verified on the S23 Ultra:** Play on the title tune said "Playing" within about two seconds, and the system listed an AudioTrack
+  of the app (22,050 Hz, mono, usage game, started, not muted); dragging the Piano slider to 1.60 showed "Making the music..." and the
+  Mix list changed to Custom; Stop said "Stopped." and no started track was left. **Not heard** (nobody here can), the render times
+  were not measured (only that the title tune was ready in about two seconds), and the other tunes were not tried on the phone.
+  Rendering `keyblade.mid` took 0.4 s on the desktop.
 - **One tune is made at a time** (a change that arrives meanwhile makes it again afterwards). Python is shared with the game, so a
   game running behind (the Sound screen can be opened from the game's menu) may run slower while a tune is made; not measured.
 - **Still not done here:** the comparison with a recording and "use a recording in the game" (a decoder for FLAC and MP3).
@@ -719,7 +722,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   (softkeys, Call, End, * and 0), multi-finger presses, other screen sizes. The picture is smaller than in the usual layout (it is about
   a third of the phone's height, since the keypad needs the rest).
 
-## First-run style question and the small bezel (2026-10-10, built; NOT seen on a screen, the phone was disconnected)
+## First-run style question and the small bezel (2026-10-10, done; seen on the S23)
 
 - **The question:** the first time the app is opened, "I understand" on the opening notice leads to `StyleActivity` instead of the
   home screen: "How do you want to play?" with **Smartphone style** (touch controls round the picture) or **Flip phone style** ("the
@@ -731,8 +734,11 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Small bezel:** `FlipPhone.setSmallBezel`: the picture may use 44 percent of the free height and 90 percent of the shell's width
   (36 and 72 percent otherwise; about a fifth larger by the numbers), the frame round it is 3 dp instead of 8, the shell's side margin
   2 percent instead of 3, and the keypad is correspondingly shorter. Options has the switch too ("needs the flip phone look").
-- **Not done or not seen:** how the question screen looks (its buttons are plain themed text, not the menu-font pictures); how the
-  bigger picture and the shorter keypad look and whether the keys are still comfortable; landscape with the new settings.
+- **Verified on the S23 Ultra:** after the notice the question appears with both tick boxes visible; ticking both and choosing flip phone
+  style, then Play from the title screen, gave the graphite small-bezel phone with a clearly bigger picture, the V CAST logo plate, the
+  blank softkeys and 25 fps. **Not tried:** key presses on the shorter keypad (the owner is to judge whether the keys are comfortable),
+  landscape with the new settings, the smartphone answer, and the silver small bezel. The buttons are plain themed text, not the
+  menu-font pictures.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
