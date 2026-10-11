@@ -709,27 +709,32 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Layout (the owner's choice: Magic and Status to the left, Action stays on the right):** left column, Magic and Status side by side with the **forward
   and back** keys (two stacked keys) under them; right column, Action with the **turn left and turn right** keys (side by side) under it. Four separate
   keys, so there are no diagonals to aim for and both thumbs can hold at once. They send the same Up, Down, Left and Right keys as the d-pad.
-- **Moving and resizing:** the forward/back pair is group 0 (the d-pad's place) and the turn pair is a new group 7; each pair moves and resizes as one box, in the
-  controls editor, like the other groups. The two-thumb layout keeps its own saved places (`ctl2_port2_*`, `ctl2_land2_*`, `ctlscale_..._*`), apart from the
+- **Moving and resizing:** each of the four arrow keys is a control of its own (groups 0 forward, 7 back, 8 turn left, 9 turn right; see below), moved and resized in the
+  controls editor like the other groups. The two-thumb layout keeps its own saved places (`ctl2_port3_*`, `ctl2_land3_*`, `ctlscale_..._*`), apart from the
   normal layout's; "Put the controls back" clears both. `Settings.controlOffset`/`controlScale` and their setters take a `twoThumb` flag now.
 - **The default (the owner's own arrangement, from a screenshot they sent):** two-thumb movement is now on by default (`Settings.twoThumb` defaults to true;
-  "Restore the default settings" and a fresh install give it), and in portrait its keys start where the owner put them: forward and back as a tall pair at the
-  left, Magic in the middle column with Status small under it, Action at the right with the turn pair under it, pulled a little up and left. These are
+  "Restore the default settings" and a fresh install give it), and in portrait its keys start where the owner put them: the forward and back keys stacked at the
+  left, Magic in the middle column with Status small under it, Action at the right with the turn keys under it, pulled a little up and left. These are
   the `TWO_THUMB_PORTRAIT` offsets and scales in `Settings.java`, worked out from the screenshot with the layout's own arithmetic (it reproduced the picture and the softkeys
   to 2 px); a control the player moved keeps their place, and "Put the controls back" returns to this. Sideways has no built-in arrangement yet (the owner sent
   only the portrait one). After the owner said the screenshot was only the rough position and size, the numbers were tidied (up to about 40 px of movement): the forward/back and turn pairs share a bottom edge, Magic and Status
   share a column, Status is level with the turn keys, Action is centered over them and the side margins match; Status is exactly its default size. The exact saved values on the phone were not read (it was disconnected): they may differ by a few pixels. **Effects:** an existing install that never touched the switch moves from the d-pad to
   two-thumb on update (the app is unreleased, so this is only the owner's phone); a player who moved only some groups keeps those and gets the built-in places for the rest; the
   numbers are fractions of the S23 Ultra's size, so other screen shapes may have a control pulled in a little by the keep-inside-the-screen rule (not tried).
+- **Each arrow is its own control (the owner's request):** the four arrow keys are groups 0 (forward), 7 (back), 8 (turn left) and 9 (turn right), each moved and resized
+  alone in the editor (ten groups now); the two pairs of the first version are gone. Their saved places moved to a new name (`port3`/`land3`), so the places saved with the pairs
+  are not read; the built-in default gives each key the place it has in the owner's tidied arrangement (worked out from the old pair offsets with the pair scaling, so the
+  look is the same). Built; not seen on the phone (it was disconnected).
 - **Bigger, and a switch in the editor (the owner's next request):** all the two-thumb buttons are 18 percent bigger than first built (Magic, Status, Action and the
   four arrow keys). In "Move the controls" a second button under "Put the controls back" switches between two-thumb and one-thumb (the d-pad) movement; it
   saves the same setting as the Options switch. The editor's two buttons are kept as wide as the picture and their text shrinks to fit (a review found they could spill over the side columns sideways; seen sideways on the S23 after the fix: both stay over the picture and the text fits). Seen on the S23: the bigger keys in portrait, the editor with the new button, and switching to one thumb (the d-pad
   returns) and back to two thumbs, each with a message.
-- **Action says "Select" on the game's menus (the owner's request):** with no banner word, `GameView.onMenuScreen()` looks at the text the game drew: two or more
+- **Action says "Enter" on the game's menus (the owner's request; it first said "Select", and the owner found Enter right, working for dialogue pages too):** with no banner word, `GameView.onMenuScreen()` looks at the text the game drew: two or more
   lines of three letters or more across the middle of the screen (rows 25 to 186) is a menu (the title menu, Options, the Status screen), where the key picks the
-  highlighted entry, so Action reads **Select** (a menu-font picture `w_select`); in the 3D world, which draws only a banner at the top and the softkey words at the
-  bottom, it still reads Action/Jump. Seen on the S23: Select on the title menu and the Status screen, Action/Jump on the loading splash and in the world. The dialogue
-  pages also draw several text lines, so they read Select as well (not looked at).
+  highlighted entry, so Action reads **Enter** (a menu-font picture `w_enter`); in the 3D world, which draws only a banner at the top and the softkey words at the
+  bottom, it still reads Action/Jump. Seen on the S23 (as Select, before the rename): Select on the title menu and the Status screen, Action/Jump on the loading splash and in the world. The dialogue
+  pages also draw several text lines, so they read Enter as well (the owner confirms Enter works there). The owner also saw **Lift** and **Throw** banners and they work
+  as Action words; they now have menu-font pictures (`w_lift`, `w_throw`) instead of the system-font fallback (not looked at on screen).
 - Sideways with the flip phone mode on (where the usual controls show), the two-thumb layout applies too when its option is on.
 - **Seen on the S23:** the layout in portrait and landscape (the keys at the bottom corners of each column, Magic and Status small in portrait) and an Up key lighting
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved

@@ -69,9 +69,8 @@ public class GameView extends View {
     private float pinchStartDist, pinchStartScale;
     private final RectF resetRect = new RectF(), modeRect = new RectF();   // the editor's two buttons: put back, and one thumb or two
     private boolean offsetLandscape, offsetTwoThumb, offsetsLoaded;
-    // the two-thumb layout: the forward/back keys, the turn keys (each pair as one box) and the four keys inside them
+    // the two-thumb layout: four arrow keys, each a control of its own (groups 0, 7, 8 and 9)
     private boolean twoThumb;
-    private final RectF moveRect = new RectF(), turnRect = new RectF();
     private final RectF upR = new RectF(), downR = new RectF(), leftR = new RectF(), rightR = new RectF();
     private float colL0, colL1, colR0, colR1, areaT, areaB;                 // the room the controls have: two columns and their height
     private volatile boolean editing;
@@ -381,7 +380,7 @@ public class GameView extends View {
             }
         }
         if (best == null && onMenuScreen()) {
-            return "Select";                                         // on a menu the key picks the highlighted entry
+            return "Enter";                                          // on a menu (and a dialogue page) the key picks or goes on
         }
         return best;
     }
@@ -626,36 +625,34 @@ public class GameView extends View {
         float rowY = areaT + rs + ch * 0.04f;
         setCircle(buttons.get(4), lcx - rs * 1.15f, rowY, rs);              // Magic
         setCircle(buttons.get(5), lcx + rs * 1.15f, rowY, rs);              // Status
-        moveRect.set(lcx - bs / 2f, areaB - (2 * bs + gap), lcx + bs / 2f, areaB);
         setCircle(buttons.get(3), rcx, areaT + ra + ch * 0.03f, ra);        // Action
-        turnRect.set(rcx - (2 * bs + gap) / 2f, areaB - bs, rcx + (2 * bs + gap) / 2f, areaB);
-        syncKeys();
+        // the arrow keys start as two pairs (the forward/back pair at the left, the turn pair at the right, both on the bottom edge of
+        // the room); each key is then moved and sized on its own like every other control
+        float pairH = 2 * bs + gap, gm = pairH * 0.06f, hm = (pairH - gm) / 2f;
+        upR.set(lcx - bs / 2f, areaB - pairH, lcx + bs / 2f, areaB - pairH + hm);
+        downR.set(lcx - bs / 2f, areaB - hm, lcx + bs / 2f, areaB);
+        float gt = pairH * 0.06f, wt = (pairH - gt) / 2f;
+        leftR.set(rcx - pairH / 2f, areaB - bs, rcx - pairH / 2f + wt, areaB);
+        rightR.set(rcx + pairH / 2f - wt, areaB - bs, rcx + pairH / 2f, areaB);
     }
 
-    /** The four keys inside the two pairs' boxes (after the boxes were sized or moved). */
-    private void syncKeys() {
-        float gm = moveRect.height() * 0.06f, hm = (moveRect.height() - gm) / 2f;
-        upR.set(moveRect.left, moveRect.top, moveRect.right, moveRect.top + hm);
-        downR.set(moveRect.left, moveRect.bottom - hm, moveRect.right, moveRect.bottom);
-        float gt = turnRect.width() * 0.06f, wt = (turnRect.width() - gt) / 2f;
-        leftR.set(turnRect.left, turnRect.top, turnRect.left + wt, turnRect.bottom);
-        rightR.set(turnRect.right - wt, turnRect.top, turnRect.right, turnRect.bottom);
-    }
-
-    /** Group 7 (the turn keys) exists only in the two-thumb layout. */
+    /** Groups 7 to 9 (the back key and the two turn keys) exist only in the two-thumb layout. */
     private boolean groupActive(int g) {
-        return g != 7 || twoThumb;
+        return g < 7 || twoThumb;
+    }
+
+    /** The key of the two-thumb layout that a group is: 0 forward, 7 back, 8 turn left, 9 turn right. */
+    private RectF keyRect(int g) {
+        return g == 0 ? upR : g == 7 ? downR : g == 8 ? leftR : rightR;
     }
 
     /** The bounds of a group of controls, in pixels. */
     private RectF groupBounds(int g) {
         RectF r = new RectF();
-        if (twoThumb && g == 0) {
-            r.set(moveRect);
-        } else if (g == 7) {
-            if (twoThumb) {
-                r.set(turnRect);
-            }
+        if (twoThumb && (g == 0 || g >= 7)) {
+            r.set(keyRect(g));
+        } else if (g >= 7) {
+            // (not in this layout: an empty box)
         } else if (g == 0) {
             r.set(padX - padR, padY - padR, padX + padR, padY + padR);
         } else {
@@ -686,8 +683,8 @@ public class GameView extends View {
             s = Math.min(s, Math.min(freeW / Math.max(1f, b.width()), freeH / Math.max(1f, b.height())));
             scale[g] = s;
             if (Math.abs(s - 1f) > 0.0005f) {
-                if (twoThumb && (g == 0 || g == 7)) {
-                    RectF r = g == 0 ? moveRect : turnRect;
+                if (twoThumb && (g == 0 || g >= 7)) {
+                    RectF r = keyRect(g);
                     float cx = r.centerX(), cy = r.centerY(), hw = r.width() / 2f * s, hh = r.height() / 2f * s;
                     r.set(cx - hw, cy - hh, cx + hw, cy + hh);
                 } else if (g == 0) {
@@ -709,19 +706,14 @@ public class GameView extends View {
             dy = Math.max(insetTop - b.top, Math.min(h - insetBottom - b.bottom, dy));
             offset[g][0] = dx / w;
             offset[g][1] = dy / h;
-            if (twoThumb && g == 0) {
-                moveRect.offset(dx, dy);
-            } else if (twoThumb && g == 7) {
-                turnRect.offset(dx, dy);
+            if (twoThumb && (g == 0 || g >= 7)) {
+                keyRect(g).offset(dx, dy);
             } else if (g == 0) {
                 padX += dx;
                 padY += dy;
             } else {
                 buttons.get(buttonOf(g)).r.offset(dx, dy);
             }
-        }
-        if (twoThumb) {
-            syncKeys();
         }
     }
 
@@ -1219,7 +1211,7 @@ public class GameView extends View {
             }
         }
         if (twoThumb) {                                                     // four separate keys, no diagonals to aim for
-            float slack = dp(2);                                            // (small: the two keys of a pair are only a few dp apart)
+            float slack = dp(2);                                            // (small: neighboring keys are only a few dp apart)
             if (inKey(upR, x, y, slack)) {
                 out.add("UP");
             }

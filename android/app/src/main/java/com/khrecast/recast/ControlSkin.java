@@ -78,9 +78,10 @@ final class ControlSkin {
         if (slash != null) {
             names.put("Action/", slash);
         }
-        String[] banner = {"Open", "Attack", "Grab", "Jump", "Talk", "Interact", "Use", "Select"};
+        String[] banner = {"Open", "Attack", "Grab", "Jump", "Talk", "Interact", "Use", "Enter", "Lift", "Throw"};
         int[] bannerIds = {R.drawable.menu_w_open, R.drawable.menu_w_attack, R.drawable.menu_w_grab, R.drawable.menu_w_jump,
-                R.drawable.menu_w_talk, R.drawable.menu_w_interact, R.drawable.menu_w_use, R.drawable.menu_w_select};
+                R.drawable.menu_w_talk, R.drawable.menu_w_interact, R.drawable.menu_w_use, R.drawable.menu_w_enter,
+                R.drawable.menu_w_lift, R.drawable.menu_w_throw};
         for (int i = 0; i < banner.length; i++) {
             Bitmap b = BitmapFactory.decodeResource(context.getResources(), bannerIds[i], options);
             if (b != null) {

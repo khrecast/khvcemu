@@ -129,9 +129,9 @@ final class Settings {
         prefs(c).edit().putBoolean("share_scores", v).apply();
     }
 
-    /** The touch controls that can be moved and resized, each on its own: 0 the d-pad (in the two-thumb layout: forward and back),
-     *  1 Action, 2 Magic, 3 Status, 4 Soft 1, 5 Back, 6 Soft 2, 7 turn left and right (the two-thumb layout only). */
-    static final int CONTROL_GROUPS = 8;
+    /** The touch controls that can be moved and resized, each on its own: 0 the d-pad (in the two-thumb layout: the forward key),
+     *  1 Action, 2 Magic, 3 Status, 4 Soft 1, 5 Back, 6 Soft 2, and in the two-thumb layout only: 7 the back key, 8 turn left, 9 turn right. */
+    static final int CONTROL_GROUPS = 10;
 
     /** The two-thumb layout: forward and back, Magic and Status for the left thumb; turn left and right, Action for the right. */
     static boolean twoThumb(Context c) {
@@ -145,21 +145,26 @@ final class Settings {
      * a control the player moved keeps the player's own place, and "Put the controls back" returns to these.
      */
     private static final float[][] TWO_THUMB_PORTRAIT = {
-            {-0.0787f, -0.0466f, 1.555f},     // forward and back: at the left, bigger; its bottom is level with the turn pair's
-            {-0.0185f, -0.0039f, 0.975f},     // Action: centered over the turn pair
-            {0.2426f, 0.0281f, 1.411f},       // Magic: in the middle, level with Action, in the same column as Status
-            {0.0722f, 0.1438f, 1.000f},       // Status: below Magic, level with the turn pair
+            {-0.0787f, -0.0663f, 1.555f},     // 0 the forward key: at the left, bigger, above the back key
+            {-0.0185f, -0.0039f, 0.975f},     // 1 Action: centered over the turn keys
+            {0.2426f, 0.0281f, 1.411f},       // 2 Magic: in the middle, level with Action, in the same column as Status
+            {0.0722f, 0.1438f, 1.000f},       // 3 Status: below Magic, level with the turn keys
             {0f, 0f, 1f}, {0f, 0f, 1f}, {0f, 0f, 1f},
-            {-0.0185f, -0.0233f, 1.411f},     // turn left and right: bigger, the same margin from the right edge as forward/back from the left
+            {-0.0787f, -0.0269f, 1.555f},     // 7 the back key: under the forward key, the same bottom edge as the turn keys
+            {-0.0497f, -0.0233f, 1.411f},     // 8 turn left
+            {0.0127f, -0.0233f, 1.411f},      // 9 turn right: the same margin from the right edge as the forward/back keys from the left
     };
 
     static void setTwoThumb(Context c, boolean v) {
         prefs(c).edit().putBoolean("two_thumb", v).apply();
     }
 
-    /** The key part for where controls were put: the orientation, and "2" for the two-thumb layout (it has its own places). */
+    /**
+     * The key part for where controls were put: the orientation, and "3" for the two-thumb layout (it has its own places; "2" was its
+     * first version, in which the arrows moved in two pairs, so those saved places are not read any more).
+     */
     private static String place(boolean landscape, boolean twoThumb) {
-        return (landscape ? "land" : "port") + (twoThumb ? "2" : "");
+        return (landscape ? "land" : "port") + (twoThumb ? "3" : "");
     }
 
     /** Where the player moved a group of touch controls, as a fraction of the screen's width and height from the default
@@ -214,7 +219,7 @@ final class Settings {
     /** Puts every touch control back where it started (both orientations, both layouts). */
     static void resetControls(Context c) {
         SharedPreferences.Editor e = prefs(c).edit();
-        for (String o : new String[]{"port", "land", "port2", "land2"}) {
+        for (String o : new String[]{"port", "land", "port2", "land2", "port3", "land3"}) {
             for (int g = 0; g < CONTROL_GROUPS; g++) {
                 e.remove("ctl2_" + o + "_" + g);
                 e.remove("ctlscale_" + o + "_" + g);
