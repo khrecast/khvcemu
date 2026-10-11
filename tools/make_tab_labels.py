@@ -56,7 +56,7 @@ MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen
                "b_choose_file": "Choose a file", "b_remove_recording": "Remove it",
                "b_match": "Match its loudness", "b_save_mix": "Save this mix",
                "b_delete_mix": "Delete this mix", "b_rename_mix": "Rename this mix",
-               "b_back_tuned": "Back to the sound the game was tuned to", "b_import": "Import a state file",
+               "b_reset": "Reset", "b_import": "Import a state file",
                "b_play": "Play", "b_stop": "Stop", "b_play_recording": "Play the recording",
                "b_stop_recording": "Stop the recording", "b_star": "Star this mix", "b_unstar": "Unstar this mix",
                "b_clear_cache": "Clear the made music", "b_no_cache": "No made music is kept"}

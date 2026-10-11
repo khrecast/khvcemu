@@ -55,7 +55,7 @@ public class SavesActivity extends Activity {
                 : "Tap a slot to load it. Press and hold a slot to export or delete it.", 14, 0xFF8EA4BF);
         hint.setPadding(0, dp(4), 0, dp(12));
         col.addView(hint);
-        android.widget.FrameLayout importButton = Labels.pictureButton(this, R.drawable.menu_b_import, 20, 52, false,
+        android.widget.FrameLayout importButton = Labels.pictureButton(this, R.drawable.menu_b_import, 28, 52, false,
                 "Import a state file", v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
                         .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_IMPORT));
         ((LinearLayout.LayoutParams) importButton.getLayoutParams()).bottomMargin = dp(12);

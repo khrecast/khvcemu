@@ -598,7 +598,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   `tools/make_tab_labels.py`, which now makes 46 app labels; the font file itself stays in the gitignored `reference/`): the Options and
   Sound headings, the first-run question (its title and both choices), Options' four buttons, the Saves import button, and on the
   Sound screen Play / Stop, Play / Stop the recording, Choose a file, Remove it, Match its loudness, Save / Delete / Rename / Star / Unstar this
-  mix, Back to the sound the game was tuned to, and Clear the made music (with "No made music is kept" when there is none; the size is in
+  mix, Reset (the sliders back to as tuned), and Clear the made music (with "No made music is kept" when there is none; the size is in
   the note under it). A button that changes what it says swaps its picture (`Labels.setFace`); a greyed button dims its picture
   (`Labels.enable`); `Labels.heading` is the heading. The font has no usable "..." (it draws an underscore), so those labels lost their dots.
 - **Left as plain text on purpose:** switches and radio buttons (the system draws them), the notes, the mix and tune lists, slider names,

@@ -116,7 +116,7 @@ public class OptionsActivity extends Activity {
         col.addView(toggle("Small bezel: a bigger picture (needs the flip phone look)", Settings.flipSmallBezel(this), Settings::setFlipSmallBezel));
         col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
                 + "move it, pinch it with two fingers to make it bigger or smaller."));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_b_controls_reset, 20, 56, false,
+        col.addView(Labels.pictureButton(this, R.drawable.menu_b_controls_reset, 28, 56, false,
                 "Put the controls back to the default", v -> {
                     Settings.resetControls(this);
                     android.widget.Toast.makeText(this, "The controls are back in their usual places",
@@ -125,7 +125,7 @@ public class OptionsActivity extends Activity {
 
         col.addView(heading("Sound"));
         col.addView(toggle("Mute the game", Settings.muted(this), Settings::setMuted));
-        col.addView(Labels.pictureButton(this, R.drawable.menu_b_music_mix, 20, 56, false, "Music mix and sliders",
+        col.addView(Labels.pictureButton(this, R.drawable.menu_b_music_mix, 28, 56, false, "Music mix and sliders",
                 v -> startActivity(new Intent(this, SoundActivity.class))));
 
         col.addView(heading("Online scores"));
@@ -134,7 +134,7 @@ public class OptionsActivity extends Activity {
                 + "(scores.khrecast.com). No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are always kept on this phone too. Applies "
                 + "the next time the game starts."));
         final android.widget.FrameLayout[] test = new android.widget.FrameLayout[1];
-        test[0] = Labels.pictureButton(this, R.drawable.menu_b_test_connection, 20, 56, false, "Test the connection",
+        test[0] = Labels.pictureButton(this, R.drawable.menu_b_test_connection, 28, 56, false, "Test the connection",
                 v -> testConnection(test[0]));
         col.addView(test[0]);
 
@@ -167,7 +167,7 @@ public class OptionsActivity extends Activity {
         col.addView(every);
         col.addView(note("Autosaves only happen when you have played since the last save or load."));
 
-        android.widget.FrameLayout defaults = Labels.pictureButton(this, R.drawable.menu_b_restore, 20, 56, false,
+        android.widget.FrameLayout defaults = Labels.pictureButton(this, R.drawable.menu_b_restore, 28, 56, false,
                 "Restore the default settings", v -> {
                     Settings.restoreDefaults(this);
                     build();                                   // show the defaults
