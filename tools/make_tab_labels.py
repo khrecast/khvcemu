@@ -101,7 +101,7 @@ def _spaced_mask(font, text: str, gap: int) -> np.ndarray:
     parts = []
     for ch in text:
         if ch == " ":
-            parts.append(np.zeros((1, 3 + gap), bool))
+            parts.append(np.zeros((1, 4 + gap), bool))
         else:
             m = _mask(font, ch)
             if m.any():
@@ -181,7 +181,7 @@ def main(font_path: str = FONT):
     os.makedirs(MENU_OUT, exist_ok=True)
     for key, text in MENU_LABELS.items():
         path = os.path.join(MENU_OUT, f"{key}.png")
-        pygame.image.save(render(font, text, True, gap=1 if key.startswith("w_") else 0), path)
+        pygame.image.save(render(font, text, True, gap=2 if key.startswith("style_") else 1 if key.startswith("w_") else 0), path)
         if os.path.isdir(ANDROID_RES):
             shutil.copyfile(path, os.path.join(ANDROID_RES, f"menu_{key}.png"))
     make_atlas(font)
