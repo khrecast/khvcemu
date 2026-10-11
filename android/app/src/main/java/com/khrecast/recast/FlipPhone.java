@@ -74,6 +74,9 @@ final class FlipPhone {
     private final RectF upper = new RectF(), lower = new RectF(), hinge = new RectF(), bezel = new RectF();
     private final RectF screen = new RectF(), slot = new RectF(), antenna = new RectF();
     private final Path arrowPath = new Path();
+    private final RectF plate = new RectF(), logoDst = new RectF();
+    private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final android.graphics.Bitmap vcast;
     private float navX, navY, navR;
     private Shader antennaShade, shellUpper, shellLower, hingeShade, ringShade, hubUp, hubDown;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -82,11 +85,12 @@ final class FlipPhone {
 
     FlipPhone(Context context) {
         density = context.getResources().getDisplayMetrics().density;
+        vcast = android.graphics.BitmapFactory.decodeResource(context.getResources(), R.drawable.vcast_logo);
         stroke.setStyle(Paint.Style.STROKE);
         text.setTextAlign(Paint.Align.CENTER);
         text.setTypeface(Typeface.DEFAULT_BOLD);
-        keys.add(new Key("SOFT1", "Soft 1", "", 1));
-        keys.add(new Key("SOFT2", "Soft 2", "", 1));
+        keys.add(new Key("SOFT1", "", "", 1));
+        keys.add(new Key("SOFT2", "", "", 1));
         keys.add(new Key("SEND", "Call", "", 2));
         keys.add(new Key("CLR", "End", "", 3));
         // The game is steered with the direction keys and Select (the desktop's arrows and Enter send those; its digit keys send
@@ -245,10 +249,17 @@ final class FlipPhone {
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10) + dp(0.8f), text);
         text.setColor(inkSub());
         c.drawText("Re:Cast", (upper.left + upper.right) / 2f + dp(1.5f), upper.bottom - dp(10), text);   // the spacing leaves a gap after the last letter
-        text.setTextSize(dp(8.5f));                                             // the network name, small, at the left of the strip
-        text.setLetterSpacing(0.12f);
-        text.setColor(inkSub());
-        c.drawText("V CAST", upper.left + dp(52), upper.bottom - dp(11), text);
+        if (vcast != null) {                                                    // the V CAST logo on a small light plate, left of the name
+            float ph = dp(17), pw = ph * vcast.getWidth() / vcast.getHeight() + dp(8);
+            plate.set(upper.left + dp(34), upper.bottom - dp(26), upper.left + dp(34) + pw, upper.bottom - dp(26) + ph);
+            fill.setColor(0xFFF1F2F4);
+            c.drawRoundRect(plate, dp(4), dp(4), fill);
+            stroke.setStrokeWidth(dp(1));
+            stroke.setColor(outline());
+            c.drawRoundRect(plate, dp(4), dp(4), stroke);
+            logoDst.set(plate.left + dp(4), plate.top + dp(2), plate.right - dp(4), plate.bottom - dp(2));
+            c.drawBitmap(vcast, null, logoDst, bitmapPaint);
+        }
         text.setLetterSpacing(0f);
         // the dark frame round the screen, with a thin rim
         fill.setColor(0xFF1B1E23);
@@ -284,7 +295,9 @@ final class FlipPhone {
                         radius - dp(2), radius - dp(2), stroke);
             }
             text.setColor(k.kind >= 2 ? Color.WHITE : ink());
-            if (k.kind == 0) {
+            if (k.label.isEmpty()) {
+                continue;                                                       // the softkeys carry no print
+            } else if (k.kind == 0) {
                 boolean hasSub = !k.sub.isEmpty();
                 text.setTextSize(k.r.height() * (hasSub ? 0.46f : 0.58f));
                 c.drawText(k.label, k.r.centerX(), k.r.centerY() + (hasSub ? -k.r.height() * 0.02f : k.r.height() * 0.2f), text);
