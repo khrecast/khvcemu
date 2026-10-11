@@ -329,6 +329,15 @@ final class Settings {
         prefs(c).edit().putBoolean("style_chosen", v).apply();
     }
 
+    /** Soft 1 and Soft 2 on screen show the words the game itself puts above them. */
+    static boolean liveSoftkeys(Context c) {
+        return prefs(c).getBoolean("live_softkeys", true);
+    }
+
+    static void setLiveSoftkeys(Context c, boolean v) {
+        prefs(c).edit().putBoolean("live_softkeys", v).apply();
+    }
+
     /** Sharp text: the game's own text drawn at the screen's resolution instead of enlarged with the picture. */
     static boolean hiresText(Context c) {
         return prefs(c).getBoolean("hires_text", false);

@@ -108,6 +108,9 @@ public class OptionsActivity extends Activity {
                 + "compare speed or to see whether it is behind a problem."));
 
         col.addView(heading("Controls"));
+        col.addView(toggle("Softkey names follow the game", Settings.liveSoftkeys(this), Settings::setLiveSoftkeys));
+        col.addView(note("The two softkey buttons show the words the game puts above them (Select, Back, Continue...) instead of "
+                + "Soft 1 and Soft 2. Applies the next time the game starts."));
         col.addView(toggle("Flip phone look (upright only)", Settings.flipPhone(this), Settings::setFlipPhone));
         col.addView(note("Play it the way it was meant to be played: on a flip phone. The game sits in the screen of a 2005 clamshell "
                 + "with softkeys, a navigation ring, Call and End keys and a 12-key keypad (2, 4, 6, 8 move, 5 selects, * is Magic, "

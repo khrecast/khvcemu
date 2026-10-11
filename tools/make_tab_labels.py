@@ -59,7 +59,10 @@ MENU_LABELS = {"continue": "Continue", "play_title": "Play from the title screen
                "b_reset": "Reset", "b_import": "Import a state file",
                "b_play": "Play", "b_stop": "Stop", "b_play_recording": "Play the recording",
                "b_stop_recording": "Stop the recording", "b_star": "Star this mix", "b_unstar": "Unstar this mix",
-               "b_clear_cache": "Clear the made music", "b_no_cache": "No made music is kept"}
+               "b_clear_cache": "Clear the made music", "b_no_cache": "No made music is kept",
+               # the names on the touch controls
+               "c_action": "Action", "c_magic": "Magic", "c_status": "Status", "c_soft1": "Soft 1", "c_back": "Back",
+               "c_soft2": "Soft 2"}
 
 
 def silver(mask: np.ndarray, top, bottom) -> np.ndarray:

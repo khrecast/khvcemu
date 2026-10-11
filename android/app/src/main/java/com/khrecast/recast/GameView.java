@@ -56,6 +56,7 @@ public class GameView extends View {
     private final Paint pixels = new Paint();                 // no filtering: crisp pixels
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final ControlSkin skin;                           // how the touch controls look
     private final Rect src = new Rect(0, 0, W, H);
     private final RectF dst = new RectF();
     private final List<Button> buttons = new ArrayList<>();
@@ -98,6 +99,7 @@ public class GameView extends View {
     public GameView(Context context) {
         super(context);
         slop = ViewConfiguration.get(context).getScaledTouchSlop();
+        skin = new ControlSkin(context);
         pixels.setFilterBitmap(false);
         pixels.setAntiAlias(false);
         text.setColor(Color.WHITE);
@@ -320,6 +322,30 @@ public class GameView extends View {
         postInvalidate();
     }
 
+    public void setSharpText(boolean on) {
+        sharpOn = on;
+    }
+
+    /**
+     * The words the game shows at the bottom left (left = true) or bottom right of its screen, where its softkey labels sit
+     * ("Select", "Back", "Continue"...), or null when there are none. Read from the strings the core drew.
+     */
+    private String softkeyWord(boolean left) {
+        String best = null;
+        float bestY = -1;
+        for (TextItem it : items) {
+            float mid = (it.bx0 + it.bx1) / 2f;
+            if (it.by0 >= 188 && it.bx1 - it.bx0 < W * 0.45f && (mid < W * 0.45f ? left : mid > W * 0.55f && !left) && it.by0 >= bestY) {
+                String word = it.text.trim();
+                if (!word.isEmpty() && word.length() <= 14) {         // a key's word is short: not a line of dialogue
+                    best = word;
+                    bestY = it.by0;
+                }
+            }
+        }
+        return best;
+    }
+
     /** One string the game drew, to be drawn again sharp. */
     private static final class TextItem {
         String text;
@@ -328,6 +354,7 @@ public class GameView extends View {
     }
 
     private volatile List<TextItem> items = java.util.Collections.emptyList();
+    private volatile boolean sharpOn;                            // draw the strings sharp (Options), not only read them
     private String lastJson;                                     // the pump thread's
     private final Paint sharpPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
     private final java.util.HashMap<String, float[]> measured = new java.util.HashMap<>();   // text and weight -> width, height at 100
@@ -366,7 +393,7 @@ public class GameView extends View {
 
     /** Draws the strings sharp over a picture drawn into `d`: each one in the system font, fitted to the box the game gave it. */
     private void drawSharpText(Canvas c, RectF d, List<TextItem> list) {          // UI thread only (it shares one Paint and a cache)
-        if (list.isEmpty()) {
+        if (list.isEmpty() || !sharpOn) {
             return;
         }
         float kx = d.width() / W, ky = d.height() / H;
@@ -403,7 +430,7 @@ public class GameView extends View {
             if (!hasFrame) {
                 return null;
             }
-            if (items.isEmpty()) {
+            if (items.isEmpty() || !sharpOn) {
                 return frame.copy(Bitmap.Config.ARGB_8888, false);
             }
             int zoom = 4;                                        // sharp text: the picture enlarged here, with the strings drawn on it
@@ -825,28 +852,18 @@ public class GameView extends View {
             text.setColor(Color.WHITE);
             return;
         }
-        // the direction pad
-        fill.setStyle(Paint.Style.FILL);
-        fill.setColor(0xFF1E2A3C);
-        c.drawCircle(padX, padY, padR, fill);
-        fill.setColor(held.contains("UP") ? 0xFF5B9DFF : 0xFF34455E);
-        drawArrow(c, padX, padY - padR * 0.62f, 0);
-        fill.setColor(held.contains("DOWN") ? 0xFF5B9DFF : 0xFF34455E);
-        drawArrow(c, padX, padY + padR * 0.62f, 180);
-        fill.setColor(held.contains("LEFT") ? 0xFF5B9DFF : 0xFF34455E);
-        drawArrow(c, padX - padR * 0.62f, padY, 270);
-        fill.setColor(held.contains("RIGHT") ? 0xFF5B9DFF : 0xFF34455E);
-        drawArrow(c, padX + padR * 0.62f, padY, 90);
-        // the buttons
+        // the direction pad and the buttons (a controller's presses light them too)
+        Set<String> down = allDown();
+        skin.drawPad(c, padX, padY, padR, down);
         for (Button b : buttons) {
-            fill.setColor(held.contains(b.key) ? 0xFF5B9DFF : 0xFF34455E);
+            boolean on = down.contains(b.key);
             if (b.round) {
-                c.drawCircle(b.r.centerX(), b.r.centerY(), b.r.width() / 2f, fill);
+                skin.drawBall(c, b.r, b.label, b.key.equals("SELECT") ? ControlSkin.BLUE
+                        : b.key.equals("STAR") ? ControlSkin.VIOLET : ControlSkin.GOLD, on);
             } else {
-                c.drawRoundRect(b.r, b.r.height() / 3f, b.r.height() / 3f, fill);
+                String word = b.key.equals("SOFT1") ? softkeyWord(true) : b.key.equals("SOFT2") ? softkeyWord(false) : null;
+                skin.drawPill(c, b.r, b.label, word, on);
             }
-            text.setTextSize(Math.min(b.r.height() * 0.38f, b.r.width() * 0.26f));
-            c.drawText(b.label, b.r.centerX(), b.r.centerY() + text.getTextSize() * 0.35f, text);
         }
         if (editing) {
             outline.setStyle(Paint.Style.STROKE);
@@ -884,20 +901,6 @@ public class GameView extends View {
         text.setColor(0xFF8EA4BF);
         c.drawText(status, dst.centerX(), statusY, text);
         text.setColor(Color.WHITE);
-    }
-
-    /** A triangle pointing in `deg` degrees (0 = up) centred on x, y. */
-    private void drawArrow(Canvas c, float x, float y, float deg) {
-        float s = padR * 0.26f;
-        c.save();
-        c.rotate(deg, x, y);
-        Path p = new Path();
-        p.moveTo(x, y - s);
-        p.lineTo(x + s, y + s * 0.8f);
-        p.lineTo(x - s, y + s * 0.8f);
-        p.close();
-        c.drawPath(p, fill);
-        c.restore();
     }
 
     @Override

@@ -35,7 +35,8 @@ public class MainActivity extends Activity {
     private GameView view;
     private final ExecutorService input = Executors.newSingleThreadExecutor(r -> new Thread(r, "recast-input"));
     private boolean freshStart = true;                // false when Android restored this screen: one-time requests are not repeated
-    private volatile boolean sharpText;             // the game was started with sharp text (Options)
+    private volatile boolean sharpText;                 // the game was started with sharp text (Options)
+    private volatile boolean liveSoftkeys;              // ... and with the softkey names following the game
     private volatile int session = 0;               // which game (recast_app.start_game's number) this screen started
     private volatile PyObject app;                 // the recast_app module once the game has started
     private volatile boolean running = true;
@@ -113,13 +114,15 @@ public class MainActivity extends Activity {
             }
             PyObject module = Python.getInstance().getModule("recast_app");
             sharpText = Settings.hiresText(this);
+            liveSoftkeys = Settings.liveSoftkeys(this);
+            view.setSharpText(sharpText);
             String world = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_START_WORLD) : null;
             getIntent().removeExtra(HomeActivity.EXTRA_START_WORLD);    // once, and before the call: nothing may reseed the save
             session = module.callAttr("start_game", getApplicationInfo().nativeLibraryDir, game.getAbsolutePath(),
                     data.getAbsolutePath(), world == null ? "" : world, Settings.speedOff(this),
                     Settings.frameLock(this), Settings.music(this),
                     Settings.shareScores(this) ? Settings.LEADERBOARD_URL : "", Settings.textSize(this),
-                    Settings.musicFilesJson(this), sharpText).toInt();
+                    Settings.musicFilesJson(this), sharpText, liveSoftkeys).toInt();
             app = module;
             String load = freshStart ? getIntent().getStringExtra(HomeActivity.EXTRA_LOAD) : null;
             if (load != null) {
@@ -427,7 +430,7 @@ public class MainActivity extends Activity {
                 if (n != last) {
                     last = n;
                     byte[] picture = a.callAttr("frame_bytes").toJava(byte[].class);
-                    view.setFrame(picture, sharpText ? a.callAttr("frame_text").toString() : null);
+                    view.setFrame(picture, sharpText || liveSoftkeys ? a.callAttr("frame_text").toString() : null);
                 }
                 long now = System.currentTimeMillis();
                 if (now - lastStatus > 1000) {

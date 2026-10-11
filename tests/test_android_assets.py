@@ -124,14 +124,18 @@ class AndroidAssetCopyTests(unittest.TestCase):
             item = {"text": "Hi", "font_id": 0x8000, "x": 10, "y": 20, "box": (10, 20, 30, 32), "fg": 0xFFFF, "size": (18, 12)}
             emu = SimpleNamespace(last_frame=base, overlay=(clean, [item]))
             old = recast_app._game
-            recast_app._game = SimpleNamespace(emu=emu, lm_pages=[], items_json="[]")
+            recast_app._game = SimpleNamespace(emu=emu, lm_pages=[], items_json="[]", sharp=True)
             try:
                 got = np.frombuffer(recast_app.frame_bytes(), "<u2")
                 self.assertEqual(int(got[0]), 7, "the picture without its low-res text, not the plain frame")
                 items = json.loads(recast_app.frame_text())
                 self.assertEqual(items, [{"t": "Hi", "f": 0x8000, "x": 10, "y": 20, "w": 18, "h": 12, "c": 0xFFFF,
                                           "b": [10, 20, 30, 32]}])
-                emu.overlay = None                                     # sharp text off, or nothing drawn: the plain frame, no strings
+                recast_app._game.sharp = False                         # only the softkey names wanted: the plain picture, the strings
+                self.assertEqual(int(np.frombuffer(recast_app.frame_bytes(), "<u2")[0]), 0)
+                self.assertEqual(json.loads(recast_app.frame_text())[0]["t"], "Hi")
+                recast_app._game.sharp = True
+                emu.overlay = None                                     # nothing drawn: the plain frame, no strings
                 got = np.frombuffer(recast_app.frame_bytes(), "<u2")
                 self.assertEqual(int(got[0]), 0)
                 self.assertEqual(recast_app.frame_text(), "[]")
