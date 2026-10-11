@@ -28,6 +28,10 @@ from .paths import no_window
 
 RATE = midi_synth.RATE
 
+# A way to read a recording when there is no ffmpeg: a function (path) -> mono 16-bit samples at RATE. The Android app sets it
+# (its own decoder reads FLAC, MP3, AAC and OGG); on the desktop it stays None and ffmpeg is used.
+FILE_DECODER: Optional[Callable[[str], np.ndarray]] = None
+
 
 def _synth_version() -> str:
     """A fingerprint of the code that turns a tune into sound: when it changes, every cached render
@@ -313,6 +317,8 @@ class AudioEngine:
     def _ffmpeg_file(self, path: str) -> np.ndarray:
         """A file on disk, read by ffmpeg itself (some formats, such as .m4a, cannot be read
         from a pipe), as mono 16-bit at RATE."""
+        if not self.ffmpeg and FILE_DECODER is not None:
+            return np.ascontiguousarray(FILE_DECODER(path), dtype=np.int16)
         if not self.ffmpeg:
             raise ValueError("ffmpeg is not installed")
         r = subprocess.run([self.ffmpeg, "-nostdin", "-v", "quiet", "-i", path, "-f", "s16le", "-ac", "1",

@@ -222,6 +222,46 @@ class EngineOverrideMoreTests(EngineOverrideTests):
         self.assertGreater(np.abs(eng.decode(self.mid, "title.mid")[: R]).max(), 7000)
 
 
+class FileDecoderHookTests(unittest.TestCase):
+    """Without ffmpeg (the phone), a recording is read by audio.FILE_DECODER, then fitted and scaled as usual."""
+
+    def test_the_hook_reads_the_recording_when_there_is_no_ffmpeg(self):
+        from khvcemu import audio
+        mid = tune()
+        seen = []
+
+        def decoder(path):
+            seen.append(path)
+            return (np.ones(R * 3, np.int16) * 4000)
+
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = decoder
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False, music={"master": 0.5},
+                                    music_files={"title.mid": {"path": "x.flac", "gain": 0.5}})
+            eng.ffmpeg = None
+            pcm = eng.decode(mid, "title.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertEqual(seen, ["x.flac"])
+        self.assertEqual(len(pcm), len(midi_synth.render_midi(mid)))
+        self.assertEqual(int(pcm[R]), 1000, "4000 x gain 0.5 x music volume 0.5")
+
+    def test_without_ffmpeg_or_a_hook_the_tune_falls_back_to_the_games_music(self):
+        from khvcemu import audio
+        mid = tune()
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = None
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False,
+                                    music_files={"title.mid": {"path": "x.flac", "gain": 1.0}})
+            eng.ffmpeg = None
+            pcm = eng.decode(mid, "title.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertTrue(np.array_equal(pcm, midi_synth.render_midi(mid)))
+
+
 class CommandLineTests(unittest.TestCase):
     def test_bad_music_file_options_stop_with_a_message(self):
         from khvcemu.__main__ import main
