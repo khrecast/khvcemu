@@ -2,7 +2,12 @@ package com.khrecast.recast;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.AudioFormat;
+import android.media.AudioTrack;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +19,10 @@ import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
 
 import java.util.Locale;
 
@@ -31,6 +40,17 @@ public class SoundActivity extends Activity {
     private Button deleteMix;
     private java.util.List<String> mixNames = new java.util.ArrayList<>();   // ready-made mixes, saved mixes, then "Custom"
     private boolean loading;                            // true while the screen sets the sliders itself
+    private Spinner tune;
+    private Button playButton;
+    private TextView tuneStatus;
+    private AudioTrack track;                           // the tune being played (looping), or null
+    private boolean wantPlaying;                        // the player pressed Play and has not pressed Stop
+    private int renderToken;                            // a newer request makes an older render's result obsolete
+    private boolean rendering;                          // one tune is made at a time (the interpreter is shared with the game)
+    private boolean renderAgain;                        // asked again while one was being made: make it again when it ends
+    private static final Object PYTHON_START = new Object();
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private final Runnable restart = this::startTune;   // after the sliders move: make the tune again
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +59,44 @@ public class SoundActivity extends Activity {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.addView(Labels.picture(this, R.drawable.menu_sound, 32, Labels.maxWidth(this), false, "Sound"));
+
+        col.addView(heading("Try the music"));
+        tune = new Spinner(this);
+        String[] tuneNames = new String[SoundSettings.TUNES.length];
+        for (int i = 0; i < tuneNames.length; i++) {
+            tuneNames[i] = SoundSettings.TUNES[i][1];
+        }
+        tune.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, tuneNames));
+        col.addView(tune);
+        playButton = new Button(this);
+        playButton.setText("Play");
+        Labels.theme(playButton, true);
+        playButton.setOnClickListener(v -> {
+            if (wantPlaying) {
+                stopTune();
+            } else {
+                wantPlaying = true;
+                startTune();
+            }
+        });
+        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
+        playLp.topMargin = dp(6);
+        col.addView(playButton, playLp);
+        tuneStatus = note("Plays the tune with the sliders below, over and over. Move a slider and it is made again a moment "
+                + "later, so you can tune by ear. Pick another tune while it plays to change over.");
+        col.addView(tuneStatus);
+        tune.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (wantPlaying) {
+                    startTune();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
 
         col.addView(heading("Mix"));
         mix = new Spinner(this);
@@ -63,7 +121,7 @@ public class SoundActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         mixRow.topMargin = dp(6);
         col.addView(mixButtons, mixRow);
-        col.addView(note("Pick a ready-made mix, or move the sliders for your own. Heard the next time the game starts. "
+        col.addView(note("Pick a ready-made mix, or move the sliders for your own. Press Play above to hear it now; the game uses it the next time it starts. "
                 + "The game's own sound effects are not changed. The first start after a change takes a few seconds longer "
                 + "while the music is made."));
 
@@ -173,6 +231,7 @@ public class SoundActivity extends Activity {
         loading = false;
         if (save) {
             Settings.setMusic(this, normalized(text));                // exactly what was chosen, not re-read from the sliders
+            scheduleRestart();
         }
         showMixName();
     }
@@ -202,6 +261,133 @@ public class SoundActivity extends Activity {
         }
         Settings.setMusic(this, SoundSettings.text(now));
         showMixName();
+        scheduleRestart();
+    }
+
+    /** While a tune is playing, a changed setting makes it again after the player pauses (a slider sends many changes). */
+    private void scheduleRestart() {
+        if (wantPlaying) {
+            ui.removeCallbacks(restart);
+            ui.postDelayed(restart, 700);
+        }
+    }
+
+    /** Makes the chosen tune with the saved music settings (a few seconds, off the screen's thread) and plays it in a loop. */
+    private void startTune() {
+        if (!wantPlaying) {
+            return;
+        }
+        ui.removeCallbacks(restart);
+        silence();
+        playButton.setText("Stop");
+        tuneStatus.setText("Making the music...");
+        if (rendering) {
+            renderAgain = true;                                     // not two at once: this one starts when the first ends
+            return;
+        }
+        rendering = true;
+        final int token = ++renderToken;
+        final String name = SoundSettings.TUNES[Math.max(0, tune.getSelectedItemPosition())][0];
+        final String settings = Settings.music(this);
+        new Thread(() -> {
+            try {
+                synchronized (PYTHON_START) {
+                    if (!Python.isStarted()) {
+                        Python.start(new AndroidPlatform(getApplicationContext()));
+                    }
+                }
+                PyObject app = Python.getInstance().getModule("recast_app");
+                byte[] pcm = app.callAttr("render_tune", GameInstaller.gameDir(this).getAbsolutePath(), name, settings)
+                        .toJava(byte[].class);
+                runOnUiThread(() -> {
+                    rendering = false;
+                    if (renderAgain) {
+                        renderAgain = false;
+                        startTune();                                 // the settings changed meanwhile: this one is out of date
+                    } else if (token == renderToken && wantPlaying && !isDestroyed()) {
+                        playLoop(pcm);
+                    }
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    rendering = false;
+                    renderAgain = false;
+                    if (token == renderToken && !isDestroyed()) {
+                        wantPlaying = false;
+                        playButton.setText("Play");
+                        tuneStatus.setText("Could not make that tune: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+                    }
+                });
+            }
+        }, "tune-render").start();
+    }
+
+    private void playLoop(byte[] pcm) {
+        silence();
+        AudioTrack t = null;
+        try {
+            t = new AudioTrack.Builder()
+                    .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                    .setAudioFormat(new AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(22050).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                    .setBufferSizeInBytes(Math.max(pcm.length, 4096))
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build();
+            if (t.write(pcm, 0, pcm.length) != pcm.length) {
+                throw new IllegalStateException("the sound did not fit in the player");
+            }
+            t.setLoopPoints(0, pcm.length / 2, -1);
+            t.play();
+            track = t;
+            tuneStatus.setText("Playing. Move the sliders to change it.");
+        } catch (RuntimeException e) {
+            if (t != null) {
+                t.release();
+            }
+            wantPlaying = false;
+            playButton.setText("Play");
+            tuneStatus.setText("Could not play it: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+        }
+    }
+
+    private void silence() {
+        AudioTrack t = track;
+        track = null;
+        if (t != null) {
+            try {
+                t.stop();
+            } catch (IllegalStateException ignored) {
+            }
+            t.release();
+        }
+    }
+
+    private void stopTune() {
+        wantPlaying = false;
+        renderAgain = false;
+        renderToken++;
+        ui.removeCallbacks(restart);
+        silence();
+        playButton.setText("Play");
+        tuneStatus.setText("Stopped.");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (wantPlaying) {
+            stopTune();                                             // no music behind another screen
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        wantPlaying = false;
+        renderToken++;
+        ui.removeCallbacks(restart);
+        silence();
+        super.onDestroy();
     }
 
     /** The settings text of the mix at a position of the Mix list, or null for "Custom". */

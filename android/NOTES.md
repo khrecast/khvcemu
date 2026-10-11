@@ -547,6 +547,19 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   in the game" (needs a decoder for FLAC and MP3 without ffmpeg: Android's `MediaCodec`), the SoundFont option and clearing the
   music cache.
 
+## The Sound screen plays the tunes (2026-10-10, built; NOT tried on the phone, it was not authorized for adb)
+
+- **"Try the music" at the top of the Sound screen:** a list of the game's nine tunes (`SoundSettings.TUNES`, the launcher's list; a
+  test keeps it equal to `music_preview.TUNES`) and a Play / Stop button. Play asks Python for the tune made with the saved
+  slider text (`recast_app.render_tune`: `music_preview.tune_path` finds the file in the game's `mod` folder, `midi_synth.render_midi`
+  makes it, mono 16-bit at 22,050 Hz) on a worker thread, and plays it in a loop with a static `AudioTrack`. Moving a slider or picking
+  a mix makes it again 0.7 s after the last change; picking another tune changes over; leaving the screen stops it.
+- **Measured on the PC, not the phone:** rendering `keyblade.mid` took 0.4 s on the desktop (157,718 bytes). How long the long tunes
+  take on the S23 is not measured, and nothing could be heard here; the status line says "Making the music..." meanwhile.
+- **One tune is made at a time** (a change that arrives meanwhile makes it again afterwards). Python is shared with the game, so a
+  game running behind (the Sound screen can be opened from the game's menu) may run slower while a tune is made; not measured.
+- **Still not done here:** the comparison with a recording and "use a recording in the game" (a decoder for FLAC and MP3).
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

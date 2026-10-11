@@ -1,5 +1,6 @@
 """Files the Android app keeps a copy of must stay identical to the originals in khvcemu/assets."""
 import os
+import sys
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -36,6 +37,33 @@ class AndroidAssetCopyTests(unittest.TestCase):
         self.assertEqual([name for name, _ in presets], list(ms.PRESETS))
         for name, text in presets:
             self.assertEqual(ms.parse(text, strict=False), ms.changed(ms.PRESETS[name]), name)
+
+    def test_the_apps_tune_list_matches_music_preview(self):
+        import re
+        from khvcemu import music_preview
+        path = os.path.join(ROOT, "android", "app", "src", "main", "java", "com", "khrecast", "recast", "SoundSettings.java")
+        with open(path, encoding="utf-8") as f:
+            source = f.read()
+        start = source.index("TUNES = {")
+        block = source[start:source.index("};", start)]
+        tunes = re.findall(r'\{"([a-z_]+\.mid)", "([^"]+)"\}', block)
+        self.assertEqual(tunes, list(music_preview.TUNES))
+
+    def test_the_sound_screen_can_make_a_tune_from_the_game_files(self):
+        dump = os.environ.get("KH_DUMP", "")
+        from khvcemu import music_preview
+        if not dump or not music_preview.tune_path(dump, "keyblade.mid"):
+            self.skipTest("the game files are not here")
+        sys.path.insert(0, os.path.join(ROOT, "android", "app", "src", "main", "python"))
+        try:
+            import recast_app
+            pcm = recast_app.render_tune(dump, "keyblade.mid", "bass=1.6")
+            self.assertGreater(len(pcm), 1000)
+            self.assertEqual(len(pcm) % 2, 0)                      # 16-bit samples
+            with self.assertRaises(FileNotFoundError):
+                recast_app.render_tune(dump, "no_such_tune.mid", "")
+        finally:
+            sys.path.remove(os.path.join(ROOT, "android", "app", "src", "main", "python"))
 
     def test_the_apps_leaderboard_address_is_the_launchers(self):
         from khvcemu.launcher import LEADERBOARD_URL

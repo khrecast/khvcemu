@@ -420,6 +420,21 @@ def start_game(native_lib_dir, game_dir, data_dir, start_world="", speed_off="",
         return _game.session
 
 
+def render_tune(game_dir, tune, music_text):
+    """One of the game's tunes (a file name from music_preview.TUNES) made with the given music settings text, as mono
+    16-bit samples at midi_synth.RATE (22050 Hz), for the Sound screen to play. The game's own state is not touched, but a game
+    running in the same process shares the interpreter, so it may run slower while this works."""
+    from khvcemu import music_preview, music_settings
+    from khvcemu.audio import device_bytes
+    from khvcemu.midi_synth import RATE, render_midi
+    path = music_preview.tune_path(game_dir, tune)
+    if not path:
+        raise FileNotFoundError("the game has no tune %s" % tune)
+    with open(path, "rb") as f:
+        pcm = render_midi(f.read(), music_settings.parse(music_text or "", strict=False))
+    return device_bytes(pcm, RATE, 1)
+
+
 def stop(session=0):
     """Ask the game thread to end (the game screen is closing for good). With a session number, only that game is
     stopped: a late call from a screen that is already gone cannot end the game that replaced it."""

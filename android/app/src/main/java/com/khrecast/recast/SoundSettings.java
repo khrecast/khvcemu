@@ -30,6 +30,19 @@ final class SoundSettings {
     /** How many of the sliders are about loudness (the rest are about character). */
     static final int VOLUME_COUNT = 10;
 
+    /** The game's tunes, in the launcher's order: the file in the game's mod folder and the name shown (music_preview.TUNES). */
+    static final String[][] TUNES = {
+            {"training.mid", "Title menu and Obstacle Course"},
+            {"island.mid", "Swashbuckler's Island"},
+            {"agrabah.mid", "Agrabah"},
+            {"castle.mid", "Maleficent's Castle"},
+            {"death.mid", "Game over"},
+            {"keyblade.mid", "Keyblade found (short)"},
+            {"good.mid", "Good (short)"},
+            {"bad.mid", "Bad (short)"},
+            {"magic_alert.mid", "Magic alert (short)"},
+    };
+
     /** {name, settings text}: the ready-made mixes, in the order they are listed. */
     static final String[][] PRESETS = {
         {"As tuned", ""},
