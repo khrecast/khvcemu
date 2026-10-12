@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.chaquo.python")
@@ -13,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "0.0.1-spike"
+        versionName = "0.1.0"                // the first release; raise versionCode with every release you hand out (Android refuses a lower one)
         ndk {
             // Unicorn is built for the phone's 64-bit ARM only (see android/NOTES.md)
             abiFilters += listOf("arm64-v8a")
@@ -39,9 +41,29 @@ android {
         }
     }
 
+    // The release signing key is read from android/keystore.properties (gitignored: storeFile, storePassword, keyAlias, keyPassword). Without that
+    // file the release build is simply unsigned, as before. Keep the key file and that file safe: an app signed with another key cannot update this one.
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.isFile) {
+            f.inputStream().use { load(it) }
+        }
+    }
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

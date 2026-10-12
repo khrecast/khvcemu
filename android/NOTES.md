@@ -917,7 +917,24 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   "Restore the default settings" keeps saved mixes (they are the player's work, not a setting). Names are compared without regard
   to case (saving "my piano" replaces "My piano") and "Custom" is not allowed. Not done: favorites, renaming, export of mixes to the desktop's `launcher.json` format, recordings and the tune player.
 
-## Release readiness, checked 2026-10-10 (nothing signed, nothing published)
+## Signing and building the release (2026-10-12; signed build made, not installed or published)
+
+- **The key:** made on 2026-10-12 at the owner's request (RSA 4096, PKCS12, alias `recast`, valid 10,000 days, certificate `CN=Re:Cast, O=Re:Cast`: no personal name in it). The key file is in a folder
+  of its own in the owner's home folder, outside the repository (`storeFile` in `android/keystore.properties` says where; give it an absolute path), and that properties file also holds the generated password. It is gitignored
+  (`*.jks`, `*.keystore` and `keystore.properties` are all ignored). The password was never printed or put in a tracked file. **Back up both files** (a password manager and one more copy): an app signed
+  with another key cannot update this one, so a lost key means every user must uninstall (losing their saves and game files in the app) to get an update. Certificate SHA-256 (public, for checking a download):
+  `686ba6d779f92a927c82c7e882a28744b6dc9faafeeb06918b27d6cc41af0eac`.
+- **Build:** in `android`, run `gradlew.bat assembleRelease "-Precast.buildPython=<a Python 3.12>"` (the same note as the debug build). It gives `app/build/outputs/apk/release/app-release.apk` (28.6 MB), signed with that key when
+  `keystore.properties` exists (without it the release is unsigned, as before). `apksigner verify --print-certs` says it verifies (one signer, v2 scheme; v1 is not needed at minSdk 26); the package has
+  no key files and no personal strings in its text entries; label Re:Cast, `com.khrecast.recast`, version **0.1.0 (code 1)**, targetSdk 36, arm64 only, one permission (INTERNET), not debuggable, backups off.
+  **Raise `versionCode` in `app/build.gradle.kts` for every release you hand out** (Android refuses an update with a lower one).
+- **Not done: running the signed build on the phone.** The phone has the debug build, signed with the debug key, so the release cannot be installed over it: Android would need the debug app uninstalled first,
+  which deletes its saves, settings and installed game files (export saves from Saved games first; the game files would have to be picked again).
+- **Still open before handing it out (each is the owner's call):** (1) the Unicorn library is GPLv2 and the project is GPL-3.0; (2) numpy and Pillow are only 4 KB aligned, so phones that use 16 KB memory pages
+  cannot run it (the S23 and most phones today use 4 KB); (3) the APK carries the Wonderland theme (Aid1043's rendering, credited in `docs/CREDITS.md`) while the opening notice says "no game files": decide the
+  wording and whether to ship it publicly; (4) the privacy wording against the website; (5) where it will be downloaded from, and its checksum next to the link (the desktop installers have `SHA256SUMS`).
+
+## Release readiness, checked 2026-10-10 (nothing signed, nothing published; signing is done since 2026-10-12, see "Signing and building the release" above)
 
 - **A release build compiles** (`assembleRelease`, unsigned): **25.9 MB** (the debug build is 37.6 MB; the bar was 60 MB). Signing
   needs a key that only the project owner should make and keep; the app is sideloaded, not on a store.
