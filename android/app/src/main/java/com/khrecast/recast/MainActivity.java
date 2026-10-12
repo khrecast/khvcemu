@@ -22,6 +22,7 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -102,6 +103,33 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Puts the Wonderland theme (packed in the app when it was built, if the file was there) where the core looks for it: game/wonderland.
+     * The core then plays it on the Wonderland splash. Done at every start, since installing the game files again replaces that folder.
+     */
+    private void installWonderlandTheme(File game) {
+        File target = new File(new File(game, "wonderland"), "Wonderland.flac");
+        try (java.io.InputStream in = getAssets().open("wonderland/Wonderland.flac")) {
+            if (target.isFile() && in.available() == target.length()) {
+                return;                                             // already there (a build with another theme file has another size)
+            }
+            target.getParentFile().mkdirs();
+            File part = new File(target.getPath() + ".part");
+            try (java.io.OutputStream out = new java.io.FileOutputStream(part)) {
+                byte[] buf = new byte[1 << 16];
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                }
+            }
+            if (!part.renameTo(target)) {
+                part.delete();
+            }
+        } catch (IOException e) {
+            // no theme packed in this build: the splash stays silent, as before
+        }
+    }
+
     private void startGame() {
         File game = new File(getFilesDir(), "game");
         File data = new File(getFilesDir(), "data");
@@ -109,6 +137,7 @@ public class MainActivity extends Activity {
             view.setStatus("game files not found in " + game + " (see android/NOTES.md)");
             return;
         }
+        installWonderlandTheme(game);
         try {
             if (!Python.isStarted()) {
                 Python.start(new AndroidPlatform(this));

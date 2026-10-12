@@ -62,6 +62,23 @@ val stagePython = tasks.register<Copy>("stagePython") {
     from("../spike/bench_headless.py")
 }
 tasks.named("preBuild") { dependsOn(stagePython) }
+
+// The Wonderland theme (Aid1043's rendering, credited in docs/CREDITS.md) is packed into the app the same way the desktop installers
+// carry it: from the repository's gitignored wonderland/ folder, only if that file is there when the app is built. It is not in git.
+val stageWonderland = tasks.register<Copy>("stageWonderland") {
+    into(layout.buildDirectory.dir("wonderland-assets/wonderland"))
+    doFirst { delete(layout.buildDirectory.dir("wonderland-assets")) }      // (a theme removed from wonderland/ must leave the next build too)
+    from("../../wonderland") {
+        include("Wonderland.flac")
+    }
+}
+tasks.named("preBuild") { dependsOn(stageWonderland) }
+tasks.matching { it.name.contains("Assets") }.configureEach { dependsOn(stageWonderland) }
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(stageWonderland, { project.objects.directoryProperty().also { it.set(layout.buildDirectory.dir("wonderland-assets")) } })
+    }
+}
 // Chaquopy's merge task reads the staging folder, so Gradle needs the dependency spelled out
 tasks.matching { it.name.endsWith("PythonSources") }.configureEach { dependsOn(stagePython) }
 

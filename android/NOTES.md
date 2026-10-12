@@ -819,6 +819,23 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the pages and back at 25 fps after; both pages fit the screen. **Not reached:** the real Wonderland splash (it needs a finished
   Island), so the splash flag, the Continue press that follows and the clock catch-up were tested only with the flag.
 
+## The Wonderland theme (2026-10-11, done; the owner heard it)
+
+- **What it is:** the lost Wonderland chapter's music, Aid1043's "Authentic Restoration" rendering of the original MIDI (credited in `docs/CREDITS.md`; the desktop
+  installers carry the same file). The core already plays it on the Wonderland splash if `wonderland/Wonderland.flac` sits in the game folder (`chapters.install_patches`
+  serves it as `wonderland.mid`, the name the game asks for).
+- **On the phone:** (1) `app/build.gradle.kts` packs `../wonderland/Wonderland.flac` into the APK as an asset **only if that file is there when the app is built** (the folder is
+  gitignored, as it is for the desktop installers; a build without it simply has no theme; the debug APK grew by 1.4 MB); (2) `MainActivity.installWonderlandTheme` copies it to
+  `files/game/wonderland/` at each game start if it is missing (installing the game files again replaces that folder); (3) the core's audio engine now decodes any audio
+  buffer through `audio.FILE_DECODER` when there is no ffmpeg (before, only a player's recording went through it), because the theme reaches the engine as the FLAC's bytes.
+  A test covers the new path (`tests/test_music_mixes.py`).
+- **Verified on the S23 Ultra** with a new diagnostic flag file (`files/wl_test_flag`, next to `lm_test_flag` and `profile_flag`): the core played the theme at start through the
+  same path as the splash; no decode error, an AudioTrack was started, and the audio peak in the log was about 9,000 to 13,500 (the other music peaks near 5,000 to 6,000, so
+  this recording is louder; the Setup tab's volume slider has no counterpart in the app yet). The theme is replaced when a build carries a file of another size; a theme removed from `wonderland/` also leaves the next build. **Heard by the owner** during that test run (it played at the game's start because of the flag; the flag file was removed afterwards, so normal starts do not play it). **Not reached by
+  playing:** the real splash, which needs a finished Island.
+- **Not done:** a Wonderland volume setting in the app (`--wonderland-volume`'s counterpart; the file is louder than the other tunes); and the app's notice still says it
+  "contains no game files": the theme is a fan rendering of the game's music (same policy as the desktop installers), so the notice or the credits screen may want a line.
+
 ## Picture filters and text size (2026-10-10, done)
 
 - **Options > Picture filter** has the desktop's four filters: Pixels (crisp), Smooth (bilinear; the desktop's is bicubic, so

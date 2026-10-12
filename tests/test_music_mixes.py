@@ -247,6 +247,28 @@ class FileDecoderHookTests(unittest.TestCase):
         self.assertEqual(len(pcm), len(midi_synth.render_midi(mid)))
         self.assertEqual(int(pcm[R]), 1000, "4000 x gain 0.5 x music volume 0.5")
 
+    def test_the_hook_also_reads_an_audio_buffer_the_game_asks_for(self):
+        """The Wonderland theme reaches the engine as the bytes of a FLAC under the name wonderland.mid."""
+        from khvcemu import audio
+        seen = []
+
+        def decoder(path):
+            with open(path, "rb") as f:
+                seen.append(f.read())
+            return np.ones(R * 2, np.int16) * 777
+
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = decoder
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False)
+            eng.ffmpeg = None
+            pcm = eng.decode(b"fLaC-not-really", "wonderland.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertEqual(seen, [b"fLaC-not-really"])
+        self.assertEqual(len(pcm), R * 2)
+        self.assertEqual(int(pcm[5]), 777)
+
     def test_without_ffmpeg_or_a_hook_the_tune_falls_back_to_the_games_music(self):
         from khvcemu import audio
         mid = tune()

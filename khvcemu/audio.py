@@ -344,6 +344,13 @@ class AudioEngine:
         return resample(a, rate, RATE)
 
     def _ffmpeg(self, data: bytes) -> np.ndarray:
+        if not self.ffmpeg and FILE_DECODER is not None:
+            # no ffmpeg (the phone): the same decoder that reads a player's recording reads this buffer, from a temporary file
+            with tempfile.TemporaryDirectory() as tmp:
+                path = os.path.join(tmp, "buffer.bin")
+                with open(path, "wb") as f:
+                    f.write(data)
+                return np.ascontiguousarray(FILE_DECODER(path), dtype=np.int16)
         if not self.ffmpeg:
             raise ValueError("unknown format and ffmpeg is not installed")
         r = subprocess.run([self.ffmpeg, "-v", "quiet", "-i", "pipe:0", "-f", "s16le", "-ac", "1",

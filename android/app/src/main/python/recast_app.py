@@ -170,6 +170,16 @@ class _Game:
             emu.start()
             if os.path.exists(os.path.join(os.path.dirname(self.game_dir), "lm_test_flag")):
                 emu.wonderland_splash_up = True                    # diagnostics: act as if the Wonderland splash were up
+            if os.path.exists(os.path.join(os.path.dirname(self.game_dir), "wl_test_flag")):
+                # diagnostics: play the Wonderland theme now, through the path the splash uses (the file's bytes under the name wonderland.mid)
+                from khvcemu.paths import find_wonderland_music
+                theme = find_wonderland_music(self.game_dir)
+                if theme:
+                    with open(theme, "rb") as f:
+                        emu.audio.play(f.read(), "wonderland.mid", 100, 0)
+                    print("[wonderland] test: playing %s" % theme, flush=True)
+                else:
+                    print("[wonderland] test: no theme file found under %s" % self.game_dir, flush=True)
             while not self.stop_flag:
                 if profile_wanted:
                     age = time.monotonic() - t_begin
