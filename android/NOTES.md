@@ -339,14 +339,15 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the APK for no gain yet; revisit when there are enough screens to justify it). The settings JSON and the move of the
   option defaults out of `launcher.py` touch the desktop launcher, so they wait for chunk 12 where the options are used.
 
-## The app icon, slightly pixelated (2026-10-12, built and installed; not looked at on the phone's launcher)
+## The app icon, slightly pixelated, thinner line, taller (2026-10-12, built and installed; not looked at on the phone's launcher)
 
-- **The owner's request:** "rough up the icon logo a little, make it slightly pixelated". The first try (40 cells, flat bands, bright and dark edge pixels, and about 7 percent of the edge
-  cells randomly nudged) was "a little too rough ... slightly pixelated, not missing pieces": the nudged edge cells looked like missing pieces. **Now:** `android/tools/make_icon_pixelated.py [cells] [rough]`
-  (new; the first icon was made with an unsaved script) redraws the heart of `khvcemu/assets/recast_icon.png` as **44 cells across**, each cell heart or not (hard edges), the smooth gradient
-  as six flat color bands (light top-left to deep bottom-right), with **no random nudges and no edge pixels** (both are options: a `rough` share such as 0.07, and `edges=True`), so every
-  part of the heart is there. Written to `res/mipmap-*/ic_launcher_foreground.png` at the five densities (heart 56 percent of the canvas as before; cells are about 5.5 px at xxxhdpi, scaled
-  with hard edges); the background color is unchanged. Chosen from previews at 44 and 56 cells with and without the edge pixels.
+- **The owner's requests, in order:** "rough up the icon logo a little, make it slightly pixelated"; then "too rough, slightly pixelated, not missing pieces" (the random edge nudges looked like
+  missing pieces: removed); then "make the heart a little thinner and slightly longer", clarified as "the line thinner, and the size taller". `android/tools/make_icon_pixelated.py [cells] [rough]` (new; the first icon
+  was made with an unsaved script) now **draws the heart itself** from the same outline formula as the window icon (`tools/make_icon.py`: the heart curve with a smaller one cut out), so the line's thickness and the height can be set:
+  `INNER` 0.70 (the hole's size against the heart's; the window icon has 0.52, so a bigger hole is a thinner line), `DROP` -0.75 (the hole sits a little below the middle, which makes the line even all round
+  instead of thick at the bottom and thin at the lobes) and `STRETCH` 1.25 (taller for its width). It is cut into **40 cells across**, each heart or not (hard edges), the gradient is six flat color bands
+  (light top-left to deep bottom-right), no random nudges and no edge pixels (both remain options: a `rough` share such as 0.07, and `edges=True`). Written to `res/mipmap-*/ic_launcher_foreground.png` at the five densities
+  (heart 52 percent of the canvas wide and about 56 percent tall, inside the adaptive icon's 66 percent safe zone; cells about 5.5 px at xxxhdpi, scaled with hard edges); the background color is unchanged.
 - **Only the app's launcher icon.** The desktop window icon and installer icon (`recast_icon.png`/`.ico`), the Re:Cast logo picture on the Home screen and the website are unchanged.
 
 ## Chunk 11: saves (2026-10-10, done in part; the Saves screen is plain, export and import are not done)
