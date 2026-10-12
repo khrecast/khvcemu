@@ -745,6 +745,15 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved
   places, and a switch for it in the game menu (it is in Options only).
 
+## Controls after a screen size change (2026-10-11, fixed from reading the code; NOT reproduced or tested on the phone, it was disconnected)
+
+- **Report:** "controls go out of whack when screen size changes". **Cause found in `GameView.applyOffsets`:** it wrote the clamped position and size (a control pulled inside the free
+  area, a size capped to fit) back into the stored `offset` and `scale`, and those are only reloaded from the saved preferences when the orientation or the layout mode changes.
+  So a size that is squeezed for a while (split-screen or a pop-up window, a different display-size setting, the system bars changing, the keyboard) moved and shrank the controls
+  in memory for good; when the size came back they did not. **Fix:** the stored values are no longer touched while playing (and opening the editor lays out once, so it starts from the fitted values, not the stored ones); the fitting is applied only when drawing, and the
+  values are written back only while the controls editor is open (so dragging a control to an edge still stops at the edge). Not tried on a device; if "out of whack" means
+  something else (for example the built-in two-thumb places on a screen of another shape, which are fractions of the S23's size and can be pulled inward), this does not fix it.
+
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is

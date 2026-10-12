@@ -681,7 +681,9 @@ public class GameView extends View {
             float floor = Math.max(0.5f, Math.min(1f, dp(44) / Math.max(1f, Math.min(b.width(), b.height()))));   // thumb-sized
             float s = Math.max(floor, Math.min(2f, scale[g]));
             s = Math.min(s, Math.min(freeW / Math.max(1f, b.width()), freeH / Math.max(1f, b.height())));
-            scale[g] = s;
+            if (editing) {
+                scale[g] = s;                                               // (only while editing: the size the player sees is the one saved)
+            }
             if (Math.abs(s - 1f) > 0.0005f) {
                 if (twoThumb && (g == 0 || g >= 7)) {
                     RectF r = keyRect(g);
@@ -704,8 +706,10 @@ public class GameView extends View {
             float dx = offset[g][0] * w, dy = offset[g][1] * h;
             dx = Math.max(insetLeft - b.left, Math.min(w - insetRight - b.right, dx));
             dy = Math.max(insetTop - b.top, Math.min(h - insetBottom - b.bottom, dy));
-            offset[g][0] = dx / w;
-            offset[g][1] = dy / h;
+            if (editing) {
+                offset[g][0] = dx / w;                                      // (not otherwise: a window that is squeezed for a while,
+                offset[g][1] = dy / h;                                      // such as split-screen, must not move the saved place for good)
+            }
             if (twoThumb && (g == 0 || g >= 7)) {
                 keyRect(g).offset(dx, dy);
             } else if (g == 0) {
@@ -728,6 +732,9 @@ public class GameView extends View {
         editing = on;
         grabbed = -1;
         grabPointer = -1;
+        if (on) {
+            layoutControls(getWidth(), getHeight());                         // once, so what is edited is what is shown (the stored values may be
+        }                                                                   // beyond the screen after a squeeze: applyOffsets writes back while editing)
         invalidate();
     }
 
