@@ -531,6 +531,7 @@ public class GameView extends View {
         float left = insetLeft, right = w - insetRight, width = right - left;
         float top = insetTop, bottom = h - insetBottom, free = bottom - top;
         float gh = free * 0.93f;                                       // the status line sits under the picture
+        final float ghFit = gh;                                        // the controls are laid out for this size whatever the player's picture size
         if (pictureScale != Settings.FIT) {
             int most = Math.max(1, (int) Math.floor(gh / H));
             gh = H * (pictureScale == Settings.LARGEST ? most : Math.min(pictureScale, most));
@@ -540,8 +541,9 @@ public class GameView extends View {
         dst.set(gx, top + free * 0.01f, gx + gw, top + free * 0.01f + gh);
         statusY = bottom - free * 0.008f;
 
-        float leftW = Math.max(0f, gx - left), rightW = Math.max(0f, right - (gx + gw));
-        float lc = left + leftW / 2f, rc = gx + gw + rightW / 2f;     // the middle of each side
+        float gwFit = ghFit * W / H, gxFit = left + (width - gwFit) / 2f;
+        float leftW = Math.max(0f, gxFit - left), rightW = Math.max(0f, right - (gxFit + gwFit));
+        float lc = left + leftW / 2f, rc = gxFit + gwFit + rightW / 2f;     // the middle of each side
         float softH = free * 0.12f, softTop = top + free * 0.04f, gap = leftW * 0.03f;
         buttons.get(0).r.set(left + gap, softTop, lc - gap, softTop + softH);                      // SOFT1
         buttons.get(1).r.set(lc + gap, softTop, left + leftW - gap, softTop + softH);              // CLR
@@ -550,8 +552,8 @@ public class GameView extends View {
         float areaTop = softTop + softH + free * 0.03f, areaBottom = bottom - free * 0.05f;
         float area = areaBottom - areaTop;
         colL0 = left;
-        colL1 = gx;
-        colR0 = gx + gw;
+        colL1 = gxFit;
+        colR0 = gxFit + gwFit;
         colR1 = right;
         areaT = areaTop;
         areaB = areaBottom;
@@ -919,6 +921,7 @@ public class GameView extends View {
         float left = insetLeft, right = w - insetRight, width = right - left;
         float top = insetTop, bottom = h - insetBottom, free = bottom - top;
         float gh = Math.min(width * (float) H / W, free * 0.60f);      // as large as the width allows, at most 60%
+        final float ghFit = gh;                                        // the controls are laid out for this size whatever the player's picture size
         if (pictureScale != Settings.FIT) {                            // a whole number of screen pixels per game pixel
             int most = Math.max(1, (int) Math.floor(gh / H));          // the largest that fits
             gh = H * (pictureScale == Settings.LARGEST ? most : Math.min(pictureScale, most));
@@ -938,7 +941,7 @@ public class GameView extends View {
         // the status line sits at the bottom of the free area; the pad and buttons end above it, a little higher
         // than the bare edge, so a thumb resting on them never touches the gesture area
         statusY = bottom - free * 0.008f;
-        float areaTop = softTop + soft + free * 0.012f;
+        float areaTop = top + free * 0.01f + ghFit + free * 0.012f + soft + free * 0.012f;   // (below where the fitted picture's softkeys would be)
         float areaBottom = bottom - free * 0.04f;
         float area = areaBottom - areaTop;
         float cy = areaTop + area / 2f;

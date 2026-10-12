@@ -745,14 +745,17 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved
   places, and a switch for it in the game menu (it is in Options only).
 
-## Controls after a screen size change (2026-10-11, fixed from reading the code; NOT reproduced or tested on the phone, it was disconnected)
+## Controls after a size change (2026-10-11, fixed and checked on the S23)
 
-- **Report:** "controls go out of whack when screen size changes". **Cause found in `GameView.applyOffsets`:** it wrote the clamped position and size (a control pulled inside the free
-  area, a size capped to fit) back into the stored `offset` and `scale`, and those are only reloaded from the saved preferences when the orientation or the layout mode changes.
-  So a size that is squeezed for a while (split-screen or a pop-up window, a different display-size setting, the system bars changing, the keyboard) moved and shrank the controls
-  in memory for good; when the size came back they did not. **Fix:** the stored values are no longer touched while playing (and opening the editor lays out once, so it starts from the fitted values, not the stored ones); the fitting is applied only when drawing, and the
-  values are written back only while the controls editor is open (so dragging a control to an edge still stops at the edge). Not tried on a device; if "out of whack" means
-  something else (for example the built-in two-thumb places on a screen of another shape, which are fractions of the S23's size and can be pulled inward), this does not fix it.
+- **Report:** "controls go out of whack when screen size changes". **What it was:** the **Picture size** option (the owner had it on 5x, not the default fit). A smaller picture left a
+  taller area for the controls, which sat higher and were sized from it, while the two-thumb default places are fractions tuned for the fitted picture; Magic ended up over the Up key and
+  everything was bigger. **Fix:** `GameView.layoutBase` and `layoutLandscape` lay the controls out for the fitted picture size whatever the picture size is; the picture and the
+  softkeys under it follow the chosen size (a gap is left above the controls). Checked on the S23 with Picture size 5x: the controls are where they are at the default size, in
+  portrait and landscape. (The default size is unchanged in the code: `ghFit` equals the picture height there.)
+- **A real display-size change was tested too** (`wm size 900x1800`, then back): the controls were laid out again each time and came back to where they were, so that is not what
+  the report was about. A related hygiene fix (commit `6cddfa5`) stays: `applyOffsets` used to write its fitted positions and sizes back into the stored ones, so a window squeezed for a
+  while (split-screen, a pop-up window) could move and shrink the saved controls for good; they are now written back only while the editor is open, and opening the editor lays out once.
+  That one was found by reading the code, and the squeeze test above did not exercise it (the screen size returned to the start each time).
 
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
