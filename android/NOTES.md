@@ -345,9 +345,9 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   missing pieces: removed); then "make the heart a little thinner and slightly longer", clarified as "the line thinner, and the size taller". `android/tools/make_icon_pixelated.py [cells] [rough]` (new; the first icon
   was made with an unsaved script) now **draws the heart itself** from the same outline formula as the window icon (`tools/make_icon.py`: the heart curve with a smaller one cut out), so the line's thickness and the height can be set:
   `INNER` 0.70 (the hole's size against the heart's; the window icon has 0.52, so a bigger hole is a thinner line), `DROP` -0.75 (the hole sits a little below the middle, which makes the line even all round
-  instead of thick at the bottom and thin at the lobes) and `STRETCH` 1.25 (taller for its width). It is cut into **40 cells across**, each heart or not (hard edges), the gradient is six flat color bands
+  instead of thick at the bottom and thin at the lobes) and `STRETCH` 1.12 (taller for its width; it was 1.25, which the owner found too tall: "squish it down a bit, centered on the icon"). It is cut into **40 cells across**, each heart or not (hard edges), the gradient is six flat color bands
   (light top-left to deep bottom-right), no random nudges and no edge pixels (both remain options: a `rough` share such as 0.07, and `edges=True`). Written to `res/mipmap-*/ic_launcher_foreground.png` at the five densities
-  (heart 52 percent of the canvas wide and about 56 percent tall, inside the adaptive icon's 66 percent safe zone; cells about 5.5 px at xxxhdpi, scaled with hard edges); the background color is unchanged.
+  (heart 52 percent of the canvas wide and about 51 percent tall, centered by its visible shape to within half a pixel at all five sizes (an empty grid row under the thin tip had left it a few pixels high), inside the adaptive icon's 66 percent safe zone; cells about 5.5 px at xxxhdpi, scaled with hard edges); the background color is unchanged.
 - **Only the app's launcher icon.** The desktop window icon and installer icon (`recast_icon.png`/`.ico`), the Re:Cast logo picture on the Home screen and the website are unchanged.
 
 ## Chunk 11: saves (2026-10-10, done in part; the Saves screen is plain, export and import are not done)

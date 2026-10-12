@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 RES = os.path.join(ROOT, "android", "app", "src", "main", "res")
 DENSITIES = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
 HEART_SHARE = 0.52                    # the heart's width as a share of the canvas (the adaptive icon's safe zone is the middle 66%)
-STRETCH = 1.25                        # the heart is this much taller for its width than the window icon's heart
+STRETCH = 1.12                        # the heart is this much taller for its width than the window icon's heart
 INNER = 0.70                          # the hole's size against the heart's (the window icon: 0.52): a bigger hole is a thinner line
 DROP = -0.75                          # how far the hole sits above the heart's middle, in heart units (the window icon: 2.0; below the middle here, which evens out the line)
 BANDS = [(120, 240, 255), (70, 205, 252), (38, 160, 244), (25, 120, 232), (18, 88, 214), (12, 62, 180)]   # light top-left to deep bottom-right
@@ -89,7 +89,8 @@ def icon(size: int, n_wide: int, rough: float = 0.0, edges: bool = False, stretc
     heart_h = round(heart_w * n_high / n_wide)
     big = cell.resize((heart_w, heart_h), Image.NEAREST)            # hard-edged cells
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    canvas.paste(big, ((size - heart_w) // 2, (size - heart_h) // 2 + round(size * 0.01)), big)
+    big = big.crop(big.getbbox())                                   # (the grid can have an empty row under the thin tip)
+    canvas.paste(big, ((size - big.width) // 2, (size - big.height) // 2), big)      # the visible heart exactly centered
     return canvas
 
 
