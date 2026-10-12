@@ -67,10 +67,13 @@ public class GameView extends View {
     private final float[] scale = new float[Settings.CONTROL_GROUPS];      // 1 = the default size
     private int pinchPointer = -1;
     private float pinchStartDist, pinchStartScale;
-    private final RectF resetRect = new RectF(), modeRect = new RectF();   // the editor's two buttons: put back, and one thumb or two
-    private boolean offsetLandscape, offsetTwoThumb, offsetsLoaded;
+    private final RectF resetRect = new RectF(), modeRect = new RectF();   // the editor's two buttons: put back, and the layout button
+    private boolean offsetLandscape, offsetsLoaded;
+    private int offsetLayout;                    // the layout the loaded places belong to
     // the two-thumb layout: four arrow keys, each a control of its own (groups 0, 7, 8 and 9)
-    private boolean twoThumb;
+    private int layoutMode = Settings.LAYOUT_CROSS;
+    private boolean twoThumb = true;               // the arrow keys are four controls of their own (layouts A and B); false: the d-pad (C)
+    private float areaTReal;                       // the top of the room under the softkeys as the real picture leaves it (layout A fills it)
     private final RectF upR = new RectF(), downR = new RectF(), leftR = new RectF(), rightR = new RectF();
     private float colL0, colL1, colR0, colR1, areaT, areaB;                 // the room the controls have: two columns and their height
     private volatile boolean editing;
@@ -129,12 +132,13 @@ public class GameView extends View {
         editEnded = r;
     }
 
-    /** The two-thumb layout (smartphone look): forward and back, Magic and Status on the left; turn and Action on the right. */
-    public void setTwoThumb(boolean on) {
-        if (on != twoThumb) {
-            twoThumb = on;
+    /** The touch layout (smartphone look): Settings.LAYOUT_CROSS, LAYOUT_TWO_THUMB or LAYOUT_DPAD. Each has its own saved places. */
+    public void setControlLayout(int layout) {
+        if (layout != layoutMode) {
+            layoutMode = layout;
+            twoThumb = layout != Settings.LAYOUT_DPAD;
             releaseAll();
-            offsetsLoaded = false;                                          // it has its own saved places
+            offsetsLoaded = false;
             layoutControls(getWidth(), getHeight());
             postInvalidate();
         }
@@ -556,6 +560,7 @@ public class GameView extends View {
         colR0 = gxFit + gwFit;
         colR1 = right;
         areaT = areaTop;
+        areaTReal = areaTop;                                                // (the picture size does not change this sideways)
         areaB = areaBottom;
         padR = Math.min(leftW * 0.44f, area * 0.46f);
         padX = lc;
@@ -592,22 +597,47 @@ public class GameView extends View {
             return;                                                 // the phone has its own keys: no moved or resized controls
         }
         layoutBase(w, h);
-        if (twoThumb) {
+        if (layoutMode == Settings.LAYOUT_CROSS) {
+            layoutCross();
+        } else if (layoutMode == Settings.LAYOUT_TWO_THUMB) {
             layoutTwoThumb();
         }
         boolean landscape = w > h;
-        if (!offsetsLoaded || offsetLandscape != landscape || offsetTwoThumb != twoThumb) {   // each has its own positions
+        if (!offsetsLoaded || offsetLandscape != landscape || offsetLayout != layoutMode) {   // each has its own positions
             for (int g = 0; g < Settings.CONTROL_GROUPS; g++) {
-                float[] saved = Settings.controlOffset(getContext(), landscape, twoThumb, g);
+                float[] saved = Settings.controlOffset(getContext(), landscape, layoutMode, g);
                 offset[g][0] = saved[0];
                 offset[g][1] = saved[1];
-                scale[g] = Settings.controlScale(getContext(), landscape, twoThumb, g);
+                scale[g] = Settings.controlScale(getContext(), landscape, layoutMode, g);
             }
             offsetLandscape = landscape;
-            offsetTwoThumb = twoThumb;
+            offsetLayout = layoutMode;
             offsetsLoaded = true;
         }
         applyOffsets(w, h);
+    }
+
+    /**
+     * Layout A, the cross: Action in the middle with an arrow key straight above, below, left and right of it (all the same distance and
+     * size) and Magic and Status in the bottom corners, level with the down key. It is worked out from the room under the softkeys, so
+     * it is the same shape at every picture size and screen size: Action's radius is a sixth of the height it needs (the keys are
+     * 1.85 radii wide, 2.2 radii from the middle; Magic and Status 0.72 radii, 2.5 radii out), capped by the width. In portrait it is centered
+     * on the screen; sideways it sits in the right-hand column.
+     */
+    private void layoutCross() {
+        boolean landscape = getWidth() > getHeight();
+        float x0 = landscape ? colR0 : colL0, x1 = colR1;
+        float aT = areaTReal, aB = areaB, cw = Math.max(1f, x1 - x0), ch = Math.max(1f, aB - aT);
+        float ra = Math.min(ch / 6.25f, cw * 0.98f / 6.44f);
+        float cx = (x0 + x1) / 2f, cy = (aT + aB) / 2f;
+        float key = ra * 1.85f, d = ra * 2.2f, ms = ra * 0.72f, mx = ra * 2.5f;
+        setCircle(buttons.get(3), cx, cy, ra);                              // Action
+        upR.set(cx - key / 2f, cy - d - key / 2f, cx + key / 2f, cy - d + key / 2f);
+        downR.set(cx - key / 2f, cy + d - key / 2f, cx + key / 2f, cy + d + key / 2f);
+        leftR.set(cx - d - key / 2f, cy - key / 2f, cx - d + key / 2f, cy + key / 2f);
+        rightR.set(cx + d - key / 2f, cy - key / 2f, cx + d + key / 2f, cy + key / 2f);
+        setCircle(buttons.get(4), cx - mx, cy + d, ms);                     // Magic
+        setCircle(buttons.get(5), cx + mx, cy + d, ms);                     // Status
     }
 
     /**
@@ -766,12 +796,11 @@ public class GameView extends View {
                             .setNegativeButton("Cancel", null).show();
                     return true;
                 }
-                if (modeRect.contains(x, y)) {                                  // one thumb (the d-pad) or two thumbs (the split keys)
-                    boolean on = !twoThumb;
-                    Settings.setTwoThumb(getContext(), on);
-                    setTwoThumb(on);
-                    android.widget.Toast.makeText(getContext(), on ? "Two-thumb movement: left thumb forward and back, right thumb turns"
-                            : "One-thumb movement: the d-pad", android.widget.Toast.LENGTH_SHORT).show();
+                if (modeRect.contains(x, y)) {                                  // the next layout: A, B, C, A...
+                    int next = (layoutMode + 1) % 3;
+                    Settings.setControlLayout(getContext(), next);
+                    setControlLayout(next);
+                    android.widget.Toast.makeText(getContext(), "Layout " + Settings.LAYOUT_NAMES[next], android.widget.Toast.LENGTH_SHORT).show();
                     return true;
                 }
                 for (int g = Settings.CONTROL_GROUPS - 1; g >= 0 && grabbed < 0; g--) {   // later groups sit on top
@@ -853,8 +882,8 @@ public class GameView extends View {
 
     private void saveGrabbed() {
         if (grabbed >= 0) {
-            Settings.setControlOffset(getContext(), offsetLandscape, offsetTwoThumb, grabbed, offset[grabbed][0], offset[grabbed][1]);
-            Settings.setControlScale(getContext(), offsetLandscape, offsetTwoThumb, grabbed, scale[grabbed]);
+            Settings.setControlOffset(getContext(), offsetLandscape, offsetLayout, grabbed, offset[grabbed][0], offset[grabbed][1]);
+            Settings.setControlScale(getContext(), offsetLandscape, offsetLayout, grabbed, scale[grabbed]);
         }
     }
 
@@ -950,6 +979,7 @@ public class GameView extends View {
         colR0 = left + width / 2f;
         colR1 = right;
         areaT = areaTop;
+        areaTReal = softTop + soft + free * 0.012f;                         // the room the real picture's softkeys leave
         areaB = areaBottom;
         padR = Math.min(width * 0.24f, area * 0.46f);
         padX = left + width * 0.27f;
@@ -1062,7 +1092,7 @@ public class GameView extends View {
             fill.setColor(0xFF2B4A7A);
             c.drawRoundRect(modeRect, dp(10), dp(10), fill);
             text.setColor(Color.WHITE);
-            drawFitted(c, twoThumb ? "Movement: two thumbs (tap for one)" : "Movement: one thumb (tap for two)", modeRect);
+            drawFitted(c, "Layout " + Settings.LAYOUT_NAMES[layoutMode] + " (tap for " + Settings.LAYOUT_NAMES[(layoutMode + 1) % 3].charAt(0) + ")", modeRect);
             String hint = "Drag to move, pinch to resize. Back when done.";
             float size = Math.max(getHeight() * 0.018f, dp(13));
             text.setTextSize(size);

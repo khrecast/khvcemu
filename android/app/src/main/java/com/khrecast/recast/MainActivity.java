@@ -589,7 +589,7 @@ public class MainActivity extends Activity {
             view.setPictureScale(scale);
             view.setFilter(Settings.pictureFilter(MainActivity.this));
             view.setFlipColor(Settings.flipColor(MainActivity.this));
-            view.setTwoThumb(Settings.twoThumb(MainActivity.this));
+            view.setControlLayout(Settings.controlLayout(MainActivity.this));
             view.setFlipSmallBezel(Settings.flipSmallBezel(MainActivity.this));
             view.setFlipMode(Settings.flipPhone(MainActivity.this));
             view.reloadControlOffsets();                       // the controls may have been reset in Options

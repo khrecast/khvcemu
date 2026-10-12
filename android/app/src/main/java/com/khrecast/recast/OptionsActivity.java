@@ -116,10 +116,11 @@ public class OptionsActivity extends Activity {
                 + "with softkeys, a navigation ring, Call and End keys and a 12-key keypad (2, 4, 6, 8 move, 5 selects, * is Magic, "
                 + "0 is Status). The picture has a fixed size here. Turning the phone sideways uses the usual controls."));
         col.addView(flipColorRow());
-        col.addView(toggle("Two-thumb controls (smartphone look)", Settings.twoThumb(this), Settings::setTwoThumb));
-        col.addView(note("The game was made for a phone keypad, moved with two thumbs. Left thumb: forward and back, Magic and Status. "
-                + "Right thumb: turn left and right, Action. No diagonals to aim for, so you cannot run in circles. Move and resize "
-                + "every key (each arrow on its own) from the game's menu; it keeps its own places, and \"Put the controls back\" returns to the built-in arrangement."));
+        col.addView(layoutRow());
+        col.addView(note("The game was made for a phone keypad. A: the cross, Action in the middle with an arrow key on each side, Magic and "
+                + "Status below. B: two thumbs, forward and back and Magic and Status at the left, turn and Action at the right. C: one "
+                + "thumb on a d-pad. No diagonals to aim for in A and B. Move and resize every key from the game's menu; each layout keeps "
+                + "its own places, and \"Put the controls back\" returns to the built-in arrangement."));
         col.addView(toggle("Small bezel: a bigger picture (needs the flip phone look)", Settings.flipSmallBezel(this), Settings::setFlipSmallBezel));
         col.addView(note("Move and resize the touch controls from the game's menu (Back, then Move the controls): drag a control to "
                 + "move it, pinch it with two fingers to make it bigger or smaller."));
@@ -228,6 +229,32 @@ public class OptionsActivity extends Activity {
 
     private interface Setter {
         void set(android.content.Context c, boolean v);
+    }
+
+    /** "Control layout" with a list of the three touch layouts (smartphone look). */
+    private View layoutRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        TextView label = text("Control layout (smartphone look)", 16, Color.WHITE);
+        label.setPadding(0, dp(10), 0, 0);
+        row.addView(label);
+        android.widget.Spinner spinner = new android.widget.Spinner(this);
+        spinner.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, Settings.LAYOUT_NAMES));
+        spinner.setSelection(Settings.controlLayout(this));
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View v, int position, long id) {
+                if (position != Settings.controlLayout(OptionsActivity.this)) {
+                    Settings.setControlLayout(OptionsActivity.this, position);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        row.addView(spinner);
+        return row;
     }
 
     /** "Flip phone color" with a list of the body colors (it only shows when the flip phone look is on). */

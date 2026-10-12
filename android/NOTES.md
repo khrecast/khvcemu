@@ -705,7 +705,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   it; a pure-Python QCELP decoder would be the answer, not written). One first start of `sora_hit.pmd` showed no mixer channel (it played afterwards);
   not explained.
 
-## Two-thumb controls (2026-10-11, built; seen on the S23, not played with)
+## Two-thumb controls (2026-10-11, built; seen on the S23, not played with; this is layout B now, and its "on by default" and `Settings.twoThumb` below are superseded by "Three control layouts")
 
 - **Why (the owner's idea):** the game was made for a phone keypad, played with two thumbs (forward and back with one, turning with the other). On the
   smartphone look one thumb on a d-pad has to steer and move, so a precise diagonal is needed and you can end up running in circles; the flip phone
@@ -744,6 +744,21 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Seen on the S23:** the layout in portrait and landscape (the keys at the bottom corners of each column, Magic and Status small in portrait) and an Up key lighting
   while held. **Not tried:** playing with it (feel, hit areas, whether Magic and Status are big enough in portrait), the controls editor with the new groups, the saved
   places, and a switch for it in the game menu (it is in Options only).
+
+## Three control layouts, the cross is the default (2026-10-11, built; NOT seen on the phone, it was disconnected)
+
+- **The owner's request:** a screenshot of their own arrangement (Action in the middle, an arrow key on each side, Magic and Status in the bottom corners) "should be the
+  default; leave the other ones as b and c options; align these buttons, just giving you the idea of the shape". So there are now three layouts for the smartphone look
+  (`Settings.controlLayout`, Options > Control layout, and the layout button in "Move the controls", which cycles A, B, C):
+  **A: cross** (default), **B: two thumbs** (the earlier default, kept with its built-in places), **C: one thumb (d-pad)**. Each has its own saved places
+  (`ctl2_port4_*` for A, `..._port3_*` for B, none for C); an install that had chosen the d-pad before (`two_thumb` false) keeps it, every other gets A.
+- **Layout A's geometry (`GameView.layoutCross`):** worked out from the room under the softkeys, not from stored offsets, so it is the same shape at any picture size or screen: Action's
+  radius `ra` is the smaller of a 6.25th of that height and a 6.44th of the width (times 0.98); the four arrow keys are 1.85 `ra` square, 2.2 `ra` from Action's centre
+  (above, below, left, right, all alike: the screenshot had them a little uneven); Magic and Status are 0.72 `ra`, 2.5 `ra` to each side, level with the down key. Portrait: centred
+  on the screen; sideways: in the right-hand column (nothing is at the left yet). At the default picture size the room is 563 px tall on the S23, so `ra` is 90 px (a bit smaller than in the
+  owner's screenshot, which was taken with Picture size 5x: 708 px, `ra` 113 px). A drawing of it at both sizes on the PC looked right; the app was only built.
+- **Still true for B:** its places are fractions tuned for the fitted picture and use the fit-based area (the fix below), so a picture size does not move them. Layout A uses the real
+  area under the softkeys instead (it is computed from it, so it adapts).
 
 ## Controls after a size change (2026-10-11, fixed and checked on the S23)
 
