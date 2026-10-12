@@ -697,6 +697,10 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   `QcelpDecoder.java`, which feeds the packets to the phone's own QCELP decoder (`MediaCodec` "audio/qcelp"; Samsung phones have `c2.sec.qcelp.decoder`).
   `recast_app._qcelp_with_android` passes the packets through a temporary file. The log then showed the effects decoding with real lengths (swipe 320 ms,
   jump 140 ms, enemy hit 500 ms), and the owner confirmed they are heard.
+- **A later failure, found while the owner heard silence ("sound is still not working sometimes"):** the log showed `could not decode sora_jump.pmd: could not write
+  .../p.pcm`, and no sound after it. `QcelpDecoder.decode` deleted its `.part` file in a `finally` that ran before the rename, so the rename failed whenever the decode
+  was otherwise fine. It now renames inside the `try` once the streams are closed and deletes the file only after a failure. After the fix a jump made sound (peak
+  about 6,000 in the log, no error). Not found: whether the earlier "first start of `sora_hit` with no channel" was the same fault (it probably was).
 - **Limits:** `QcelpDecoder.available()` is checked when the game starts (the hook is only set if the phone has the decoder); a phone without one still has no effects (nothing else is decoded for
   it; a pure-Python QCELP decoder would be the answer, not written). One first start of `sora_hit.pmd` showed no mixer channel (it played afterwards);
   not explained.

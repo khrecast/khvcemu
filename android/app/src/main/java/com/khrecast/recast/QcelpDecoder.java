@@ -41,8 +41,10 @@ public final class QcelpDecoder {
         File tmp = new File(out + ".part");
         int rate = 8000;
         int channels = 1;
-        try (DataInputStream packets = new DataInputStream(new java.io.BufferedInputStream(new FileInputStream(in)));
-             OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp))) {
+        boolean done = false;
+        try {
+            try (DataInputStream packets = new DataInputStream(new java.io.BufferedInputStream(new FileInputStream(in)));
+                 OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp))) {
             MediaFormat format = MediaFormat.createAudioFormat("audio/qcelp", 8000, 1);
             codec.configure(format, null, null, 0);
             codec.start();
@@ -112,20 +114,24 @@ public final class QcelpDecoder {
                     }
                 }
             }
+            }                                                       // (the streams are closed and flushed here, before the rename)
+            File dest = new File(out);
+            if (dest.exists() && !dest.delete() || !tmp.renameTo(dest)) {
+                throw new IOException("could not write " + out);
+            }
+            done = true;
+            return rate;
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IOException("the QCELP decoder failed (" + e.getMessage() + ")");
         } finally {
-            tmp.delete();                                           // (gone after a rename; left only after a failure)
+            if (!done) {
+                tmp.delete();                                       // only after a failure (after the rename there is nothing to delete)
+            }
             try {
                 codec.stop();
             } catch (IllegalStateException ignored) {
             }
             codec.release();
         }
-        File dest = new File(out);
-        if (dest.exists() && !dest.delete() || !tmp.renameTo(dest)) {
-            throw new IOException("could not write " + out);
-        }
-        return rate;
     }
 }
