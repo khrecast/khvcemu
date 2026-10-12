@@ -724,7 +724,8 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 - **Each arrow is its own control (the owner's request):** the four arrow keys are groups 0 (forward), 7 (back), 8 (turn left) and 9 (turn right), each moved and resized
   alone in the editor (ten groups now); the two pairs of the first version are gone. Their saved places moved to a new name (`port3`/`land3`), so the places saved with the pairs
   are not read; the built-in default gives each key the place it has in the owner's tidied arrangement (worked out from the old pair offsets with the pair scaling, so the
-  look is the same). Built; not seen on the phone (it was disconnected).
+  look is the same). Seen on the S23: each arrow has its own dashed box in the editor, dragging the Up key moved only the Up key, Action reads Enter on the title menu,
+  and the phone's own saved values for the old layout (read from `ctl2_port2_*`) matched the numbers worked out from the screenshot to within 0.0006 of the screen's size.
 - **Bigger, and a switch in the editor (the owner's next request):** all the two-thumb buttons are 18 percent bigger than first built (Magic, Status, Action and the
   four arrow keys). In "Move the controls" a second button under "Put the controls back" switches between two-thumb and one-thumb (the d-pad) movement; it
   saves the same setting as the Options switch. The editor's two buttons are kept as wide as the picture and their text shrinks to fit (a review found they could spill over the side columns sideways; seen sideways on the S23 after the fix: both stay over the picture and the text fits). Seen on the S23: the bigger keys in portrait, the editor with the new button, and switching to one thumb (the d-pad
