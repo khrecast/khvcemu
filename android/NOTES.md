@@ -339,13 +339,14 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   the APK for no gain yet; revisit when there are enough screens to justify it). The settings JSON and the move of the
   option defaults out of `launcher.py` touch the desktop launcher, so they wait for chunk 12 where the options are used.
 
-## The app icon, roughed up (2026-10-12, built; not looked at on the phone's launcher)
+## The app icon, slightly pixelated (2026-10-12, built and installed; not looked at on the phone's launcher)
 
-- **The owner's request:** "rough up the icon logo a little, make it slightly pixelated". `android/tools/make_icon_pixelated.py [cells]` (new; the first icon was made with an unsaved script) redraws the heart of
-  `khvcemu/assets/recast_icon.png` as 40 cells across: each cell is heart or not (hard edges), the smooth gradient is six flat color bands (light top-left to deep bottom-right), a bright
-  pixel lines the top and left edges and a dark one the bottom and right, and about 7 percent of the boundary cells are nudged (fixed seed, so the same icon every time). Written to
-  `res/mipmap-*/ic_launcher_foreground.png` at the five densities (heart 56 percent of the canvas as before, scaled with hard edges, so the cells are 6 px at xxxhdpi and 4 or 5 px at
-  xxhdpi); the background color is unchanged. Chosen from previews at 30, 40, 48 and 60 cells (60 was too subtle, 30 chunky); `python android/tools/make_icon_pixelated.py 30` makes another.
+- **The owner's request:** "rough up the icon logo a little, make it slightly pixelated". The first try (40 cells, flat bands, bright and dark edge pixels, and about 7 percent of the edge
+  cells randomly nudged) was "a little too rough ... slightly pixelated, not missing pieces": the nudged edge cells looked like missing pieces. **Now:** `android/tools/make_icon_pixelated.py [cells] [rough]`
+  (new; the first icon was made with an unsaved script) redraws the heart of `khvcemu/assets/recast_icon.png` as **44 cells across**, each cell heart or not (hard edges), the smooth gradient
+  as six flat color bands (light top-left to deep bottom-right), with **no random nudges and no edge pixels** (both are options: a `rough` share such as 0.07, and `edges=True`), so every
+  part of the heart is there. Written to `res/mipmap-*/ic_launcher_foreground.png` at the five densities (heart 56 percent of the canvas as before; cells are about 5.5 px at xxxhdpi, scaled
+  with hard edges); the background color is unchanged. Chosen from previews at 44 and 56 cells with and without the edge pixels.
 - **Only the app's launcher icon.** The desktop window icon and installer icon (`recast_icon.png`/`.ico`), the Re:Cast logo picture on the Home screen and the website are unchanged.
 
 ## Chunk 11: saves (2026-10-10, done in part; the Saves screen is plain, export and import are not done)

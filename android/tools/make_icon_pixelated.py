@@ -1,10 +1,11 @@
-"""Make the Android app icon: the Re:Cast heart as a slightly pixelated, roughed-up picture, at the five launcher densities.
+"""Make the Android app icon: the Re:Cast heart, slightly pixelated, at the five launcher densities.
 
-    python android/tools/make_icon_pixelated.py [cells]        (default 40 cells across the heart)
+    python android/tools/make_icon_pixelated.py [cells] [rough]        (default 44 cells across the heart, no roughness)
 
 The heart is the hollow blue one from khvcemu/assets/recast_icon.png (drawn by tools/make_icon.py). It is cut into a coarse grid of cells,
-each cell is either heart or not (hard edges, no smoothing), the smooth gradient becomes a few flat color bands, and the boundary cells are
-nudged here and there (a fixed seed, so the same icon comes out every time) so the edge looks hand-made. Writes
+each cell is either heart or not (hard edges, no smoothing) and the smooth gradient becomes a few flat color bands. Nothing is added or
+removed: with a `rough` share above 0 (say 0.07) that share of the boundary cells is nudged (a fixed seed, so the same icon comes out every
+time), which looked like missing pieces and is off by default; `edges=True` in cells() adds a bright and a dark pixel along the edges. Writes
 android/app/src/main/res/mipmap-*/ic_launcher_foreground.png; the adaptive icon's background is unchanged.
 """
 
@@ -24,7 +25,7 @@ SHADE = (8, 40, 128)                  # the bottom and right edge of the shape
 LIGHT = (190, 250, 255)               # a bright pixel on the top and left edge
 
 
-def cells(n_wide: int, seed: int = 7):
+def cells(n_wide: int, seed: int = 7, rough: float = 0.0, edges: bool = False):
     """(rgba array of the heart as n_wide cells across, its height in cells)."""
     src = Image.open(SOURCE).convert("RGBA")
     box = src.getbbox()
@@ -40,8 +41,8 @@ def cells(n_wide: int, seed: int = 7):
     rng = np.random.default_rng(seed)
     pad = np.pad(on, 1)
     edge = (pad[1:-1, 1:-1] != pad[:-2, 1:-1]) | (pad[1:-1, 1:-1] != pad[2:, 1:-1]) | (pad[1:-1, 1:-1] != pad[1:-1, :-2]) | (pad[1:-1, 1:-1] != pad[1:-1, 2:])
-    flip = edge & (rng.random(on.shape) < 0.07)
-    on = on ^ flip
+    if rough > 0:
+        on = on ^ (edge & (rng.random(on.shape) < rough))
     # flat color bands, light top-left to deep bottom-right (as the smooth icon runs)
     yy, xx = np.mgrid[0:n_high, 0:n_wide].astype(np.float32)
     t = np.clip((0.55 * (xx / n_wide) + 0.45 * (yy / n_high) - 0.05) / 0.9, 0, 0.999)
@@ -53,16 +54,17 @@ def cells(n_wide: int, seed: int = 7):
     pad = np.pad(on, 1)
     top_left = on & (~pad[:-2, 1:-1] | ~pad[1:-1, :-2])
     bottom_right = on & (~pad[2:, 1:-1] | ~pad[1:-1, 2:])
-    rgb[bottom_right & ~top_left] = SHADE
-    rgb[top_left & ~bottom_right] = LIGHT
+    if edges:
+        rgb[bottom_right & ~top_left] = SHADE
+        rgb[top_left & ~bottom_right] = LIGHT
     out = np.zeros((n_high, n_wide, 4), np.uint8)
     out[..., :3] = rgb
     out[..., 3] = np.where(on, 255, 0)
     return out, n_high
 
 
-def icon(size: int, n_wide: int) -> Image.Image:
-    grid, n_high = cells(n_wide)
+def icon(size: int, n_wide: int, rough: float = 0.0, edges: bool = False) -> Image.Image:
+    grid, n_high = cells(n_wide, rough=rough, edges=edges)
     cell = Image.fromarray(grid, "RGBA")
     heart_w = round(size * HEART_SHARE)
     heart_h = round(heart_w * n_high / n_wide)
@@ -72,13 +74,13 @@ def icon(size: int, n_wide: int) -> Image.Image:
     return canvas
 
 
-def main(n_wide: int = 40):
+def main(n_wide: int = 44, rough: float = 0.0):
     for name, size in DENSITIES.items():
         folder = os.path.join(RES, "mipmap-" + name)
         os.makedirs(folder, exist_ok=True)
-        icon(size, n_wide).save(os.path.join(folder, "ic_launcher_foreground.png"), optimize=True)
-    print("wrote the launcher icon with %d cells across the heart" % n_wide)
+        icon(size, n_wide, rough).save(os.path.join(folder, "ic_launcher_foreground.png"), optimize=True)
+    print("wrote the launcher icon with %d cells across the heart (roughness %.2f)" % (n_wide, rough))
 
 
 if __name__ == "__main__":
-    main(int(sys.argv[1]) if len(sys.argv) > 1 else 40)
+    main(int(sys.argv[1]) if len(sys.argv) > 1 else 44, float(sys.argv[2]) if len(sys.argv) > 2 else 0.0)
