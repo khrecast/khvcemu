@@ -45,8 +45,8 @@
   **Find Wonderland** is in the storybook Alice font between a heart and a spade, its letters tumbling (and wobbling as the page scrolls, unless the visitor's device asks for less motion) in the Cheshire Cat's
   colors, and **Jiminy's Journal** is a handwritten note (the Caveat font) with a top hat on the J. Both fonts are free
   (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
-  menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip
-  (with its sound), the picture of his 24-minute recording and the two stills from his post, unedited, with his
+  menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip,
+  the picture of his 24-minute recording and the two stills from his post, unedited, with his
   watermark and a credit line linking his post. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland and Jiminy's Journal have their own pages,
   sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` still land on them. When it is released, the Android download is one zip,
   `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum then goes
