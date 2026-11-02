@@ -324,8 +324,8 @@ class Emulator:
         ranking is the one shown, and the offline table answers if it can't be
         reached. Everything else (the dead servers) is a 404."""
         from .leaderboard import Leaderboard
-        from .web import (default_leaderboard_path, share_scores, with_play_time, with_stats,
-                          wonderland_post)
+        from .web import (default_leaderboard_path, share_scores, with_device, with_play_time,
+                          with_stats, wonderland_post)
         if self.leaderboard is None:
             self.leaderboard = Leaderboard(default_leaderboard_path(self))
         answer = self.leaderboard.handle(url)
@@ -343,13 +343,18 @@ class Emulator:
                 self.log("[web] Wonderland repeats the Island score already shared; not sent again")
             else:
                 target = wonder[1] if wonder else url
+                secs = None
                 if pt:
-                    target = with_play_time(target, pt.seconds_for_url(url))
+                    secs = pt.seconds_for_url(url)
+                    target = with_play_time(target, secs)
                     target = with_stats(target, pt.stats_for_url(url))
+                target = with_device(target)
                 shared = share_scores(target, self.leaderboard_url)
                 if shared is None:
                     self.log("[web] the shared leaderboard didn't answer; using your own scores")
                 else:
+                    if pt:
+                        pt.shared(url, secs)               # the run to beat from now on
                     # the game asked about "wonderland", so it must be answered as such
                     body = shared.replace(b"|island~", b"|wonderland~") if wonder else shared
         self.log(f"[web] {url} -> {code} {body.decode('latin-1')}")

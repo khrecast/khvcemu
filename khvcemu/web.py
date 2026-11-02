@@ -10,6 +10,7 @@ episode download, gets a 404 and the game shows its own error.
 from __future__ import annotations
 
 import os
+import sys
 import urllib.error
 import urllib.request
 from typing import TYPE_CHECKING, Optional
@@ -72,14 +73,41 @@ def with_stats(url: str, stats) -> str:
     return urlunsplit(parts._replace(query=urlencode(q, doseq=True)))
 
 
+def platform_name() -> str:
+    """The kind of device this runs on, as one word: windows, mac, linux or android (or other)."""
+    if hasattr(sys, "getandroidapilevel") or "ANDROID_DATA" in os.environ:     # Python on Android (the app)
+        return "android"
+    if sys.platform.startswith("win"):
+        return "windows"
+    if sys.platform == "darwin":
+        return "mac"
+    if sys.platform.startswith("linux"):
+        return "linux"
+    return "other"
+
+
+def with_device(url: str) -> str:
+    """The same rank.php request with the kind of device (`pl`) and the Re:Cast version (`vr`)
+    added, so the shared leaderboard knows where a score came from. Nothing more specific is sent."""
+    from urllib.parse import parse_qs, urlencode, urlunsplit
+    from . import __version__
+    parts = urlsplit(url)
+    if not parts.path.lower().endswith("/rank.php"):
+        return url
+    q = parse_qs(parts.query, keep_blank_values=True)
+    q["pl"] = [platform_name()]
+    q["vr"] = [__version__]
+    return urlunsplit(parts._replace(query=urlencode(q, doseq=True)))
+
+
 def share_scores(url: str, base: str, timeout: float = REMOTE_TIMEOUT) -> Optional[bytes]:
     """Ask a shared leaderboard (server/worker.js) the question the game asked, by
     putting the game's own path and query on `base`. Returns the reply, or None if
     anything at all went wrong, in which case the caller answers offline instead.
 
-    Only the score itself is sent: the level, the number, how long the run took, and the
-    Munny, EXP and level behind it. There is no account and nothing identifying is added to
-    the request."""
+    Only the score itself is sent: the level, the number, how long the run took, the Munny,
+    EXP and level behind it, and the kind of device and Re:Cast version. There is no account
+    and nothing identifying is added to the request."""
     parts = urlsplit(url)
     target = base.rstrip("/") + parts.path + (("?" + parts.query) if parts.query else "")
     if urlsplit(target).scheme not in ("http", "https"):

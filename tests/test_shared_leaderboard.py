@@ -80,6 +80,33 @@ class SharedLeaderboardTests(unittest.TestCase):
         self.assertIsNone(share_scores(RANK, "http://no-such-host.invalid", timeout=2.0))
 
 
+class DeviceTests(unittest.TestCase):
+    """The kind of device and the Re:Cast version go with a shared score; nothing more specific."""
+
+    def test_the_device_and_version_are_added_to_score_posts_only(self):
+        from unittest import mock
+        from khvcemu import __version__
+        from khvcemu.web import with_device
+        with mock.patch("khvcemu.web.platform_name", return_value="windows"):
+            out = with_device(RANK)
+        self.assertIn("pl=windows", out)
+        self.assertIn("vr=" + __version__, out)
+        other = "http://x/disney/rankex.php?uid=&aid=KH&lid=island&s=1&t=1"
+        self.assertEqual(with_device(other), other)
+
+    def test_platform_names(self):
+        from unittest import mock
+        from khvcemu import web
+        for plat, want in (("win32", "windows"), ("darwin", "mac"), ("linux", "linux"), ("sunos5", "other")):
+            with mock.patch.object(web.sys, "platform", plat), mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("ANDROID_DATA", None)
+                if hasattr(web.sys, "getandroidapilevel"):
+                    self.skipTest("running on Android")
+                self.assertEqual(web.platform_name(), want, plat)
+        with mock.patch.dict(os.environ, {"ANDROID_DATA": "/data"}):
+            self.assertEqual(web.platform_name(), "android")
+
+
 class FallbackTests(unittest.TestCase):
     """What the game is handed when the shared leaderboard is or isn't working."""
 
@@ -157,6 +184,9 @@ class FallbackTests(unittest.TestCase):
         def stats_for_url(self, url):
             return self.stats
 
+        def shared(self, url, seconds):
+            self.shared_with = seconds
+
     def test_munny_exp_and_level_are_sent_with_the_score(self):
         from unittest import mock
         self.emu.leaderboard_url = "http://example.invalid"
@@ -195,6 +225,16 @@ class FallbackTests(unittest.TestCase):
             self.emu.web_request(RANK)
         self.assertIn("pt=754", shared.call_args[0][0])
         self.assertIn("t=55", shared.call_args[0][0], "the game's own value is left as it was")
+        self.assertIn("pl=", shared.call_args[0][0], "the kind of device goes with it")
+        self.assertEqual(self.emu.playtime.shared_with, 754, "the shared run is the one to beat")
+
+    def test_a_score_the_server_did_not_answer_is_not_the_one_to_beat(self):
+        from unittest import mock
+        self.emu.leaderboard_url = "http://example.invalid"
+        self.emu.playtime = self._Timer(754)
+        with mock.patch("khvcemu.web.share_scores", return_value=None):
+            self.emu.web_request(RANK)
+        self.assertFalse(hasattr(self.emu.playtime, "shared_with"))
 
     def test_a_wonderland_post_carries_the_time_too(self):
         from unittest import mock
