@@ -5,7 +5,7 @@
 
 **An emulator for the 2005 Verizon V CAST *Kingdom Hearts* mobile game**
 (Superscape / Disney Mobile, Qualcomm BREW), so a lost piece of Kingdom Hearts
-history can be played again on a PC. The project is called *Kingdom Hearts
+history can be played again on a PC or an Android phone. The project is called *Kingdom Hearts
 Re:Cast*; the code, package and command are `khvcemu`.
 
 It runs the game's own `kh.mod` and Superscape's `swv21brew.mod` Swerve 3D
@@ -19,6 +19,13 @@ surviving Wonderland journal and splash screen, then carries on to Agrabah.
 only on its original phones, on a collector's modified Zeebo console, or without
 any audio in an Android emulator. As far as we know, khvcemu is the first
 emulator to play it with its music and sound effects in context.
+
+**Coming soon to Android, for the first time ever with full sound.** The Re:Cast app (a sideloaded
+`.apk`, Android 8 or newer, 64-bit phones; tested on a Galaxy S23 Ultra) runs the same core with touch controls in three layouts, a
+2005 flip phone mode with a real keypad, an Action button that shows what it will do, the sound screen
+and save states that move between the PC and the phone. It will be on [khrecast.com](https://khrecast.com)
+as one zip with the game files (`KH-ReCast-Android.zip`);
+how it is built and tested is in [`android/NOTES.md`](android/NOTES.md).
 
 > **Please read.** Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.
 
@@ -294,9 +301,26 @@ clock, not a completion time). It counts the game's clock while a world is on sc
 pausing, switching to another window, closing the window or loading a save state never adds or removes time, and the
 Summary screen ends the run. Every world you finish, and every score the game posts, is appended to
 `~/.khvcemu/<dump folder name>/clear_times.csv` with the time measured, and totals are kept
-in `playtime.json` beside it. The measured time is also sent with a shared score, and
+in `playtime.json` beside it. The measured time is also sent with a shared score (unless a save state was used, see below), and
 the shared leaderboard turns away runs under a minimum for the world (Island 6 minutes, Agrabah 10,
 Castle 8).
+
+**Save states and the shared leaderboard.** A score is shared only from a run played to its Summary screen
+without loading a save state (autosaves count as save states). Save states make a run easy to repeat, so a run
+in which one was loaded, or a score posted after loading one, goes into your own table only: it is still timed
+and logged, but it is sent without its time, which the shared leaderboard does not record. Saving a state is
+fine; loading one is what counts. A clear finished in an earlier sitting is not sent either. A world in which you loaded a state
+and then gave up stays marked until its next Summary, so the next finished run of it is not
+shared either; the one after is.
+
+**Only your best is shared.** A score goes to the shared leaderboard only when it beats the best this copy of
+Re:Cast has already shared for that world (a higher score, or the same score in less time), so replays and
+weaker runs never pile up. The best is kept in `playtime.json`. A score the server never answered does not count;
+one it answered but chose not to store (the ten-minute limit, say) still does, so post your next better run.
+
+**Feedback.** Bugs, ideas, reviews or Wonderland memories go in Jiminy's Journal on the website
+([khrecast.com/journal](https://khrecast.com/journal)): entries show at once and the owner answers there. Each
+entry is public and also emailed to the project inbox; an email address you leave is kept privately, only to answer you.
 
 **The shared leaderboard.** Scores can also be ranked against other people's.
 The launcher's Options has **Share high scores with:**, **ticked by default** and
@@ -306,18 +330,18 @@ can be edited to point at your own server, and leaving it empty means the defaul
 line it is opt-in with `--leaderboard URL`, and you can run your own server. Your
 scores are always kept offline too, and khvcemu falls back to them whenever the
 server can't be reached. There are no accounts or names: only the world, score,
-time and the Munny, EXP and level behind the score (read from the game's Summary screen) are
-sent, and the game never shows another player's name, only a rank number. The project's
+time and the Munny, EXP and level behind the score (read from the game's Summary screen), and the kind of device
+(Windows, Mac, Linux or Android) and the Re:Cast version, are sent; the board shows all but the version, plus
+when each score was shared. The game never shows another player's name, only a rank number. The project's
 leaderboard page, `site/leaderboard.html`, shows the top 100 of each world with those
-columns. The server uses a salted, shortened hash of the sender's address solely
-to allow one score per address every ten minutes and deletes it after ten minutes (details in
+columns, the platform and the date. The server stores no addresses (details in
 [`server/README.md`](server/README.md)). Scores come from the player's machine,
 so treat a shared rank as a rough comparison rather than a competitive ranking. The Android app
-(in development) shares scores the same way, but asks first and starts out not sharing until you answer ("Restore the default settings" brings the question back).
+shares scores the same way, but asks first and starts out not sharing until you answer ("Restore the default settings" brings the question back).
 
 **Website counters.** The project website counts, anonymously and per day, how often its pages are
 opened, which parts of the main page are scrolled to and which buttons are clicked (downloads per platform,
-source and issue links), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
+source and issue links, journal entries sent), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
 location of the connection), the kind of computer (Windows, Mac, Linux, phone) and the website that linked to it
 (its name only, from a short fixed list). No cookies, and the project's server keeps no address, browser string or
 anything else about the visitor, only a day, a name and a number; the tallies are kept apart and never stored per visit, though on a very quiet day (a visit or two) the counts could still be matched up by eye. Browsers that send Do Not Track or Global Privacy Control are not counted
@@ -553,6 +577,14 @@ screenshots from the time. khvcemu shows the journal and splash where the game
 always showed them, between the Island and Agrabah:
 
 ![Wonderland journal and splash in khvcemu](docs/wonderland/khvcemu_wonderland_screens.png)
+
+**A recording exists.** On August 31, 2026, Spanish games writer Pablo González
+([@Caith_Sith on X](https://x.com/Caith_Sith/status/2094527931410252207)) posted a 16-second
+clip of the chapter (a flower in a dark garden asks Sora to find the seeds the Queen of Hearts
+stole) and showed a 24-minute video file, "3 - Alice in Wonderland (part1)", reportedly recorded in
+2014 for an article that was never written. We, and members of the Kingdom Hearts preservation
+community, have reached out to him and have not heard back yet; he is said to be holding the
+recording for the series' 25th anniversary. It is a video, not the game: Wonderland still needs its files from a phone.
 
 Screenshots of the lost level (from 2005-era coverage) and its splash art:
 

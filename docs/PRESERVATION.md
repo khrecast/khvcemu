@@ -39,7 +39,13 @@ game's own "delete the old chapter" step.
 No copy of chapter 2's files is known to exist. What survives is what the
 other chapters carry: Jiminy's journal entry (`ro_wonderland_jtext.m3g`), the
 splash image, two screenshots from the time, and the composer's MIDI of its
-theme. khvcemu bridges the gap (see the README), and appeals to anyone who
+theme. A video recording also exists: on August 31, 2026, Spanish games writer
+Pablo González ([@Caith_Sith](https://x.com/Caith_Sith/status/2094527931410252207))
+posted a 16-second clip of the chapter and showed a 24-minute file, "3 - Alice in
+Wonderland (part1)", reportedly recorded in 2014. The project's website shows his clip and
+pictures on its Find Wonderland page, unedited, with his watermark and credit. He has not answered the project or
+the preservation community yet, and is said to be holding the recording for the
+series' 25th anniversary. A video does not make the chapter playable. khvcemu bridges the gap (see the README), and appeals to anyone who
 might still have the chapter on a phone. If that's you, please don't reset the
 phone: email **khrecast@gmail.com** so the files can be dumped safely.
 

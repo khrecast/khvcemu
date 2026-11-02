@@ -44,7 +44,9 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 
 | Who | What | Links |
 | --- | --- | --- |
-| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo, the launcher's tab names and the Android app's menu names are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
+| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo, the launcher's tab names, the Android app's menu names and the website menu's Main Menu, Leaderboard and Download are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
+| **The Caveat Project Authors** | The Caveat handwriting font, used for the website menu's "Jiminy's Journal" note. SIL Open Font License 1.1; the font and its license are in `site/assets/fonts/`. | [Caveat on GitHub](https://github.com/googlefonts/caveat) |
+| **Cyreal (The Alice Project Authors)** | The Alice font, inspired by Lewis Carroll's books, used for "Find Wonderland" in the website menu. SIL Open Font License 1.1; the font and its license are in `site/assets/fonts/`. | [Alice on GitHub](https://github.com/cyrealtype/Alice) |
 
 The Re:Collection set has no formal license. Its README says: "If you decide to use these assets
 and fonts publicly, giving credit is much appreciated although not necessary." This repository

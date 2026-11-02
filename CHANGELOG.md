@@ -7,9 +7,55 @@
   Android app's) could not, so they are now real PNG files with identical pixels. A test checks every `.png` in the assets.
 
 ### New
-- **Android app (in development, sideloaded; not released).** The game runs on a phone with touch controls, saves and
-  save states that move between the PC and the phone (the same `.khs` files), an Options screen, and a first-start question
-  about sharing high scores (nothing is sent until the player says yes). See `android/NOTES.md`.
+- **Jiminy's Journal: a public feedback board on the website.** Reviews, ideas, bug reports, complaints, rants,
+  Wonderland info or anything else, with an optional nickname, device and version, show on the site at once; an optional
+  email address stays private and lets the owner answer. Each entry is emailed to the project inbox (through Cloudflare Email
+  Routing; replying to the email answers the poster when they left an address), and the owner replies in public, hides, deletes or marks a bug fixed from a key-protected page. A
+  "Heartless defeated" counter and a Squashed badge show fixed bugs, and writing prompts per kind help people start.
+  Spam is kept out with a hidden field, a minimum time to fill in the form, a link limit, per-address and daily limits,
+  and optional Turnstile (`server/feedback.js`, `migrate_003_device_feedback.sql`).
+- **Only a better run is shared.** A score goes to the shared leaderboard only when it beats the best this copy has
+  already shared for that world (a higher score, or the same score in less time), kept in `playtime.json`.
+- **The shared leaderboard knows the device and the date.** Scores carry the kind of device (Windows, Mac, Linux,
+  Android) and the Re:Cast version. The leaderboard page shows each score's platform and when it was shared (in the
+  visitor's own time zone); the version is kept, not shown. Scores shared before this came from the PC installers and
+  say "PC".
+- **The server catches replayed runs and floods.** A second score for the same world with exactly the same time within
+  a week (what a save state loaded at a Summary sends) is not stored, which also covers installers already out there, and
+  at most 200 scores are stored a day.
+- **Runs that used a save state are no longer shared.** A score goes to the shared leaderboard only from a run played
+  to its Summary screen without loading a save state (autosaves count); loading one, even after the Summary and before
+  posting, keeps that score on your own table. The run is still timed and logged, it is just sent without its time, which
+  the shared leaderboard does not record. This also stops a score being posted with the time of an older run, and a clear
+  from an earlier sitting being posted. A world where a state was loaded and then abandoned stays marked until its next
+  Summary. The Online scores box on the Options tab has an info bubble that says so; the README, the server notes and the
+  leaderboard page do too. (Found when a state loaded at an Island Summary posted a score with the time of the earlier run.)
+- **Android app (sideloaded `.apk`, version 0.1.0).** The game runs on a phone, with full sound, for the first time:
+  touch controls in three layouts (a cross, two thumbs, a direction pad; every button movable and resizable), a 2005 flip
+  phone mode with a keypad, seven colors and a small bezel, an Action button that shows what it will do, softkeys with the
+  game's words, sharp text, the sound screen with mixes and recordings, the Wonderland theme, saves and save states that
+  move between the PC and the phone (the same `.khs` files), and a first-start question about sharing high scores (nothing
+  is sent until the player says yes). The debug line under the game (frames, fps, faults) now shows only when the game
+  stops or hits an error. See `android/NOTES.md`.
+- **Website: launched.** The password splash is off, and the Android app is announced as coming soon, front and
+  center, with screenshots of each control style, a "coming soon" download card and install help. The site is now
+  several pages with a themed menu. **Main Menu**, **Leaderboard** (with a gold crown sitting on its d) and
+  **Download** (with a touch of green and a down arrow before it) are in the KHMenu font, drawn by
+  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the home page's parts, Android first and Help among them.
+  **Find Wonderland** is in the storybook Alice font between a heart and a spade, its letters tumbling (and wobbling as the page scrolls, unless the visitor's device asks for less motion) in the Cheshire Cat's
+  colors, and **Jiminy's Journal** is a handwritten note (the Caveat font) with a top hat on the J. Both fonts are free
+  (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
+  menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip
+  (with its sound), the picture of his 24-minute recording and the two stills from his post, unedited, with his
+  watermark and a credit line linking his post. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland and Jiminy's Journal have their own pages,
+  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` still land on them. When it is released, the Android download is one zip,
+  `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum then goes
+  in `SHA256SUMS.txt`, and the link in the untracked `site/links.js`). The Wonderland section tells of the recording Pablo
+  González showed on X. The leaderboard Worker and `tools/site_stats.py` count Android downloads and the Android section
+  (`dl:android`, `sec:android`), journal entries sent (`click:feedback`), and visits to the new pages (`view:download`,
+  `view:journal`, `view:wonderland`); the stats dashboard has an "Other pages opened" section. An old link to a part
+  that moved (`#download`, `#feedback`) is not also counted as a home page visit. The menu-font pictures come from
+  `python tools/make_tab_labels.py --site`, which writes only the website's labels.
 - **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
   being read (a damaged file, or one made by a different setup), the game keeps running with nothing changed and says
   "this state cannot be read here". States made on a computer with numpy 2 also load where numpy 1 is installed
