@@ -138,7 +138,8 @@ public class OptionsActivity extends Activity {
 
         col.addView(heading("Online scores"));
         col.addView(toggle("Share high scores", Settings.shareScores(this), Settings::setShareScores));
-        col.addView(note("Posts only the world, score, time, Munny, EXP and level to the project's leaderboard "
+        col.addView(note("Posts only the world, score, time, Munny, EXP and level, and that it came from Android and which "
+                + "Re:Cast version, to the project's leaderboard "
                 + "(scores.khrecast.com). No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are always kept on this phone too. Applies "
                 + "the next time the game starts."));
         final android.widget.FrameLayout[] test = new android.widget.FrameLayout[1];

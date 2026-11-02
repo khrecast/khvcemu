@@ -508,6 +508,11 @@ public class GameView extends View {
         postInvalidate();
     }
 
+    /** The core's status line (frames, fps, faults) is for the log; on screen only when the game stopped or hit an error. */
+    private boolean statusShown() {
+        return status.startsWith("stopped") || status.contains("ERROR");
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
@@ -1040,10 +1045,12 @@ public class GameView extends View {
         drawSharpText(c, dst, shown);
         if (flipping && flip != null) {
             flip.drawKeys(c, allDown());
-            text.setTextSize(getHeight() * 0.012f);
-            text.setColor(0xFF8EA4BF);
-            c.drawText(status, getWidth() / 2f, statusY, text);
-            text.setColor(Color.WHITE);
+            if (statusShown()) {
+                text.setTextSize(getHeight() * 0.012f);
+                text.setColor(0xFF8EA4BF);
+                c.drawText(status, getWidth() / 2f, statusY, text);
+                text.setColor(Color.WHITE);
+            }
             return;
         }
         // the direction pad and the buttons (a controller's presses light them too)
@@ -1105,10 +1112,12 @@ public class GameView extends View {
             text.setColor(Color.WHITE);
             return;
         }
-        text.setTextSize(getHeight() * 0.014f);
-        text.setColor(0xFF8EA4BF);
-        c.drawText(status, dst.centerX(), statusY, text);
-        text.setColor(Color.WHITE);
+        if (statusShown()) {
+            text.setTextSize(getHeight() * 0.014f);
+            text.setColor(0xFF8EA4BF);
+            c.drawText(status, dst.centerX(), statusY, text);
+            text.setColor(Color.WHITE);
+        }
     }
 
     @Override

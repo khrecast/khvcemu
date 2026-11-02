@@ -401,7 +401,7 @@ public class MainActivity extends Activity {
                 .setTitle("Share your high scores?")
                 .setMessage("When you finish a world, the game can post your score to the project's public leaderboard "
                         + "(scores.khrecast.com) so you can see how you rank.\n\nOnly the world, the score, how long the run "
-                        + "took, and the Munny, EXP and level behind it are sent. No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are "
+                        + "took, the Munny, EXP and level behind it, and that it came from Android and which Re:Cast version are sent. No name, account or device ID; your internet address is used only briefly, to limit how often you can post. Scores are "
                         + "always kept on this phone too.\n\nYou can change this later in Options.")
                 .setCancelable(false)
                 .setPositiveButton("Share my scores", (d, w) -> answeredScores(true))

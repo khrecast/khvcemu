@@ -786,7 +786,8 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
 ## Sharing high scores (2026-10-10, done; no score was posted)
 
 - **First start asks once.** Before the game starts for the first time, a question: "Share your high scores?", saying what is
-  sent (the world, the score, the time, and the Munny, EXP and level behind it; no name, account or device ID) and that
+  sent (the world, the score, the time, the Munny, EXP and level behind it, and since 2026-11-02 that it came from
+  Android and the Re:Cast version; no name, account or device ID) and that
   scores are always kept on the phone too. Two answers, "Share my scores" and "Keep scores on this phone"; it cannot be
   dismissed without answering, and nothing is sent or saved before the answer. The default until answered is not to share
   (the desktop launcher's box is ticked by default; here the player was asked to be asked).
@@ -993,6 +994,35 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   blank softkeys and 25 fps. **Not tried:** key presses on the shorter keypad (the owner is to judge whether the keys are comfortable),
   landscape with the new settings, the smartphone answer, and the silver small bezel. The buttons are plain themed text, not the
   menu-font pictures.
+
+## Launch prep: the status line and the website pictures (2026-11-01)
+
+- **The core's status line** ("running 25 fps frames ... faults 0") was drawn under the game in every build, release
+  included, and right after a state load its fps figure is nonsense (the frame count jumps). `GameView.statusShown()` now
+  draws it only when the game has stopped or the line carries an ERROR; it still goes to logcat every second (tag
+  `recast`, "status: ..."). Seen on the S23 (debug build): gone in play.
+- **Website pictures** (`site/assets/android_*.webp`): taken on the S23 with adb `screencap` from a debug build, prefs
+  written per look through `run-as` (style chosen, mute on, autosaves off, sharing off, sharp text on), the game started
+  with `am start -n com.khrecast.recast/.MainActivity --es load <slot>` (the slot is the number, `1` to `9`, or `auto1`
+  to `auto3`). Scenes are four of the owner's PC save states copied into spare phone slots 5 to 8 and deleted after: the
+  "Attack" tutorial fight (layouts A, sideways, the six colors), the Castle corridor (B), the Genie in the lava cave (C,
+  silver flip phone). Status and navigation bars cropped (portrait y 100 to 2170, landscape y from 90, x to 2190),
+  scaled (540 wide portrait, 1000 landscape, 900 the colors grid) and saved as WebP. Before: prefs, rotation, states,
+  game saves and playtime.json backed up; after: all restored and checked with diff (playtime.json had grown and was put back).
+- **The download** is `dist/KH-ReCast-Android.zip` (gitignored, like the installers): `KH-ReCast-Android.apk` (the signed
+  release, stored), `KH-ReCast-game/` (`mif/`, `mod/` and the three `savegame(world).dat`, as the desktop installers carry
+  them; the Wonderland theme is already in the APK) and `README.txt` (install steps). The player extracts it on the phone,
+  installs the APK and picks `KH-ReCast-game` in Setup. Made by a one-off scratch script (not in the repo yet); 28.5 MB, 144
+  entries, checked with `testzip`. `tools/checksums.py` lists it with the installers (prefix `KH-ReCast-`, `.zip`).
+  The release was rebuilt after the status line change; `apksigner` shows the same certificate (SHA-256 686ba6d7...0eac).
+
+## Leaderboard rules from the core (2026-11-02)
+
+The core changes reach the app with the next build, nothing app-specific: runs with a save state loaded are not
+shared (`playtime.resync` is called by `savestate.load`, which the app's menu uses too), only a score that beats the
+best this copy already shared goes out, and each shared score carries `pl=android` (detected by `web.platform_name`
+from `sys.getandroidapilevel` or the `ANDROID_DATA` variable) and `vr=` the core version. The app's own version name
+(0.1.0) is not sent. Not yet run on the phone.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
