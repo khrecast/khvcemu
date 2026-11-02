@@ -1,6 +1,8 @@
 """Render the launcher's tab names (and the Android app's menu names) in the Kingdom Hearts menu font, blocky like the logo.
 
-    python tools/make_tab_labels.py [path/to/KHMenu.otf]
+    python tools/make_tab_labels.py [path/to/KHMenu.otf] [--site]
+
+A run writes every label below; with --site only the website menu's (site/assets/nav/).
 
 The font is KHMenu, recreated by Televo for "Kingdom Hearts Re:Collection"
 (https://github.com/Televo/kingdom-hearts-recollection). That set has no formal license; its
@@ -34,6 +36,14 @@ ZOOM = 2
 LABELS = {"play": "Play", "saves": "Saves", "options": "Options", "sound": "Sound",
           "setup": "Setup", "setup_warn": "Setup (!)", "controls": "Controls"}
 OUTLINE = (8, 14, 26)
+# the website menu's names (site/assets/nav/): key -> (name, top color, bottom color). Every run writes these; `--site` writes only these.
+# Finer pixels than the tabs (a bigger size, not doubled) so the e and the a stay readable at menu size, and a pixel
+# between letters.
+SITE_OUT = os.path.join(ROOT, "site", "assets", "nav")
+SITE_SIZE, SITE_GAP, SITE_ZOOM = 16, 1, 1
+SITE_LABELS = {"main_menu": ("Main Menu", (255, 255, 255), (176, 188, 204)),
+               "leaderboard": ("Leaderboard", (255, 236, 150), (214, 150, 40)),
+               "download": ("Download", (236, 255, 240), (110, 200, 130))}
 # the Android app's menu and heading names (bright silver, drawn the same way): key -> name. They are written to
 # khvcemu/assets/menu/ and copied to android/app/src/main/res/drawable-nodpi/menu_<key>.png (a test keeps the copies equal)
 MENU_OUT = os.path.join(ROOT, "khvcemu", "assets", "menu")
@@ -114,13 +124,15 @@ def _spaced_mask(font, text: str, gap: int) -> np.ndarray:
     return np.hstack(cells[:-1])                                          # (no gap after the last letter)
 
 
-def render(font, text: str, selected: bool, gap: int = 0) -> pygame.Surface:
+def render(font, text: str, selected: bool, gap: int = 0, colors=None, zoom: int = ZOOM) -> pygame.Surface:
     mask = np.pad(_spaced_mask(font, text, gap) if gap else _mask(font, text), 1)
-    if selected:                       # bright silver on the blue selected tab
+    if colors:                         # the website's labels: their own top and bottom colors
+        rgba = silver(mask, *colors)
+    elif selected:                     # bright silver on the blue selected tab
         rgba = silver(mask, (255, 255, 255), (176, 188, 204))
     else:                              # the muted silver of an idle tab
         rgba = silver(mask, (196, 208, 224), (110, 126, 148))
-    big = rgba.repeat(ZOOM, axis=0).repeat(ZOOM, axis=1)
+    big = rgba.repeat(zoom, axis=0).repeat(zoom, axis=1)
     surf = pygame.Surface((big.shape[1], big.shape[0]), pygame.SRCALPHA)
     pygame.surfarray.pixels3d(surf)[:] = big[:, :, :3].transpose(1, 0, 2)
     pygame.surfarray.pixels_alpha(surf)[:] = big[:, :, 3].T
@@ -167,12 +179,24 @@ def make_atlas(font) -> None:
     print(f"wrote the menu font alphabet ({len(cells)} characters)")
 
 
-def main(font_path: str = FONT):
+def make_site_labels(font_path: str) -> None:
+    """The website menu's names (site/assets/nav/), drawn like the tabs in their own colors."""
+    font = pygame.font.Font(font_path, SITE_SIZE)
+    os.makedirs(SITE_OUT, exist_ok=True)
+    for key, (text, top, bottom) in SITE_LABELS.items():
+        pygame.image.save(render(font, text, True, gap=SITE_GAP, colors=(top, bottom), zoom=SITE_ZOOM), os.path.join(SITE_OUT, f"{key}.png"))
+    print(f"wrote {len(SITE_LABELS)} website menu labels to {SITE_OUT}")
+
+
+def main(font_path: str = FONT, site_only: bool = False):
     if not os.path.isfile(font_path):
         sys.exit(f"KHMenu.otf not found at {font_path}: download it from "
                  "https://github.com/Televo/kingdom-hearts-recollection (Fonts folder)")
     pygame.init()
     font = pygame.font.Font(font_path, SIZE)
+    make_site_labels(font_path)
+    if site_only:
+        return
     os.makedirs(OUT, exist_ok=True)
     for key, text in LABELS.items():
         for selected, suffix in ((False, ""), (True, "_on")):
@@ -190,4 +214,5 @@ def main(font_path: str = FONT):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:2])
+    args = [a for a in sys.argv[1:] if a != "--site"]
+    main(*args[:1], site_only="--site" in sys.argv[1:])
