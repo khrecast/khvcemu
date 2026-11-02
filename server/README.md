@@ -13,12 +13,12 @@ The game has no name entry and never shows you another player: the only thing it
 draws is a rank number next to your own score. So this server doesn't know who
 anyone is, and doesn't try to.
 
-* A row is **(level, score, seconds, Munny, EXP, level reached)**. There is no player column.
+* A row is **(level, score, seconds, Munny, EXP, level reached, kind of device, Re:Cast version)**. There is no player column.
 * The game needs a player-id field in the reply, so everybody is told `anon`.
 * The only value derived from an address is a salted, truncated hash used to
   limit each address to one score every ten minutes (a world takes far longer, so a
   real player never notices; a second post inside the window is quietly not stored). It
-  is deleted after ten minutes.
+  is deleted after ten minutes. (The feedback board below keeps a similar hash for an hour, for its own limit.)
 
 Scores come from the player's own machine, so they can be made up. Levels and
 scores are range-checked, an identical score for the same world is stored once, and posting is limited to one score per address per ten minutes, which is enough to keep
@@ -52,9 +52,9 @@ run `npx wrangler deploy` again; the domain must be on the same Cloudflare accou
 
 **Public top scores.** `GET /top` returns the best 100 scores per world (Island, Agrabah and Castle; the Obstacle Course has no score; `?n=10` asks for fewer) and how many were
 posted, as JSON that any web page may read (`site/leaderboard.html` shows it). Each row is
-`{score, secs, munny, exp, level}`: the score, how long the run took, and the Munny, EXP and
-level it was made of (`null` for scores posted before those were sent). It carries no
-addresses and nothing that says who. Scores above 1,000,000 (about twenty times
+`{score, secs, munny, exp, level, posted, device}`: the score, how long the run took, the Munny, EXP and
+level it was made of, when it was posted (unix seconds) and the kind of device (`null` for scores posted before
+those were sent). It carries no addresses, no Re:Cast version and nothing that says who. Scores above 1,000,000 (about twenty times
 the best of a full playthrough; kept loose on purpose while it is seen how far farming enemy waves goes) are refused when posted and ignored by `/top`; the number is
 `MAX_SCORE` in `worker.js`. It stops trolling, not careful cheating, because scores come from
 the player's own computer and cannot be verified.
@@ -76,7 +76,17 @@ measures how long the world took and sends it as `pt` (seconds). A score with no
 `pt` under the minimum for that world (`MIN_SECONDS` in `worker.js`: Island 6 minutes, Agrabah 10,
 Castle 8, about a quarter of a careful first clear), is answered like any other score but not stored, so the player sees no
 error. Equal scores are ranked by the faster time; the same score with the same time is stored
-once. Older scores that have no time still show, after timed ones. The minimums come from real first clears
+once. The emulator sends no `pt` for a run in which a save state was loaded (or after loading one), so such a score is
+not stored: this keeps save-state farming off the board, but it is the client's word, like everything else here.
+The server also catches the save-state replay from older clients: a second score for the same world with exactly the
+same time, to the second, within a week (`REPLAY_WINDOW`) is that replay (the emulator resends the last time it measured)
+and is not stored. The cost: two different players whose runs of the same world match to the second within the week lose
+the later score, silently (about 1 in 3,000 per pair of posts, given how spread the times are; more as the board gets busy).
+Newer clients no longer send such replays, so `REPLAY_WINDOW` can be shortened or the check dropped once old installers
+are gone. At most `MAX_SCORES_PER_DAY` (200) scores are stored a day, all worlds together. Newer clients also
+send the kind of device (`pl`: windows, mac, linux, android, other) and the Re:Cast version (`vr`); they are stored in
+the `device` and `version` columns (`migrate_003_device_feedback.sql`); the board shows the device, never the version.
+Older scores that have no time still show, after timed ones. The minimums come from real first clears
 (Island 26:30, Agrabah 54:00, Castle 42:30); the emulator logs times in `clear_times.csv`.
 
 Free-tier limits are far above what this needs: a score is a few dozen bytes and
@@ -92,9 +102,9 @@ the address. On the command line:
 python -m khvcemu <dump> --leaderboard https://khvcemu-leaderboard.<you>.workers.dev
 ```
 
-What leaves your machine is the level name, the score, how long the run took, and
-the Munny, EXP and level that the game's own Summary screen showed for it. No identifier is
-sent or stored, by you or by the server.
+What leaves your machine is the level name, the score, how long the run took, the
+Munny, EXP and level that the game's own Summary screen showed for it, and the kind of device and
+Re:Cast version. No identifier is sent or stored, by you or by the server.
 
 ### Munny, EXP and level
 
@@ -114,11 +124,35 @@ It only adds empty columns, so no score is changed. The worker works with or wit
 `npx wrangler deploy` is done first. A new database made from `schema.sql` has them already.
 Errors are written to the Worker's log (`npx wrangler tail`), nothing identifying.
 
+### The feedback board (Jiminy's Journal)
+
+`feedback.js`, served by this same worker, is the public feedback board on khrecast.com. The website posts to
+`POST /feedback` and lists entries with `GET /feedback` (newest first, 20 at a time, with the owner's replies and how
+many reported bugs are fixed). An entry has a kind (review, idea, bug report, complaint, rant, Wonderland info, other),
+a message, and optionally a nickname, a device and a version, all shown, and an email address, never shown. Entries show
+at once. Junk is kept out by: posts only from the website (its `Origin`), a hidden field people never fill in, a form
+sent within 4 seconds of opening being ignored, at most 3 links, 3 entries an hour per address (the same salted,
+shortened hash as scores, kept an hour), 200 entries a day, and optionally Cloudflare Turnstile (`TURNSTILE_SECRET`).
+
+The owner's page is `https://scores.khrecast.com/feedback/admin`: it asks for the `FEEDBACK_KEY` secret and lists every
+entry with its email address, to reply in public, mark a bug fixed (the site's "Heartless defeated" counter and the
+Squashed badge), hide, show or delete. With the `MAIL` binding (Cloudflare Email Routing, see `wrangler.toml`) each
+entry is emailed to the project inbox, with the poster's address as Reply-To, so answering the email answers them.
+Cloudflare can only send to verified addresses, so a reply to a poster is sent from the owner's own inbox (the admin
+page has an "Email this reply" link that fills it in).
+
+To turn it on, once: `npx wrangler d1 execute khvcemu-leaderboard --remote --file migrate_003_device_feedback.sql`,
+`npx wrangler secret put FEEDBACK_KEY` (at least 32 random characters; the page has no attempt limit, so a Cloudflare
+rate-limiting rule on `/feedback/admin` is a good extra), `npx wrangler deploy`; for the emails, Email Routing
+in the dashboard and the three `[[send_email]]` lines in `wrangler.toml`. Tests: `node test.js` (the feedback part
+runs against SQLite too).
+
 ### Website counters
 
-The project website counts, anonymously, how often its two pages are opened, which parts of the main page are
-scrolled to, and which buttons are clicked (the six downloads, the checksums file, the source and issue links, the
-soundtrack link, the contact link). The page asks `GET /hit?e=<name>` and the worker adds one to today's count for
+The project website counts, anonymously, how often each of its pages is opened (`view:home`, `view:download`,
+`view:journal`, `view:wonderland`, `view:leaderboard`; the counting code is `site/site.js`), which parts of the main page are
+scrolled to, and which buttons are clicked (the seven downloads, the checksums file, the source and issue links, the
+soundtrack link, the contact link, journal entries sent). The page asks `GET /hit?e=<name>` and the worker adds one to today's count for
 that name in the `site_stats` table: a UTC day, a name and a number, nothing else. This project's server
 reads and stores no address, cookie or browser string (Cloudflare, which hosts it, keeps its usual request
 logs, as it does for every site).
@@ -128,15 +162,15 @@ the worker for the connection; the address itself is neither read nor stored), `
 android, ios, chromeos or other, worked out by the page from the browser and sent as a word, never the browser
 string) and `ref:<site>` (where the visitor came from, as a word from a fixed list such as reddit, google,
 khinsider or direct; the page reduces the referrer to the website's name, never the address). A value that is not
-on the fixed list is ignored. The sections scrolled to are `sec:about`, `sec:download` and so on, counted once per
-visit.
+on the fixed list is ignored. The sections scrolled to are `sec:android`, `sec:about` and so on, counted once per
+visit (`sec:download`, `sec:feedback` and `sec:wonderland` stopped on 2026-11-02, when those became pages of their own).
 
 Only the names in `SITE_EVENTS` (`worker.js`) count; anything else, a `HEAD` request, or a request that says it
 came from another website, is answered `204` and ignored (a request with no `Referer` is accepted, because some
 browsers send none), so the table cannot be filled with junk. Each name also stops counting at a daily ceiling
 (`SITE_EVENTS`: 8,000 for the main page, 1,500 for the leaderboard, 1,000 for each section, 600 for each button;
 the extra tallies stop with the main page's ceiling), which bounds the database writes the counters can cause to
-about 57,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop scores
+about 65,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop scores
 being saved; it can still inflate a day's counts or stop them there, so these are rough counts, not proof. For
 real protection add a Cloudflare rate-limiting rule for `/hit` in the dashboard. A browser that sends Do Not Track
 (or Global Privacy Control) never asks. A missing table never breaks the page: the worker answers anyway. There
