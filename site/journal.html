@@ -28,7 +28,7 @@
 <main id="top">
   <section id="feedback"><div class="wrap">
     <h1 class="page-title t-jj"><span class="jj"><svg class="hat" viewBox="0 0 22 17" width="15" height="12" aria-hidden="true"><rect x="6" y="1" width="10" height="11.5" rx="1.5" fill="#6f8fd8" stroke="#3d5794" stroke-width=".8"/><rect x="6" y="8.2" width="10" height="2.6" fill="#f0a93a"/><ellipse cx="11" cy="13.4" rx="10" ry="2.6" fill="#5677c2" stroke="#3d5794" stroke-width=".8"/><ellipse cx="11" cy="13.7" rx="6.2" ry="1.55" fill="#0d0d14"/><path d="M4.6 13.8 Q11 16.9 17.4 13.8" fill="none" stroke="#000" stroke-width="1.1" stroke-linecap="round"/></svg>Jiminy&rsquo;s Journal</span></h1>
-    <p class="lead">Re:Cast is made by one person, and the journal is how it gets better. Tell us what works, what broke, what you'd change, or what you remember about Wonderland. Entries show here right away, and every one gets read.</p>
+    <p class="lead">Post your thoughts below and help Re:Cast improve! Don't want to post publicly? <a href="mailto:khrecast@gmail.com">Send us an email</a>.</p>
     <div class="journal-stats">
       <div><b id="fb-squashed">0</b><span>Heartless defeated<br><small>bugs reported here and fixed</small></span></div>
       <div><b id="fb-total">0</b><span>journal entries<br><small>reviews, ideas, bugs and more</small></span></div>
@@ -46,7 +46,6 @@
         <label><input type="radio" name="kind" value="wonderland"><span>&#127913; Wonderland info</span></label>
         <label><input type="radio" name="kind" value="other"><span>&#128172; Other</span></label>
       </fieldset>
-      <p class="fb-prompts" id="fb-prompts" aria-live="polite"></p>
       <label class="fb-field">Your entry
         <textarea name="message" id="fb-message" rows="6" maxlength="3000" required></textarea>
       </label>
@@ -94,15 +93,6 @@
     var TURNSTILE_SITEKEY = "";            // Cloudflare Turnstile, off until spam needs it (the server then needs TURNSTILE_SECRET)
     var KINDS = { review: "Review", idea: "Idea", bug: "Bug report", complaint: "Complaint", rant: "Rant", wonderland: "Wonderland info", other: "Other" };
     var DEVICES = { windows: "Windows", mac: "Mac", linux: "Linux", android: "Android", other: "Other" };
-    var PROMPTS = {
-      review: ["What surprised you most about this game?", "Which world is your favorite, and why?", "How does it compare with how you remember it?"],
-      idea: ["What would make Re:Cast better on your phone?", "Which feature from the PC version do you miss on Android (or the other way round)?", "What would you add to the launcher?"],
-      bug: ["What happened, what you expected, and where in the game?", "Does it happen every time? What were you doing just before?", "Was the sound, the picture or the controls wrong?"],
-      complaint: ["What got in your way?", "Which control or menu annoyed you?"],
-      rant: ["Go on, get it off your chest. That Castle boss?", "Which part of 2005 phone gaming should have stayed in 2005?"],
-      wonderland: ["Did you play Wonderland on a V CAST phone? What do you remember?", "Do you still have a phone that might hold it?", "Do you know anyone who worked on the game?"],
-      other: ["Anything at all: thanks, questions, memories of V CAST."]
-    };
     var form = document.getElementById("fb-form");
     if (!form) return;
     var $ = function (id) { return document.getElementById(id); };
@@ -117,20 +107,11 @@
       if (v && /^[\w.\- ]{1,20}$/.test(v)) { $("fb-version").value = v; detectedVersion = v; }
     })();
 
-    function prompts() {
-      var kind = form.kind.value, box = $("fb-prompts"), list = PROMPTS[kind] || [];
-      box.textContent = "Not sure what to write? Try: ";
-      list.forEach(function (p, i) {
-        var b = document.createElement("button");
-        b.type = "button"; b.textContent = p;
-        b.addEventListener("click", function () { var m = $("fb-message"); m.value = p + "\n"; m.focus(); });
-        if (i) box.appendChild(document.createTextNode(" · "));
-        box.appendChild(b);
-      });
-      $("fb-message").placeholder = kind === "bug" ? "What happened, what you expected, and where in the game (world, screen, what you pressed)." : "Write here.";
+    function placeholder() {
+      $("fb-message").placeholder = form.kind.value === "bug" ? "What happened, what you expected, and where in the game (world, screen, what you pressed)." : "Write here.";
     }
-    Array.prototype.forEach.call(form.querySelectorAll('input[name="kind"]'), function (r) { r.addEventListener("change", prompts); });
-    prompts();
+    Array.prototype.forEach.call(form.querySelectorAll('input[name="kind"]'), function (r) { r.addEventListener("change", placeholder); });
+    placeholder();
 
     if (TURNSTILE_SITEKEY) {
       var ts = document.createElement("script");
@@ -194,7 +175,7 @@
         .then(function (d) {
           if (!d.ok) throw new Error(d.error || "That didn't work.");
           status.className = "ok"; status.textContent = "Thank you! Your entry is in the journal.";
-          form.reset(); $("fb-device").value = detected; $("fb-version").value = detectedVersion; prompts(); shownAt = Date.now();
+          form.reset(); $("fb-device").value = detected; $("fb-version").value = detectedVersion; placeholder(); shownAt = Date.now();
           var dnt = navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl;
           if (!dnt) try { fetch("https://scores.khrecast.com/hit?e=click%3Afeedback", { mode: "no-cors", keepalive: true, credentials: "omit" }); } catch (e) { /* never matters */ }
           return load(false, true).then(function () { if (d.id) { var t = document.getElementById("feedback-" + d.id); if (t) t.scrollIntoView({ block: "center" }); } });

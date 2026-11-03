@@ -174,8 +174,6 @@ footer .cols { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit,
 .fb-kinds span { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--field); font-size: 14px; }
 .fb-kinds input:checked + span { border-color: #f2c94c; background: #f2c94c22; color: #ffe08a; font-weight: 600; }
 .fb-kinds input:focus-visible + span { outline: 3px solid var(--green); outline-offset: 2px; }
-.fb-prompts { color: var(--muted); font-size: 14px; margin: 8px 0 10px; }
-.fb-prompts button { background: none; border: 0; padding: 0; color: var(--blue-hi); font: inherit; cursor: pointer; text-align: left; text-decoration: underline dotted; }
 .fb-field { display: block; color: var(--muted); font-size: 14px; margin: 10px 0 0; }
 .fb-field small { color: var(--dim); }
 .fb-field input, .fb-field select, .fb-field textarea { display: block; width: 100%; margin-top: 4px; background: var(--field); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 16px; }
