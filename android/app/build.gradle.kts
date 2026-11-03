@@ -61,6 +61,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // -Precast.debugSuffix=true installs the debug build beside the release one (app id ...recast.debug), for screenshots
+            if (project.hasProperty("recast.debugSuffix")) applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             signingConfigs.findByName("release")?.let { signingConfig = it }

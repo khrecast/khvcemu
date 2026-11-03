@@ -484,7 +484,7 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   names. `tools/make_tab_labels.py` draws them (it now also writes `khvcemu/assets/menu/*.png`, and copies each to
   `android/app/src/main/res/drawable-nodpi/menu_*.png`); the font file itself stays out of the repository, as before, and
   `tests/test_android_assets.py` fails if the Android copies drift from the originals. Televo's credit (README,
-  `docs/CREDITS.md`) now says the app's menu names too; the website's credit is unchanged until the app is public.
+  `docs/CREDITS.md`) now says the app's menu names too; the website's credit said so too once the app was public (2026-11-02).
 - `Labels.java` scales a label by a whole number (about 20 to 26 dp tall) with no smoothing, so the pixels stay crisp; a
   picture button is a normal Button with the picture on top (the button is raised, so the picture has a higher elevation).
 - **Buttons restyled (same day):** the picture labels are bigger (a whole-number scale of 3, about 30 dp tall, up from 2) and
@@ -1015,6 +1015,16 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   installs the APK and picks `KH-ReCast-game` in Setup. Made by a one-off scratch script (not in the repo yet); 28.5 MB, 144
   entries, checked with `testzip`. `tools/checksums.py` lists it with the installers (prefix `KH-ReCast-`, `.zip`).
   The release was rebuilt after the status line change; `apksigner` shows the same certificate (SHA-256 686ba6d7...0eac).
+
+## Website pictures retaken, and a debug build beside the release (2026-11-02)
+
+- `gradlew assembleDebug -Precast.debugSuffix=true` gives a debug build with the app id `com.khrecast.recast.debug`, so it installs
+  beside the signed release (same id would need the release uninstalled first, which deletes its data). Without the property nothing changes.
+- The home page's phone pictures were retaken from a screencap of that build on the S23 (prefs written per look through `run-as`, the PC
+  states pushed into its `files/data/states`, loaded with `am start --es load <slot or autoN>`, notifications silenced and rotation set
+  for the sideways one, both put back after): portrait crop y 100 to 2170 and scaled to 810 wide, the colors grid 3 x 2 at 450 each, sideways
+  crop (90, 90, 2190, 1040) scaled to 1600 wide, WebP quality 82. A set pairing a smartphone with the flip phone to show the Action word
+  and softkeys (Attack, Enter, Continue and Replay, Save and Back) was made too, then left off the site at the user's request.
 
 ## Leaderboard rules from the core (2026-11-02)
 
