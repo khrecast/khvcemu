@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+- **Smaller installers with our own small ffmpeg.** The Windows, Mac and Linux installers used to carry full ffmpeg
+  builds from other sites (49 to 105 MB each, some under the GPL, one configured as "nonfree"). They now carry
+  the project's own FFmpeg 9.0.2 build with only what Re:Cast uses (the game's sound effects and players' recordings in
+  WAV, FLAC, MP3, Ogg, Opus, AAC/M4A, ALAC, AIFF, WMA and WavPack), under the LGPL and with no extra libraries, so the FFmpeg source
+  tarball is its complete source and the installers shrink. `python -I tools/build_ffmpeg.py` builds all six.
+
 ### Fixed
 - **The two Wonderland screenshots were WebP files named .png.** pygame reads either, but a Pillow without WebP support (the
   Android app's) could not, so they are now real PNG files with identical pixels. A test checks every `.png` in the assets.

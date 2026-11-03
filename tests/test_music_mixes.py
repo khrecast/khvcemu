@@ -179,15 +179,9 @@ class EngineOverrideMoreTests(EngineOverrideTests):
         self.assertAlmostEqual(float(np.abs(pcm[: R]).max()), 8000, delta=200, msg="same level, now mono at 22.05 kHz")
 
     def test_an_m4a_is_read_from_its_file(self):
-        import shutil
-        import subprocess
-        src = os.path.join(self.tmp.name, "src.wav")
-        write_wav(src, 3.0)
-        m4a = os.path.join(self.tmp.name, "song.m4a")
-        r = subprocess.run([shutil.which("ffmpeg"), "-v", "quiet", "-y", "-i", src, "-c:a", "aac", m4a],
-                           capture_output=True)
-        if r.returncode or not os.path.isfile(m4a):
-            self.skipTest("this ffmpeg cannot make an .m4a")
+        # tests/fixtures/tone.m4a: 2 s of a 330 Hz sine at a quarter of full scale, AAC in MP4, made for this test (the
+        # installers' ffmpeg has no AAC encoder, so the file is kept rather than made here)
+        m4a = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "tone.m4a")
         pcm = self.engine(m4a).decode(self.mid, "title.mid")
         self.assertGreater(np.abs(pcm[: R]).max(), 5000, "the recording, not the MIDI")
 

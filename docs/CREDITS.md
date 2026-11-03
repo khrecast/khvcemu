@@ -85,9 +85,10 @@ Portions of this software are copyright &copy; The FreeType Project (www.freetyp
 This software is based in part on the work of the Independent JPEG Group.
 
 **In the Windows, Mac and Linux installers:** Python, Unicorn (GPLv2), pygame-ce (LGPL-2.1) with SDL2
-(zlib License), NumPy (BSD-3-Clause), and an ffmpeg build for decoding the sound effects (ffmpeg's
-license depends on the build; the installers use the builds from gyan.dev, osxexperts.net and
-johnvansickle.com, named in `tools/build_installer.py`, `tools/build_mac.py` and `tools/build_linux.py`).
+(zlib License), NumPy (BSD-3-Clause), and [FFmpeg](https://ffmpeg.org/) 9.0.2 for decoding the sound
+effects and players' recordings: the project's own small build (LGPL 2.1 or later, no external libraries),
+made from the unmodified FFmpeg source tree by `tools/build_ffmpeg.py` (one configure setting is adjusted after configure, as `FFMPEG-BUILDINFO.txt` says). Its license text and configure line are
+next to it in each installer (`FFMPEG-LICENSE.txt`, `FFMPEG-BUILDINFO.txt`).
 
 ## Communities and references
 

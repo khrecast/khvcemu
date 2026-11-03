@@ -104,7 +104,19 @@ Each build is **one file** that holds Python, the libraries, ffmpeg, khvcemu and
 game files (from this folder, or `--game <dump>`), so the person running it needs
 nothing else. The outputs contain the game files, so `dist/` and `build/` are
 git-ignored and are not part of the repo. Building needs internet access the first
-time (Python, ffmpeg and the wheels are downloaded and cached in `build/`).
+time (Python and the wheels are downloaded and cached in `build/`).
+
+The ffmpeg inside is the project's own small build of FFmpeg 9.0.2 (LGPL 2.1 or later, only
+the decoders Re:Cast uses: 2.4 to 2.6 MB instead of the 49 to 105 MB of the full builds used
+before). Make it once before the installers with `python -I tools/build_ffmpeg.py`: it needs
+Docker, builds all six in a throwaway Linux container with zig as the cross compiler, checks
+them, decodes a few test sounds with the Windows and Linux builds, and writes them to
+`build/ffmpeg/` (`BUILDINFO.txt` there lists the source and tool hashes and each configure
+line). The installer scripts stop and say so if it is missing. If Docker Desktop is not
+running or starting, the script starts it and quits it again afterwards. Starting Docker Desktop also
+starts your own containers that have a restart policy; the script stops them cleanly with
+`docker stop` before quitting (containers set to "unless-stopped" stop with Docker instead, so
+they still start with it next time). A Docker Desktop you started yourself is left running.
 
 | Build | Command | Result |
 | --- | --- | --- |
@@ -119,13 +131,12 @@ time (Python, ffmpeg and the wheels are downloaded and cached in `build/`).
 administrator rights), adds Start Menu and desktop shortcuts and an entry under
 Settings > Apps, and offers to start the game. Saves and settings stay in your user
 folder when you uninstall. Windows may show a SmartScreen warning because the file is
-not code-signed (More info > Run anyway). Building needs Windows and 7-Zip. The 32-bit
-build uses a community 32-bit ffmpeg (ffmpeg 6.0, from GitHub `sudo-nautilus/FFmpeg-Builds-Win32`).
+not code-signed (More info > Run anyway). Building needs Windows and 7-Zip.
 
 **macOS:** unzip, drag "Kingdom Hearts Re-Cast" to Applications, and right-click > Open
 the first time (the app is not signed by Apple). The zip is built on Windows without a
 Mac: Python is python-build-standalone (with tkinter), the libraries are macOS wheels,
-ffmpeg is a static build from osxexperts.net, and every compiled file is checked to be
+ffmpeg is the project's own build (see above), and every compiled file is checked to be
 for the right chip. **It has not been run on a Mac yet**, so report anything that fails.
 
 **Linux:** run `sh KH-ReCast-Linux-x86_64.run` (or the `aarch64` one). It installs for your
@@ -134,7 +145,7 @@ applications menu, and removes itself with `--uninstall` (`--dir PATH`, `--yes` 
 `--no-launch` are also understood). It needs a glibc 2.28 or newer desktop Linux (Ubuntu
 20.04, Debian 10, Fedora 29 or later) with X11 or Wayland; Alpine and other musl systems are
 not supported. Built like the Mac one (Python from python-build-standalone, manylinux wheels,
-a static ffmpeg from johnvansickle.com, every compiled file checked for the right CPU). The
+the project's own ffmpeg, every compiled file checked for the right CPU). The
 x86-64 installer was tested in clean Ubuntu 20.04 and Debian 10 containers (install, launcher
 under a virtual display, game boot, sound decoding, upgrade, uninstall); the ARM64 one was
 only run under emulation.
