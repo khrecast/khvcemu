@@ -11,7 +11,7 @@
   Wonderland info or anything else, with an optional nickname, device and version, show on the site at once; an optional
   email address stays private and lets the owner answer. Each entry is emailed to the project inbox (through Cloudflare Email
   Routing; replying to the email answers the poster when they left an address), and the owner replies in public, hides, deletes or marks a bug fixed from a key-protected page. A
-  "Heartless defeated" counter and a Squashed badge show fixed bugs, and writing prompts per kind help people start.
+  "Heartless defeated" counter and a Squashed badge show fixed bugs.
   Spam is kept out with a hidden field, a minimum time to fill in the form, a link limit, per-address and daily limits,
   and optional Turnstile (`server/feedback.js`, `migrate_003_device_feedback.sql`).
 - **Only a better run is shared.** A score goes to the shared leaderboard only when it beats the best this copy has
@@ -37,8 +37,8 @@
   move between the PC and the phone (the same `.khs` files), and a first-start question about sharing high scores (nothing
   is sent until the player says yes). The debug line under the game (frames, fps, faults) now shows only when the game
   stops or hits an error. See `android/NOTES.md`.
-- **Website: launched.** The password splash is off, and the Android app is announced as coming soon, front and
-  center, with screenshots of each control style, a "coming soon" download card and install help. The site is now
+- **Website: launched.** The password splash is off, and the Android app is front and
+  center, with screenshots of each control style, a download card and install help. The site is now
   several pages with a themed menu. **Main Menu**, **Leaderboard** (with a gold crown sitting on its d) and
   **Download** (with a touch of green and a down arrow before it) are in the KHMenu font, drawn by
   `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the home page's parts, Android first and Help among them.
@@ -47,15 +47,17 @@
   (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
   menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip,
   the picture of his 24-minute recording and the two stills from his post, unedited, with his
-  watermark and a credit line linking his post. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland and Jiminy's Journal have their own pages,
-  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` still land on them. When it is released, the Android download is one zip,
-  `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum then goes
-  in `SHA256SUMS.txt`, and the link in the untracked `site/links.js`). The Wonderland section tells of the recording Pablo
+  watermark and a credit line linking his post, and he is in the Credits. The Televo credit now names the Android app's menu too. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland and Jiminy's Journal have their own pages,
+  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` still land on them. The Android download is one zip,
+  `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum is in
+  `SHA256SUMS.txt`, and the link in the untracked `site/links.js`). The Wonderland section tells of the recording Pablo
   González showed on X. The leaderboard Worker and `tools/site_stats.py` count Android downloads and the Android section
   (`dl:android`, `sec:android`), journal entries sent (`click:feedback`), and visits to the new pages (`view:download`,
   `view:journal`, `view:wonderland`); the stats dashboard has an "Other pages opened" section. An old link to a part
   that moved (`#download`, `#feedback`) is not also counted as a home page visit. The menu-font pictures come from
-  `python tools/make_tab_labels.py --site`, which writes only the website's labels.
+  `python tools/make_tab_labels.py --site`, which writes only the website's labels. The Android pictures on the home page are
+  retaken at the phone's full resolution (810 px wide instead of 540, the sideways one 1600 instead of 1000, so the text is
+  clearer on a phone).
 - **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
   being read (a damaged file, or one made by a different setup), the game keeps running with nothing changed and says
   "this state cannot be read here". States made on a computer with numpy 2 also load where numpy 1 is installed

@@ -20,10 +20,10 @@ only on its original phones, on a collector's modified Zeebo console, or without
 any audio in an Android emulator. As far as we know, khvcemu is the first
 emulator to play it with its music and sound effects in context.
 
-**Coming soon to Android, for the first time ever with full sound.** The Re:Cast app (a sideloaded
+**Now on Android, for the first time ever with full sound.** The Re:Cast app (a sideloaded
 `.apk`, Android 8 or newer, 64-bit phones; tested on a Galaxy S23 Ultra) runs the same core with touch controls in three layouts, a
 2005 flip phone mode with a real keypad, an Action button that shows what it will do, the sound screen
-and save states that move between the PC and the phone. It will be on [khrecast.com](https://khrecast.com)
+and save states that move between the PC and the phone. It is on [khrecast.com](https://khrecast.com)
 as one zip with the game files (`KH-ReCast-Android.zip`);
 how it is built and tested is in [`android/NOTES.md`](android/NOTES.md).
 
@@ -715,7 +715,8 @@ recorded and wrote about the game. The full list, with links, is in
 * **Playing and recording it:** [KrZ One](https://www.youtube.com/@krzbrew) (on real Zeebo
   hardware), [Negative Space](https://www.youtube.com/@negativespace7868) (the Castle on a
   real phone), [Zero-Up](https://www.youtube.com/@michaelkindt3288) and
-  [TheGamersJoint](https://www.youtube.com/@TheGamersJoint).
+  [TheGamersJoint](https://www.youtube.com/@TheGamersJoint). Pablo González
+  ([@Caith_Sith](https://x.com/Caith_Sith/status/2094527931410252207)) showed the lost Wonderland chapter on video.
 * **Look and feel:** [Televo](https://github.com/Televo/kingdom-hearts-recollection) recreated the Kingdom
   Hearts menu font (KHMenu) that the Re:Cast title, the launcher's tab names and the Android app's menu names are drawn in.
 * **Emulation research:** [zeebulator](https://github.com/requeijaum/zeebulator), whose BREW

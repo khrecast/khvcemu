@@ -39,6 +39,7 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 | **Negative Space** (YouTube) | Recorded the final chapter on a real phone. | [Channel](https://www.youtube.com/@negativespace7868), [Maleficent's Castle (last stage)](https://www.youtube.com/watch?v=M1Ya55LRTd0) |
 | **Zero-Up** (YouTube) | Keeps a playlist of Kingdom Hearts V CAST videos. | [Channel](https://www.youtube.com/@michaelkindt3288), ["Kingdom Hearts V-cast Stuff" playlist](https://www.youtube.com/playlist?list=PLRBCukFwWzHsJK_nBBu9d4lgU2Z4hVi5I) |
 | **TheGamersJoint** (YouTube) | Made a video about the game. | [Channel](https://www.youtube.com/@TheGamersJoint), ["Kingdom Hearts V-Cast is a Very Real Kingdom Hearts Game..."](https://www.youtube.com/watch?v=f2d6WExP93o) |
+| **Pablo González** ([@Caith_Sith](https://x.com/Caith_Sith) on X) | Showed the lost Wonderland chapter on video on August 31, 2026: a 16-second clip and a 24-minute recording. The clip and two stills on the website's Find Wonderland page are from his post, shown unedited with his watermark. | [Post on X](https://x.com/Caith_Sith/status/2094527931410252207) |
 
 ## Look and feel
 
