@@ -28,3 +28,5 @@ spike_results*.txt
 # the prebuilt Unicorn library is copied in by fetch_unicorn.ps1, never committed
 app/src/main/jniLibs/
 app/src/main/python/unicorn/
+# the 16 KB FreeType wheels made by tools/build_freetype_wheel.py, never committed
+wheels/

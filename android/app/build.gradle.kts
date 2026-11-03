@@ -17,8 +17,9 @@ android {
         versionCode = 1
         versionName = "0.1.0"                // the first release; raise versionCode with every release you hand out (Android refuses a lower one)
         ndk {
-            // Unicorn is built for the phone's 64-bit ARM only (see android/NOTES.md)
-            abiFilters += listOf("arm64-v8a")
+            // 64-bit only: ARM phones, and x86_64 (Chromebooks, PC emulators). Unicorn is built for both by
+            // android/tools/build_unicorn_docker.py and copied in by android/fetch_unicorn.ps1 (see android/NOTES.md)
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
         externalNativeBuild {
             cmake {
@@ -108,21 +109,68 @@ androidComponents {
 // Chaquopy's merge task reads the staging folder, so Gradle needs the dependency spelled out
 tasks.matching { it.name.endsWith("PythonSources") }.configureEach { dependsOn(stagePython) }
 
+// Without the locally built wheels pip would quietly fall back to Chaquopy's 4 KB aligned builds, which a device with 16 KB pages
+// cannot load: stop the build instead and say how to make them. FreeType for every ABI; OpenBLAS (numpy) and libjpeg (Pillow) for
+// x86_64 only (Chaquopy's arm64-v8a builds of those are already 16 KB aligned).
+val appAbis = android.defaultConfig.ndk.abiFilters.toList()
+val localWheelDir = rootProject.file("wheels")
+val localWheels = listOf(
+    Triple("chaquopy_freetype-2.9.1-100-", listOf("arm64-v8a", "x86_64"),
+        "run . .\\android\\env.ps1, then python android/tools/build_freetype_wheel.py"),
+    Triple("chaquopy_openblas-0.2.20+openblas0.3.33-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+    Triple("chaquopy_libgfortran-4.9+none-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+    Triple("chaquopy_libjpeg-1.5.3-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+)
+val checkLocalWheels = tasks.register("checkLocalWheels") {
+    doLast {
+        val problems = localWheels.flatMap { (prefix, abis, how) ->
+            appAbis.filter { it in abis }.filter { abi ->
+                val tag = abi.replace("-", "_")
+                localWheelDir.listFiles()?.none { it.name.startsWith(prefix) && it.name.endsWith("_$tag.whl") } ?: true
+            }.map { abi -> "${prefix.trimEnd('-')} for $abi: run $how" }
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException("Missing 16 KB wheels in $localWheelDir (see android/NOTES.md):\n" + problems.joinToString("\n"))
+        }
+    }
+}
+tasks.matching { it.name.endsWith("PythonRequirements") }.configureEach { dependsOn(checkLocalWheels) }
+
+// The same for Unicorn: an APK without libunicorn.so for one of its ABIs would install there and fail at the first start.
+val unicornJniDir = file("src/main/jniLibs")
+val checkUnicornLibs = tasks.register("checkUnicornLibs") {
+    doLast {
+        val missing = appAbis.filter { abi -> !File(unicornJniDir, "$abi/libunicorn.so").isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("No libunicorn.so for ${missing.joinToString()} in $unicornJniDir: run .\\android\\fetch_unicorn.ps1 " +
+                "(the libraries come from android/tools/build_unicorn_docker.py; see android/NOTES.md)")
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkUnicornLibs) }
+
 chaquopy {
     defaultConfig {
-        version = "3.12"
-        // Chaquopy needs a Python of the same version (3.12) on this PC to fetch the packages. Give its path with
-        // -Precast.buildPython=<path to python.exe or python3.12> (kept out of the repository on purpose); without it
-        // the py launcher (Windows) or python3.12 is tried.
+        // 3.13: Chaquopy's numpy 1.26.2 for 3.13 has every library 16 KB aligned (the 3.12 one does not; see android/NOTES.md)
+        version = "3.13"
+        // Chaquopy needs a Python of the same version (3.13) on this PC to fetch the packages. Give its path with
+        // -Precast.buildPython=<path to python.exe or python3.13> (kept out of the repository on purpose); without it
+        // the py launcher (Windows, py -3.13) or python3.13 is tried.
         val buildPy = providers.gradleProperty("recast.buildPython").orNull
         if (buildPy != null) {
             buildPython(buildPy)
         } else if (System.getProperty("os.name").lowercase().contains("windows")) {
-            buildPython("py", "-3.12")
+            buildPython("py", "-3.13")
         } else {
-            buildPython("python3.12")
+            buildPython("python3.13")
         }
         pip {
+            // 16 KB page aligned rebuilds in android/wheels/ (not committed; checked by checkLocalWheels above): FreeType for Pillow
+            // (android/tools/build_freetype_wheel.py), and for x86_64 OpenBLAS 0.3.33 for numpy and libjpeg 1.5.3 for Pillow
+            // (android/tools/build_x86_64_wheels.py, which explains the "0.2.20+openblas0.3.33" and empty "4.9+none" libgfortran
+            // labels). Their android_24 tag and build number 100 (and the local version labels) make pip take them over
+            // Chaquopy's 4 KB aligned builds.
+            options("--find-links", rootProject.file("wheels").path)
             install("numpy==1.26.2")
             // draws the game's text and decodes its images where pygame is missing (khvcemu/hostgfx.py)
             install("Pillow==11.0.0")

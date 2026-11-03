@@ -85,7 +85,7 @@ Goal: show that an APK can load Unicorn and run ARM code on the phone (the `exec
   seen), and this project is GPL-3.0: shipping it in an app is a licence point to settle before any release (the
   desktop installers already ship it).
 - **The project (`android/`):** Gradle 9.6.0 wrapper, Android Gradle Plugin 9.4.1, compile/target SDK 36, min SDK 26,
-  NDK 28.2.13676358, CMake 3.31.6, arm64-v8a only, Java 17. `app/src/main/cpp/unicorn_probe.c` loads
+  NDK 28.2.13676358, CMake 3.31.6, arm64-v8a only (x86_64 too since 2026-11-03), Java 17. `app/src/main/cpp/unicorn_probe.c` loads
   `libunicorn.so` with `dlopen`, runs `mov r0,#6; mov r1,#7; mul r0,r0,r1` and a 65,536-iteration loop, and the
   activity shows the result and logs it (tag `recast`). Debug APK 894 KB without the library, 2,339,135 bytes (2.3 MB) with it (measured).
 - **Result on the phone (`adb install`, then `am start`):** `Unicorn 2.1 loaded. ARM 6 x 7 = 42 (expected 42): PASS.
@@ -106,12 +106,13 @@ Goal: boot the unmodified `khvcemu/` core to the title screen inside the APK, on
 (Chaquopy, its numpy, the NDK app, native Unicorn).
 
 - **Versions:** Chaquopy 17.0.0 (its changelog lists Android Gradle Plugin 9.0 to 9.2, so the project went down from
-  AGP 9.4.1 to **9.2.1**; Gradle 9.6.0 is fine), Python **3.12.12**, **numpy 1.26.2** (Chaquopy's own wheel; the core
+  AGP 9.4.1 to **9.2.1**; Gradle 9.6.0 is fine), Python **3.12.12** (superseded: Python 3.13 and x86_64 since 2026-11-03, see "Clean build order" in "Chunk: x86_64 and the Docker Unicorn build"), **numpy 1.26.2** (Chaquopy's own wheel; the core
   needs numpy >= 1.22). Python 3.13 and 3.14 have few wheels; numpy 2.x has no Android wheel (section 3).
 - **Build Python:** Chaquopy needs a Python 3.12 on the PC to fetch packages. Gradle did not find the `py` launcher, so
   the path is given on the command line and kept out of the repo:
   `.\gradlew.bat assembleDebug --no-daemon "-Precast.buildPython=<path to a Python 3.12 python.exe>"`.
-  Order of a clean build: `. .\android\env.ps1`, `.\android\fetch_unicorn.ps1`, then the Gradle command.
+  Order of a clean build: `. .\android\env.ps1`, `.\android\fetch_unicorn.ps1`, then the Gradle command. (Since 2026-11-03
+  the build Python is 3.13 and the FreeType wheel is built first: see "Chunk: Python 3.13 and 16 KB alignment".)
 - **How the code gets in:** a Gradle copy task (`stagePython`) stages the repository's `khvcemu/` package and
   `android/spike/bench_headless.py` into `app/build/python-stage` (no duplicate in git, audio recordings excluded);
   `fetch_unicorn.ps1` also copies Unicorn's pure-Python binding into `app/src/main/python/unicorn/` (ignored by git);
@@ -218,7 +219,7 @@ pygame. This changed `khvcemu/`: the desktop path is untouched, the new code run
   decoder on synthetic RGBA, RGB, transparent-palette and BMP images and on all 6 of the game's own PNGs (colors
   where visible, alpha everywhere); the font gives sensible metrics and masks; the core picks the Pillow font and the
   Pillow decoder when `import pygame` is made to fail.
-- **App:** `pip { install("Pillow==11.0.0") }` (Chaquopy's arm64 wheel for Python 3.12). Debug APK now 39.5 MB
+- **App:** `pip { install("Pillow==11.0.0") }` (Chaquopy's arm64 wheel for Python 3.12; superseded: Python 3.13 and x86_64 since 2026-11-03, see "Clean build order" in "Chunk: x86_64 and the Docker Unicorn build"). Debug APK now 39.5 MB
   (was 26.9 MB): 39,470,460 bytes, still under the 60 MB bar.
 - **Seen on the phone:** the title menu shows New Game, Load Game, Options, Score, Quit; New Game shows Jiminy's journal page
   with his picture and the story text and a Continue softkey. Faults 0. The text is DroidSans where the desktop uses
@@ -925,9 +926,10 @@ Goal: sound on the phone, and find out why the game ran at 10 fps with the CPU n
   (`*.jks`, `*.keystore` and `keystore.properties` are all ignored). The password was never printed or put in a tracked file. **Back up both files** (a password manager and one more copy): an app signed
   with another key cannot update this one, so a lost key means every user must uninstall (losing their saves and game files in the app) to get an update. Certificate SHA-256 (public, for checking a download):
   `686ba6d779f92a927c82c7e882a28744b6dc9faafeeb06918b27d6cc41af0eac`.
-- **Build:** in `android`, run `gradlew.bat assembleRelease "-Precast.buildPython=<a Python 3.12>"` (the same note as the debug build). It gives `app/build/outputs/apk/release/app-release.apk` (28.6 MB), signed with that key when
+- **Build:** in `android`, run `gradlew.bat assembleRelease "-Precast.buildPython=<a Python 3.13>"` (the same note as the debug build; 3.12 until
+  2026-11-03, and `android/tools/build_freetype_wheel.py` has to have run once, see "Chunk: Python 3.13 and 16 KB alignment"). It gives `app/build/outputs/apk/release/app-release.apk` (28.6 MB), signed with that key when
   `keystore.properties` exists (without it the release is unsigned, as before). `apksigner verify --print-certs` says it verifies (one signer, v2 scheme; v1 is not needed at minSdk 26); the package has
-  no key files and no personal strings in its text entries; label Re:Cast, `com.khrecast.recast`, version **0.1.0 (code 1)**, targetSdk 36, arm64 only, one permission (INTERNET), not debuggable, backups off.
+  no key files and no personal strings in its text entries; label Re:Cast, `com.khrecast.recast`, version **0.1.0 (code 1)**, targetSdk 36, arm64 only (0.1.0; x86_64 added 2026-11-03), one permission (INTERNET), not debuggable, backups off.
   **Raise `versionCode` in `app/build.gradle.kts` for every release you hand out** (Android refuses an update with a lower one).
 - **Not done: running the signed build on the phone.** The phone has the debug build, signed with the debug key, so the release cannot be installed over it: Android would need the debug app uninstalled first,
   which deletes its saves, settings and installed game files (export saves from Saved games first; the game files would have to be picked again).
@@ -1033,6 +1035,187 @@ shared (`playtime.resync` is called by `savestate.load`, which the app's menu us
 best this copy already shared goes out, and each shared score carries `pl=android` (detected by `web.platform_name`
 from `sys.getandroidapilevel` or the `ANDROID_DATA` variable) and `vr=` the core version. The app's own version name
 (0.1.0) is not sent. Not yet run on the phone.
+
+## Wider device support: the user's answers and the plan (2026-11-03)
+
+**Answers (do not ask again):** support (a) 16 KB-page phones, (b) x86_64 (Chromebooks, PC emulators), (c) Android 7
+(minSdk 24, if nothing breaks). 32-bit ARM is not wanted. Test 16 KB on the official emulator image
+`system-images;android-36.1;google_apis_ps16k;x86_64` (about 1.8 GB, into the existing SDK; approved). Python 3.13 for the
+build goes in a separate miniconda environment (approved), used only for Android builds. When it works: build a signed
+release 0.2.0 (versionCode 2) and a new zip in `dist/`, test on the S23, then stop and ask (the user uploads; the website
+is updated after). The user also asked about iPhone/iPad (no Mac available): answered in chat, not started.
+**x86_64 Unicorn build host (answered 2026-11-03):** Docker Desktop (installed, normally stopped): start it only for the
+build, a Linux container with the Linux NDK (about 1 GB of downloads), then shut Docker down and remove the image. The same
+script should also rebuild the arm64 library, so it no longer depends on Termux on the phone.
+
+**What was checked before starting (2026-11-03):** the release APK has 20 libraries below 16 KB alignment: numpy's 19
+(Chaquopy's numpy 1.26.2 for cp312, android_21) and `libfreetype.so` (chaquopy-freetype 2.9.1, android_21, the only build
+on Chaquopy's index; Pillow needs it). Chaquopy's numpy 1.26.2 for **cp313** (android_24, arm64 and x86_64) has 19 of 19
+libraries 16 KB aligned, and Pillow 11.0.0 itself is aligned for cp312 and cp313; Pillow also needs chaquopy-libjpeg
+1.5.3 (android_21). Checked with `tools/check_page_alignment.py` on the wheels from chaquo.com/pypi-13.1.
+
+**Plan, one chunk each:**
+1. Python 3.13: the conda env, `chaquopy { version = "3.13" }`, numpy 1.26.2 and Pillow 11.0.0 for cp313; rebuild, run
+   on the S23 (title, a world, sound, text). FreeType and libjpeg: build them with NDK r28 (16 KB by default) as local
+   wheels if their Chaquopy builds are 4 KB. Check: `check_page_alignment.py` reports 0 below 16 KB.
+2. x86_64: Unicorn 2.1.4 cross-built with the NDK for x86_64 (16 KB aligned), `abiFilters` arm64-v8a + x86_64. Check on
+   the ps16k x86_64 emulator (which also tests 16 KB pages): the app starts, game files are picked, the game plays with
+   sound. Speed numbers only from the S23.
+3. Android 7: minSdk 24 (Chaquopy's floor); find what needs API 26 (lint, `Build.VERSION` checks) and guard it. Check by
+   lint and, if a system image is needed, ask first (not in the approved list).
+4. Release 0.2.0 as above, then the site and README wording ("Android 7 or newer", "64-bit ARM or x86_64") after the user
+   uploads.
+
+## Chunk: Python 3.13 and 16 KB alignment (2026-11-03; built, NOT run on a phone: the S23 was not connected)
+
+- **What changed:** `chaquopy { version = "3.13" }` in `app/build.gradle.kts` (numpy 1.26.2 and Pillow 11.0.0 stay; Chaquopy
+  has both for cp313, android_24). The build Python is a miniconda environment made for this only:
+  `<your miniconda>\Scripts\conda.exe create -n recast313 python=3.13 -y` (Python 3.13.18; base, `myenv` and the system
+  Pythons untouched), passed as `-Precast.buildPython=<your miniconda>\envs\recast313\python.exe`. Without the
+  property Gradle now tries `py -3.13` (Windows) or `python3.13`.
+- **FreeType:** with 3.13 only `libfreetype.so` (chaquopy-freetype 2.9.1 build 2, android_21, the only one on Chaquopy's index)
+  was still 4 KB aligned. `android/tools/build_freetype_wheel.py` rebuilds it: downloads `freetype-2.9.1.tar.gz` (SHA-256
+  `ec391504...898ce`, the same from savannah and sourceforge) into `android/build/freetype/`, builds it with NDK r28c
+  (28.2.13676358) and the SDK's CMake 3.31.6 and Ninja for arm64-v8a and x86_64 at API 24, the way Chaquopy's recipe does
+  (system zlib, no PNG, no HarfBuzz, no bzip2, SONAME `libfreetype.so`, `-z max-page-size=16384`, stripped), checks the
+  alignment, SONAME and NEEDED (libc, libdl, libm, libz, as Chaquopy's), and writes
+  `android/wheels/chaquopy_freetype-2.9.1-100-py3-none-android_24_<abi>.whl` (gitignored, like the Unicorn library). The app
+  build passes `--find-links android/wheels` to pip; the android_24 tag and build number 100 make pip take ours (the build log
+  says `Processing ...\wheels\chaquopy_freetype-2.9.1-100-...arm64_v8a.whl`). A Gradle task `checkFreetypeWheels` (now `checkLocalWheels`) stops the
+  build with the command to run when a wheel for an ABI in `abiFilters` is missing (tried: it fails as intended). Our library
+  exports the same 199 dynamic symbols as Chaquopy's (diffed with `llvm-nm -D`), every `FT_` symbol Pillow's `_imagingft.so`
+  imports included; it is 700 KB against 835 KB.
+- **libjpeg needed nothing:** Chaquopy's `libjpeg_chaquopy.so` (chaquopy-libjpeg 1.5.3) for arm64 is already 16 KB aligned.
+- **Clean build order:** superseded by the numbered "Clean build order" in "Chunk: x86_64 and the Docker Unicorn build" below.
+- **Alignment (`python -I android/tools/check_page_alignment.py <apk>`):**
+
+  | Release APK | Native libraries | Below 16 KB |
+  | --- | --- | --- |
+  | Python 3.12 (the 0.1.0 build of 2026-11-01) | 99 | 20 (numpy 19, libfreetype) |
+  | Python 3.13, Chaquopy's packages only | 97 | 1 (libfreetype) |
+  | Python 3.13 and our FreeType | 97 | **0** |
+
+  The debug build (`assembleDebug -Precast.debugSuffix=true`) is also 97 and 0.
+- **Sizes:** release APK 28,649,488 bytes (3.12) to 28,606,504 (3.13); debug APK 33,719,748 (the 3.12 debug of 2026-11-02 was
+  29,423,949; not looked into).
+- **Python 3.13 and the core:** no `khvcemu/` change was needed for the build; nothing in `khvcemu/` or the app's Python imports a
+  module that 3.13 removed (PEP 594 list grepped), and the desktop already runs on 3.14.
+- **NOT run on a phone:** `adb devices` showed only a stale `emulator-5554 offline` (no emulator process running; something else
+  listens on port 5555) and no S23, twice. Still to do on the S23 with the debug build (`com.khrecast.recast.debug`, beside the
+  release, never uninstall or clear the release): app starts, title screen, `am start -n
+  com.khrecast.recast.debug/com.khrecast.recast.MainActivity --es load 7` and a few seconds of play, game text (Pillow and the new
+  FreeType), the sound engine without errors in logcat, and the fps from the `recast` status lines against the 3.12 build (25 fps).
+  Nothing about 16 KB pages is proven until the ps16k emulator runs it (chunk 2).
+
+## Chunk: x86_64 and the Docker Unicorn build (2026-11-03; built and run on the ps16k x86_64 emulator; NOT run on the S23, it was not connected)
+
+- **What changed:** `abiFilters` is now `arm64-v8a` and `x86_64` (`app/build.gradle.kts`). New scripts in `android/tools/`:
+  `build_unicorn_docker.py` (wrapper) runs `build_unicorn_android.sh` in a throwaway `debian:bookworm-slim` container with the
+  official Linux NDK r28c; `build_x86_64_wheels.py` runs `build_x86_64_libs_android.sh` the same way (see the wheels below).
+  `fetch_unicorn.ps1` now also copies `C:\Android\libs\x86_64\libunicorn.so` (parameter `-SourceX86`). Gradle: a new
+  `checkUnicornLibs` task stops the build when `jniLibs/<abi>/libunicorn.so` is missing for an ABI in `abiFilters`, and
+  `checkFreetypeWheels` became `checkLocalWheels` (FreeType for both ABIs; OpenBLAS, libgfortran and libjpeg for x86_64).
+- **Inputs, cached outside the repo** in `%LOCALAPPDATA%\khrecast-android\cache` (about 755 MB; delete it when no rebuild is planned):
+  `android-ndk-r28c-linux.zip` (722,261,334 bytes, SHA-1 `a7b54a5d...2a64` as in Google's `repository2-3.xml` for
+  `ndk;28.2.13676358`, SHA-256 `dfb20d396df28ca02a8c708314b814a4d961dc9074f9a161932746f815aa552f`); `unicorn-2.1.4.tar.gz` (GitHub tag
+  archive, SHA-256 `ea8863f0...01f4`, the same as Homebrew's formula, and its embedded commit id `8028ec43...be10` is the tag's commit);
+  `OpenBLAS-0.3.33.tar.gz` (SHA-256 `6761af1d...e6ab`, commit `62bcfb0d...3137` = tag v0.3.33 per GitHub's API);
+  `libjpeg-turbo-1.5.3.tar.gz` (SHA-256 `b24890e2...2523`, the same file from SourceForge and from GitHub's release). The scripts
+  check all of these before building, and the container checks them again.
+- **Gotcha:** QEMU's `configure` (run by Unicorn's CMake) needs `strings` (binutils) and `pkg-config`; without them it fails, CMake
+  carries on, and the build stops much later at `config-host.h: file not found`. The script installs both and now checks
+  `config-host.h` right after configuring.
+- **Unicorn 2.1.4, built three times with byte-identical results** (the third after the review fixes: image pinned by digest,
+  apt-get output kept for failures; `build_x86_64_wheels.py` was rerun then too and gave the same libraries and wheels) (ARM guest only, Release, no tests, API 24, `-z max-page-size=16384`,
+  stripped with `llvm-strip --strip-unneeded`; NEEDED libm, libdl, libc; SONAME `libunicorn.so`; no RUNPATH):
+
+  | ABI | Size | SHA-256 | LOAD alignment |
+  | --- | --- | --- | --- |
+  | arm64-v8a | 1,400,752 | `acdc11c0c2807b87c6cb960b073571f0d3c462b319d94c7609607a67d9d03516` | 16384 x 3 |
+  | x86_64 | 1,479,896 | `a425cf5231901e9719d7d5594987d19bc944e1d40fda65037a32b842fe790690` | 16384 x 3 |
+
+  Both are in `C:\Android\libs\docker\<abi>\`; the x86_64 one is installed as `C:\Android\libs\x86_64\libunicorn.so`. **The app's
+  arm64 library is still the Termux one** (`7CDDE399...CA72`, SONAME `libunicorn.so.2`, Termux RUNPATH). To try the Docker one on the
+  S23 without replacing anything: `.\android\fetch_unicorn.ps1 -Source C:\Android\libs\docker\arm64-v8a\libunicorn.so`, build, run.
+  To make it the default once it ran: `python -I android/tools/build_unicorn_docker.py --install arm64-v8a` (keeps the Termux file
+  beside it as `libunicorn.so.7cdde399.bak`) or copy it over `C:\Android\libs\arm64-v8a\libunicorn.so`, then `fetch_unicorn.ps1`.
+- **Docker:** Docker Desktop 4.19 (engine 23.0.5) was stopped before and is stopped after. The wrapper starts it when it is not
+  running and, unless `--keep`, removes `debian:bookworm-slim` (pinned in the script by digest `sha256:99c0b25c...b6f3`) if it
+  pulled it and quits Docker Desktop only if it started it. 4.19 has no `docker desktop stop`, so "quit" means stopping every process under `C:\Program
+  Files\Docker` and `wsl --terminate` of its two distributions; that also stops any container that was running. The user's
+  existing images and containers were not touched (`docker images -a` afterwards listed the same images as before), and
+  `com.docker.service` stayed stopped throughout.
+- **The x86_64 Python packages were the next 16 KB problem.** With x86_64 added the APKs had 194 libraries and 3 below 16 KB:
+  Chaquopy's x86_64 `libopenblas.so` (chaquopy-openblas 0.2.20), `libgfortran.so.3` (chaquopy-libgfortran 4.9, needed only by
+  that OpenBLAS) and `libjpeg_chaquopy.so` (chaquopy-libjpeg 1.5.3), all aligned to 4 KB (their arm64 builds are fine). Chaquopy's
+  index has nothing newer. Fixed with local wheels from `build_x86_64_wheels.py` (x86_64 only; arm64 keeps exactly what it had):
+  - **libjpeg-turbo 1.5.3**, Chaquopy's recipe (no TurboJPEG, no SIMD, its `soname.patch` done with `sed`): 390,200 bytes,
+    SHA-256 `1eb9e199...cc81`, wheel `chaquopy_libjpeg-1.5.3-100-...x86_64.whl`. Pillow's `_imaging.so` needs the symbol version
+    `LIBJPEG_6.2`; all 21 of its versioned libjpeg imports are in the new library.
+  - **OpenBLAS 0.3.33** by Chaquopy's current recipe (NOFORTRAN, so LAPACK is built from C; USE_THREAD=0, USE_LOCKING=1,
+    NUM_THREADS=8, TARGET=NEHALEM; Chaquopy updated the recipe in 2026-06 and has not published it): 12,620,680 bytes, SHA-256
+    `1d7ae697...ec05`, needs only libc, libm, libdl. numpy's three x86_64 modules import 57 symbols from OpenBLAS; all are exported.
+    0.2.20 cannot be rebuilt (its LAPACK is Fortran and the NDK has no Fortran compiler).
+  - **The version labels:** Chaquopy resolves the requirements for the first ABI (arm64-v8a) and then installs the same exact
+    `name==version` list with `--no-deps` for the others (`chaquopy/pip_install.py`), so a plain 0.3.33 wheel was ignored for
+    x86_64. The OpenBLAS wheel is therefore `chaquopy_openblas-0.2.20+openblas0.3.33-100-...` (`==0.2.20` matches a local version
+    label and pip prefers it), and `chaquopy_libgfortran-4.9+none-100-...` is an empty wheel that satisfies the libgfortran pin
+    and keeps the unused 4 KB library out. The build log shows both installed for x86_64.
+  - **Gotcha:** Chaquopy's `PythonRequirements` tasks stayed UP-TO-DATE after new wheels appeared in `android/wheels/`; delete
+    `android/app/build/python/pip` (or clean) after adding or changing a local wheel.
+- **Alignment (`python -I android/tools/check_page_alignment.py`): 193 native libraries, 0 below 16 KB**, for both the debug
+  (`assembleDebug -Precast.debugSuffix=true`) and the release APK.
+- **Sizes:** release APK 28,606,504 bytes (arm64 only) to 45,266,575 (+16.7 MB: a second Python, numpy, Pillow, OpenBLAS and
+  Unicorn); debug 33,719,748 to 46,931,140. Per-ABI APKs (`splits.abi`) would bring each download back to about the old size; not
+  done (the website offers one file).
+- **The ps16k emulator:** `emulator` 37.2.13 and `system-images;android-36.1;google_apis_ps16k;x86_64` r04 (1.8 GB download,
+  4.3 GB unpacked) into `C:\Android\sdk`; AVD `recast_ps16k` (`avdmanager create avd -n recast_ps16k -k
+  "system-images;android-36.1;google_apis_ps16k;x86_64" -d pixel_7`; avdmanager took the semicolons fine, unlike sdkmanager);
+  WHPX acceleration (`emulator -accel-check`). Started headless: `emulator -avd recast_ps16k -no-window -no-audio -no-boot-anim
+  -no-snapshot -gpu swiftshader_indirect -memory 4096` (booted in 96 s, `emulator-5556`; the stale `emulator-5554 offline` is still
+  listed). `getconf PAGE_SIZE` = **16384**, Android 16 (SDK 36), ABIs `x86_64,arm64-v8a`; the installed debug app has
+  `primaryCpuAbi=x86_64` and `pageSizeCompat=0` (not in the 4 KB compatibility mode).
+- **What ran there (debug build, game files pushed into `files/game` as for the phone, prefs `style_chosen` true and
+  `share_scores` false so nothing was sent to the leaderboard):** the app starts, the title screen with its menu text; `am start ...
+  MainActivity --es start_world agrabah` seeded the save, Load Game, the Agrabah splash, the opening scene, walking, and Sora's
+  speech bubble ("Cool, back in Agrabah...") drawn; `faults 0` all along. `/proc/<pid>/maps` shows the x86_64 `libunicorn.so`
+  and our `libopenblas.so`, `libjpeg_chaquopy.so` and `libfreetype.so` loaded; no linker or `dlopen` error from the app in logcat.
+  The emulator ran at 12 to 19 fps (software rendering on a PC; not a speed figure).
+- **Sound on the emulator:** the nine tunes were rendered into `files/data/audio_cache` within the first minute, the title music
+  reached the output (loudest sample about 5,200 per 100 blocks, 0 underruns). In Agrabah the output stayed at 0 for about 90 s
+  after the splash: not found out whether the game plays music in that scene (not compared with the desktop). The sound effects
+  fail with "PMD sound effects need ffmpeg": this image has no QCELP decoder (none in its `media_codecs*.xml`), the known limit of
+  "The game's sound effects" above. Most x86_64 devices (Chromebooks, PC emulators) are likely the same, so they will have music
+  but no effects until a pure-Python QCELP decoder exists.
+- **Screenshots** (game art, not kept in the repo): the scratchpad of this session, `emu_title.png`, `emu_load1.png`,
+  `emu_world2.png`, `emu_world3.png`.
+- **Clean build order** (everything the build needs that is not in git; PowerShell from the repository root):
+  1. `. .\android\env.ps1` (JDK, SDK, NDK for this shell).
+  2. `python android/tools/build_freetype_wheel.py` (FreeType wheels for both ABIs into `android/wheels/`; Windows NDK, any
+     Python 3.10+).
+  3. `python -I android/tools/build_x86_64_wheels.py` (x86_64 OpenBLAS, empty libgfortran and libjpeg wheels into
+     `android/wheels/`; needs Docker).
+  4. `python -I android/tools/build_unicorn_docker.py --install x86_64` (both Unicorn libraries into `C:\Android\libs\docker\`,
+     the x86_64 one installed to `C:\Android\libs\x86_64\`; needs Docker). Add `--install arm64-v8a` only once the Docker arm64
+     library has run on the S23.
+  5. `.\android\fetch_unicorn.ps1` (both libraries into `app/src/main/jniLibs/`, and Unicorn's Python binding from the
+     Unicorn 2.1.4 checkout at `C:\Android\src\unicorn`, `git clone --depth 1 --branch 2.1.4
+     https://github.com/unicorn-engine/unicorn.git`).
+  6. In `android`: `.\gradlew.bat assembleRelease --no-daemon "-Precast.buildPython=<a Python 3.13>"` (or `assembleDebug
+     "-Precast.debugSuffix=true"`). After adding or changing a wheel in step 2 or 3, delete `android/app/build/python/pip` first.
+
+  **Not reproducible from the repository alone yet:** the arm64 library the app ships is still the one built in Termux on the
+  phone (`C:\Android\libs\arm64-v8a\libunicorn.so`, SHA-256
+  `7CDDE39921149A95B9358DEAA37056AF50B1C9935B2761FA3EE2ECBCD0BFCA72`), and the binding comes from the checkout above. Both stay
+  outside git until the Docker arm64 build has replaced the Termux one (step 4 with `--install arm64-v8a`).
+- **Re-check the OpenBLAS label whenever Chaquopy or numpy is updated:** the x86_64 wheel only matches because arm64 resolves to
+  chaquopy-openblas 0.2.20 and chaquopy-libgfortran 4.9; if a new numpy or Chaquopy picks another version for arm64, Chaquopy's
+  4 KB x86_64 builds come back without any error (`check_page_alignment.py` on the APK shows it).
+- **The user's answer (2026-11-03): the Android download becomes two zips**, one for phones (arm64) and one for x86_64
+  (Chromebooks, emulators). Not implemented: the per-ABI split belongs to the release chunk.
+- **Not done:** the S23 check of chunk 1 and of the Docker-built arm64 library (the phone was not in `adb devices`); the release
+  APK was built and checked for alignment but not installed anywhere. The app's third-party libraries are now listed in
+  `docs/CREDITS.md`, "Software the apps include"; the Unicorn GPLv2 against GPL-3.0 question is still the owner's to settle.
 
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
@@ -1157,7 +1340,7 @@ depend on the font), `image.py` BMP/PNG decode, `audio.py` mixer (`pygame.mixer`
 
 Keep `khvcemu/` as the one emulator core for desktop and Android. The Android app is Kotlin (Compose for
 menus, a SurfaceView showing the 176x220 RGB565 frame, which Android's `Bitmap.Config.RGB_565` takes
-as is), runs the core in a background thread through Chaquopy (Python 3.12, numpy from Chaquopy's
+as is), runs the core in a background thread through Chaquopy (Python 3.12 then, 3.13 since 2026-11-03; numpy from Chaquopy's
 repository), and loads `libunicorn.so` built from source with the NDK (ARM guest only, arm64-v8a plus
 x86_64 for the emulator, 16 KB aligned, TCG buffer 64 MiB). The four pygame uses get a small host
 interface with pygame as the default desktop backend and an Android backend (text with a bundled font,
@@ -1193,7 +1376,7 @@ downloading about 1.3 GB of toolchain.
    memory, runs a short ARM + Thumb snippet with a trap-page `bx lr` and a code hook, and checks R0.
    Pass: correct result on the phone and on the x86_64 emulator (4 KB and ps16k images), no `avc:
    denied` for execmem in logcat.
-2. Add Chaquopy (Python 3.12, numpy), copy the game folder in once through the document picker
+2. Add Chaquopy (Python 3.12 then, 3.13 since 2026-11-03; numpy), copy the game folder in once through the document picker
    (`ACTION_OPEN_DOCUMENT_TREE`) into app-specific storage, run `bench_headless.py boot` in-process.
    Pass: `title_reached: true` (frames >= 200, faults 0, lit > 0.2, as `test_boots_to_title_menu`).
 3. Run `world` and `audio` in-process and note APK size and memory (`adb shell dumpsys meminfo`).
@@ -1207,7 +1390,7 @@ Pass/fail on the target phone (desktop in brackets):
 | Guest instructions/s in 3D (168 M per game second x the real-time factor) | >= 100 M | 65 to 100 M | < 65 M | 140 to 145 M |
 | Synth render of the nine tunes, first launch only | < 60 s | 60 to 180 s | > 180 s | 6.3 s |
 | Peak memory (PSS) in the 3D scene | < 300 MB | 300 to 500 MB | > 500 MB | 64 MB working set |
-| APK size (arm64 only) | < 60 MB | 60 to 100 MB | > 100 MB | not built |
+| APK size (arm64 only; with x86_64 since 2026-11-03 the release is 45.3 MB) | < 60 MB | 60 to 100 MB | > 100 MB | not built |
 
 Marginal or fail means: stop and report, then in this order try a 15 fps cap (the game is time based),
 native string/heap helpers (only matters while loading), and a dynarmic backend behind the `Cpu` class.
