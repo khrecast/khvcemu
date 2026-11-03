@@ -167,7 +167,7 @@ document.querySelectorAll("[data-link]").forEach(function (a) {
   hit("view:" + page, page === "home" ? "&o=" + kindOfComputer() + "&r=" + whereFrom() : "");
 
   // which parts of the home page are read: a section counts once, when it is in the middle part of the window
-  var sectionEls = page !== "home" ? [] : ["android", "about", "features", "screens", "launcher", "composer", "help", "credits"]
+  var sectionEls = page !== "home" ? [] : ["about", "features", "screens", "launcher", "composer", "help", "credits"]
     .map(function (id) { return document.getElementById(id); }).filter(Boolean);
   var sectionSeen = {}, sectionTimer = null;
   function checkSections() {
@@ -181,7 +181,7 @@ document.querySelectorAll("[data-link]").forEach(function (a) {
   }
   if (sectionEls.length) {
     window.addEventListener("scroll", function () { if (!sectionTimer) sectionTimer = setTimeout(checkSections, 150); }, { passive: true });
-    setTimeout(checkSections, 600);                    // what is already in view when the page has opened (a link to #android)
+    setTimeout(checkSections, 600);                    // what is already in view when the page has opened (a link to #help)
   }
   document.addEventListener("click", function (ev) {
     var a = ev.target && ev.target.closest ? ev.target.closest("a") : null;

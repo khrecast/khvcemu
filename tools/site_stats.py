@@ -24,9 +24,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUERY = "SELECT day, name, n FROM site_stats ORDER BY day, name"
 DOWNLOADS = ("dl:win64", "dl:win32", "dl:macArm", "dl:macIntel", "dl:linux64", "dl:linuxArm", "dl:android")
 SECTIONS = ("android", "feedback", "about", "features", "screens", "launcher", "composer", "download", "help", "wonderland", "credits")
-# the pages other than the home page; download, feedback and wonderland were sections of the home page until 2026-11-02
+# the pages other than the home page; download, feedback and wonderland were sections of the home page until 2026-11-02, android until 2026-11-03
 PAGES = {"view:download": "Download", "view:journal": "Jiminy's Journal", "view:wonderland": "Find Wonderland",
-         "view:leaderboard": "Leaderboard"}
+         "view:leaderboard": "Leaderboard", "view:android": "Android"}
 
 DOWNLOAD_NAMES = {"dl:win64": "Windows 64-bit", "dl:win32": "Windows 32-bit", "dl:macArm": "Mac, Apple Silicon",
                   "dl:macIntel": "Mac, Intel", "dl:linux64": "Linux, x86-64", "dl:linuxArm": "Linux, ARM64",

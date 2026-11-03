@@ -162,15 +162,15 @@ the worker for the connection; the address itself is neither read nor stored), `
 android, ios, chromeos or other, worked out by the page from the browser and sent as a word, never the browser
 string) and `ref:<site>` (where the visitor came from, as a word from a fixed list such as reddit, google,
 khinsider or direct; the page reduces the referrer to the website's name, never the address). A value that is not
-on the fixed list is ignored. The sections scrolled to are `sec:android`, `sec:about` and so on, counted once per
-visit (`sec:download`, `sec:feedback` and `sec:wonderland` stopped on 2026-11-02, when those became pages of their own).
+on the fixed list is ignored. The sections scrolled to are `sec:about`, `sec:features` and so on, counted once per
+visit (`sec:download`, `sec:feedback` and `sec:wonderland` stopped on 2026-11-02 and `sec:android` on 2026-11-03, when those became pages of their own).
 
 Only the names in `SITE_EVENTS` (`worker.js`) count; anything else, a `HEAD` request, or a request that says it
 came from another website, is answered `204` and ignored (a request with no `Referer` is accepted, because some
 browsers send none), so the table cannot be filled with junk. Each name also stops counting at a daily ceiling
-(`SITE_EVENTS`: 8,000 for the main page, 1,500 for the leaderboard, 1,000 for each section, 600 for each button;
+(`SITE_EVENTS`: 8,000 for the main page, 1,500 for the leaderboard and each other page, 1,000 for each section, 600 for each button;
 the extra tallies stop with the main page's ceiling), which bounds the database writes the counters can cause to
-about 65,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop scores
+about 66,000 a day, so calling the address in a loop cannot use up the free plan's daily writes and stop scores
 being saved; it can still inflate a day's counts or stop them there, so these are rough counts, not proof. For
 real protection add a Cloudflare rate-limiting rule for `/hit` in the dashboard. A browser that sends Do Not Track
 (or Global Privacy Control) never asks. A missing table never breaks the page: the worker answers anyway. There

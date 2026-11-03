@@ -9,9 +9,9 @@
 <link rel="icon" type="image/png" href="assets/recast_icon.png">
 <link rel="stylesheet" href="site.css">
 <script>
-  // the download, journal and Wonderland parts have their own pages now: old links to them (#download, #feedback...) still land there
+  // the download, journal, Wonderland and Android parts have their own pages now: old links to them (#download, #feedback...) still land there
   (function () {
-    var h = location.hash, moved = { "#download": "download.html", "#android-help": "download.html#android-help",
+    var h = location.hash, moved = { "#download": "download.html", "#android-help": "download.html#android-help", "#android": "android.html",
       "#feedback": "journal.html", "#wonderland": "wonderland.html" };
     var to = moved[h] || (/^#feedback-\d+$/.test(h) ? "journal.html" + h : "");
     if (to) { window.KH_LEAVING = true; location.replace(to); }
@@ -27,7 +27,7 @@
     <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav">&#9776; Menu</button>
     <nav aria-label="Pages" id="site-nav">
       <div class="mm"><button class="mm-btn" id="mm-btn" type="button" aria-expanded="false" aria-controls="mm-list"><img src="assets/nav/main_menu.png" width="92" height="22" alt="Main Menu"><span class="caret" aria-hidden="true"></span></button>
-        <div class="mm-list" id="mm-list" hidden><a href="#android">Android</a><a href="#about">About</a><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#launcher">The launcher</a><a href="#composer">The music</a><a href="#help">Help</a><a href="#credits">Credits</a></div></div>
+        <div class="mm-list" id="mm-list" hidden><a href="android.html">Android</a><a href="#about">About</a><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#launcher">The launcher</a><a href="#composer">The music</a><a href="#help">Help</a><a href="#credits">Credits</a></div></div>
       <a class="lbd" href="leaderboard.html"><span class="lbw"><img src="assets/nav/leaderboard.png" width="114" height="22" alt="Leaderboard"><svg class="crown" viewBox="0 0 40 28" width="17" height="12" aria-hidden="true"><defs><linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe98a"/><stop offset=".55" stop-color="#e3ae2c"/><stop offset="1" stop-color="#a8740e"/></linearGradient></defs><path fill="url(#crown-gold)" fill-rule="evenodd" d="M1 3 L13 17 L20 1 L27 17 L39 3 L35 27 L5 27 Z M13 19.5 a3 3 0 1 0 0.01 0 Z M27 19.5 a3 3 0 1 0 0.01 0 Z"/></svg></span></a><a class="get" href="download.html"><svg class="arrow" viewBox="0 0 14 14" width="12" height="12" aria-hidden="true"><path d="M7 1.5v7.5M3.5 5.5 7 9l3.5-3.5M2 12.5h10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><img src="assets/nav/download.png" width="82" height="22" alt="Download"></a><a class="wl" href="wonderland.html" aria-label="Find Wonderland"><span aria-hidden="true"><b class="suit h">&hearts;</b><i style="--t:-9deg;--y:2px">F</i><i style="--t:7deg;--y:-2px">i</i><i style="--t:-4deg;--y:1px">n</i><i style="--t:10deg;--y:-1px">d</i><i class="sp"> </i><i style="--t:4deg;--y:-2px">W</i><i style="--t:0deg;--y:0px">o</i><i style="--t:-8deg;--y:1px">n</i><i style="--t:6deg;--y:-2px">d</i><i style="--t:-3deg;--y:2px">e</i><i style="--t:9deg;--y:-1px">r</i><i style="--t:-6deg;--y:1px">l</i><i style="--t:4deg;--y:-2px">a</i><i style="--t:-9deg;--y:1px">n</i><i style="--t:7deg;--y:-1px">d</i><b class="suit s">&spades;</b></span></a><a class="jj" href="journal.html"><svg class="hat" viewBox="0 0 22 17" width="15" height="12" aria-hidden="true"><rect x="6" y="1" width="10" height="11.5" rx="1.5" fill="#6f8fd8" stroke="#3d5794" stroke-width=".8"/><rect x="6" y="8.2" width="10" height="2.6" fill="#f0a93a"/><ellipse cx="11" cy="13.4" rx="10" ry="2.6" fill="#5677c2" stroke="#3d5794" stroke-width=".8"/><ellipse cx="11" cy="13.7" rx="6.2" ry="1.55" fill="#0d0d14"/><path d="M4.6 13.8 Q11 16.9 17.4 13.8" fill="none" stroke="#000" stroke-width="1.1" stroke-linecap="round"/></svg>Jiminy&rsquo;s Journal</a>
     </nav>
   </div>
@@ -44,7 +44,7 @@
     <p class="sub">A lost piece of Kingdom Hearts history: the 2005 Verizon V CAST game, playable with full sound for the first time. One download, nothing else to install.</p>
     <div class="cta">
       <a class="btn primary" id="hero-dl" href="download.html" data-os-button>Download for PC</a>
-      <a class="btn" href="#android">The Android app</a>
+      <a class="btn" href="android.html">The Android app</a>
       <a class="btn" href="#about">What is this?</a>
     </div>
     <p class="small" id="hero-note" style="margin-top:12px">Free and open source</p>
@@ -59,38 +59,6 @@
   </div>
 
   <div class="bar" aria-hidden="true"></div>
-  <div class="bar" aria-hidden="true"></div>
-
-  <section id="android"><div class="wrap">
-    <h2>Re:Cast on Android</h2>
-    <h3 class="big">Play the game the way it was meant to be played</h3>
-    <p class="lead">This was a phone game, and now it is one again. The Re:Cast app runs the real game, with its music and sound effects, on an Android phone: the first time it has ever been playable on Android with full sound.</p>
-    <div class="phones">
-      <figure><img src="assets/android_flip.webp" width="810" height="1552" alt="Flip phone style: Sora and the Genie on the screen of a silver 2005 clamshell phone, with the V CAST logo, a navigation ring, Call and End keys and a number keypad below" loading="lazy"><figcaption><strong>Flip phone style</strong>: the game in a 2005 clamshell, played on its keypad. The most authentic V CAST experience.</figcaption></figure>
-      <figure><img src="assets/android_flip_colors.webp" width="1350" height="1724" alt="The flip phone in six more colors: graphite, sky blue, rose pink, champagne gold, red and Re:Cast blue with the small bezel" loading="lazy"><figcaption><strong>Seven colors</strong>, from silver and graphite to red and Re:Cast blue, and a small bezel for a bigger picture.</figcaption></figure>
-      <figure><img src="assets/android_cross.webp" width="810" height="1552" alt="Layout A: four arrow keys in a cross around the Action button, which reads Attack during a fight, with Magic and Status below" loading="lazy"><figcaption><strong>Layout A</strong>: the arrows in a cross around the Action button. The default.</figcaption></figure>
-      <figure><img src="assets/android_two_thumb.webp" width="810" height="1552" alt="Layout B: forward and back on the left, Magic and a large Action button in the middle, turning left and right on the right" loading="lazy"><figcaption><strong>Layout B</strong>: two thumbs, forward and back on one side, turning on the other.</figcaption></figure>
-      <figure><img src="assets/android_dpad.webp" width="810" height="1552" alt="Layout C: a round direction pad on the left, Magic, Status and Action on the right, in the Agrabah lava cave with the Genie" loading="lazy"><figcaption><strong>Layout C</strong>: a round direction pad.</figcaption></figure>
-      <figure class="wide"><img src="assets/android_landscape.webp" width="1600" height="724" alt="The phone held sideways: the picture in the middle, the softkeys along the top and the arrow cross with Attack on the right" loading="lazy"><figcaption><strong>Sideways</strong>: turn the phone and the controls move to the sides, with bigger buttons.</figcaption></figure>
-    </div>
-
-    <h4 class="subhead">Built for the phone</h4>
-    <div class="grid">
-      <div class="card"><div class="ico">&#128241;</div><h4>Flip phone style</h4><p>A 2005 clamshell drawn around the game, with the V CAST logo, a navigation ring and a real keypad: 5 is Action, * is Magic, 0 is Status. Seven colors and a small bezel, and you can switch styles any time from the game's menu.</p></div>
-      <div class="card"><div class="ico">&#127918;</div><h4>Three touch layouts</h4><p>A cross (the default), two thumbs, or a direction pad. Every button, each arrow included, can be dragged and resized, and turning the phone sideways gives you bigger buttons.</p></div>
-      <div class="card"><div class="ico">&#9876;&#65039;</div><h4>An Action button that reads the game</h4><p>It watches the game's own action banner and says what it will do: Attack, Open, Talk, Grab, Lift, Throw, or Enter on menus. The softkeys show the game's words (Continue, End), and you can tap the game's own menus.</p></div>
-      <div class="card"><div class="ico">&#127925;</div><h4>Full sound, decoded on the phone</h4><p>The tuned music synth and the phone's compressed voice-codec sound effects, decoded with Android's own codec, in step with the action. The Wonderland theme plays on the Wonderland screen.</p></div>
-      <div class="card"><div class="ico">&#127898;&#65039;</div><h4>A sound screen</h4><p>Play every tune, pick a ready-made mix or save your own, and star your favorites. Have the game play your own recordings (FLAC, MP3 and more) instead of the synth, matched to its volume.</p></div>
-      <div class="card"><div class="ico">&#128288;</div><h4>Sharp text, the game's font</h4><p>The game's tiny text is redrawn sharply at the phone's resolution, and the app's menus and buttons use the Kingdom Hearts menu font.</p></div>
-      <div class="card"><div class="ico">&#128190;</div><h4>Saves that travel</h4><p>Save states, quick save and load, and autosaves, all from the game's menu. Export a save state to carry on from the same spot on your PC, or bring one over from it (the same game files and settings are needed).</p></div>
-      <div class="card"><div class="ico">&#127942;</div><h4>The shared leaderboard</h4><p>Post your scores to the same anonymous board as the PC version. The app asks first, and you can switch it off.</p></div>
-    </div>
-    <div class="callout">
-      <p style="margin:0 0 10px"><strong>Re:Cast for Android is out</strong>: one zip with the app and the game files, for Android 8 or newer on a 64-bit phone. <a href="download.html#android-help">How to install it</a>. If something goes wrong on your phone, tell us which phone it is in <a href="journal.html">Jiminy's Journal</a>.</p>
-      <a class="btn primary" data-link="android" href="#">Download for Android</a>
-    </div>
-  </div></section>
-
   <div class="bar" aria-hidden="true"></div>
 
   <section id="about"><div class="wrap">

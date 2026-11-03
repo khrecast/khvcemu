@@ -41,21 +41,20 @@
   center, with screenshots of each control style, a download card and install help. The site is now
   several pages with a themed menu. **Main Menu**, **Leaderboard** (with a gold crown sitting on its d) and
   **Download** (with a touch of green and a down arrow before it) are in the KHMenu font, drawn by
-  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the home page's parts, Android first and Help among them.
+  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the Android page and the home page's parts, Help among them.
   **Find Wonderland** is in the storybook Alice font between a heart and a spade, its letters tumbling (and wobbling as the page scrolls, unless the visitor's device asks for less motion) in the Cheshire Cat's
   colors, and **Jiminy's Journal** is a handwritten note (the Caveat font) with a top hat on the J. Both fonts are free
   (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
   menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip,
   the picture of his 24-minute recording and the two stills from his post, unedited, with his
-  watermark and a credit line linking his post, and he is in the Credits. The Televo credit now names the Android app's menu too. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland and Jiminy's Journal have their own pages,
-  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` still land on them. The Android download is one zip,
+  watermark and a credit line linking his post, and he is in the Credits. The Televo credit now names the Android app's menu too. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland, Jiminy's Journal and Android (the app's pictures and features, moved off the home page so its cards no longer sit right above the PC ones) have their own pages,
+  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` or `#android` still land on them. The journal's Device field starts blank: it is filled only when a link from an app says which device, never guessed from the browser (a phone visitor writing about the PC version was put down as Android). The Android download is one zip,
   `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum is in
   `SHA256SUMS.txt`, and the link in the untracked `site/links.js`). The Wonderland section tells of the recording Pablo
-  González showed on X. The leaderboard Worker and `tools/site_stats.py` count Android downloads and the Android section
-  (`dl:android`, `sec:android`), journal entries sent (`click:feedback`), and visits to the new pages (`view:download`,
-  `view:journal`, `view:wonderland`); the stats dashboard has an "Other pages opened" section. An old link to a part
+  González showed on X. The leaderboard Worker and `tools/site_stats.py` count Android downloads (`dl:android`), journal entries sent (`click:feedback`), and visits to the new pages (`view:download`,
+  `view:journal`, `view:wonderland`, `view:android`; the Android part was a home-page section, `sec:android`, until 2026-11-03); the stats dashboard has an "Other pages opened" section. An old link to a part
   that moved (`#download`, `#feedback`) is not also counted as a home page visit. The menu-font pictures come from
-  `python tools/make_tab_labels.py --site`, which writes only the website's labels. The Android pictures on the home page are
+  `python tools/make_tab_labels.py --site`, which writes only the website's labels. The Android pictures are
   retaken at the phone's full resolution (810 px wide instead of 540, the sideways one 1600 instead of 1000, so the text is
   clearer on a phone).
 - **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
