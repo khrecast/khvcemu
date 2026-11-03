@@ -1217,6 +1217,56 @@ libraries 16 KB aligned, and Pillow 11.0.0 itself is aligned for cp312 and cp313
   APK was built and checked for alignment but not installed anywhere. The app's third-party libraries are now listed in
   `docs/CREDITS.md`, "Software the apps include"; the Unicorn GPLv2 against GPL-3.0 question is still the owner's to settle.
 
+## Chunk: Android 7 (2026-11-03; built, lint clean for NewApi, 0 below 16 KB; NOT run on Android 7 or on the S23)
+
+- **What changed:** `minSdk = 24` (was 26) in `app/build.gradle.kts`. New `Compat.java` with the two calls that need API 26:
+  `moveReplacing` (`SaveSlots.importInto`) and `readAllBytes` (`SoundActivity`, a recording's decoded sound). On API 26 and later
+  both run the same `java.nio.file.Files` call as before; on 24 and 25 `File.renameTo` (rename(2), which replaces the target in one
+  step) and a `RandomAccessFile.readFully` straight into one array of the file's size (half the peak memory of a stream copy; review follow-up). New Android 7 launcher icons `res/mipmap-{mdpi,...,xxxhdpi}/ic_launcher.png` (48 dp: the same
+  pixel heart on a navy rounded square), made by `python android/tools/make_icon_pixelated.py --legacy` (new option; the adaptive
+  foreground is not rewritten). Android 8 and later still take `mipmap-anydpi-v26/ic_launcher.xml`, as Android Studio's own
+  template does, so the S23's icon does not change. Not looked at on an Android 7 launcher.
+- **How the API 25/26 uses were found:** `gradlew.bat lintDebug` with minSdk 24 (run with `-x installDebugPythonRequirements`,
+  see below; lint reads the Java, resources and manifest, not the Python packages). Before the fix: 6 NewApi errors, all
+  `java.nio.file` (`File.toPath`, `Files.move`, `StandardCopyOption.REPLACE_EXISTING` in `SaveSlots.java:131`; `File.toPath`,
+  `Files.readAllBytes` in `SoundActivity.java:426`). After: **0 NewApi**. What remains is 1 error and 32 warnings that do not depend
+  on minSdk and were there before: `GestureBackNavigation` on `MainActivity.onBackPressed` (only used before Android 13; 13 and
+  later use the `OnBackInvokedDispatcher` callback), `SetTextI18n`, `DefaultLocale`, `OldTargetApi`, the BenchActivity's fixed
+  orientation and so on. (`lintVitalRelease`, which `assembleRelease` runs, stops only on fatal issues.)
+- **Read by hand, nothing else needs 26:** sound is `AudioTrack` (the Builder is API 23, `getUnderrunCount` 24), not AAudio; no
+  notification channels, `java.time`, `Bitmap.Config.HARDWARE`, `Context.getColor`, fonts from resources or `WindowInsetsController`.
+  The existing version checks stay as they were: `OnBackInvokedDispatcher` (33), `setAccessibilityHeading` (28), the MediaStore
+  screenshots (29; older phones save into the app's own Pictures folder, which needs no permission). Insets are read with the
+  `getSystemWindowInset*` calls (API 20); Android 7 does not draw apps edge to edge, so those insets arrive as 0 there and the
+  content simply sits between the bars (not seen). Chaquopy 17 itself needs API 24 for every Python it supports (3.10 to 3.14;
+  its version table, checked 2026-11-03). Signing: APK Signature Scheme v2 is read from Android 7.0, so v1 is still not needed.
+- **Native side:** the CMake probe now builds at API 24 (`.note.android.ident` 0x18 in `libunicorn_probe.so` for both ABIs).
+  Every other native library was already built for API 24 or lower. Checked first on the last release APK (minSdk 26 build, same
+  libraries; the new APKs below give the same result with the probe at 24) with a scratch script (not kept) that reads each library's API note and looks up each strong undefined dynamic symbol in the
+  NDK r28c API-24 stub libraries (`sysroot/usr/lib/<triple>/24`) and the APK's other libraries, including those inside
+  Chaquopy's `.imy` archives: arm64-v8a 97 libraries (API notes 21: 65, 24: 31, the old probe 26: 1), x86_64 96 (21: 62, 24: 33,
+  26: 1); **no unresolved symbol at API 24** (against the API-21 stubs the same script finds 68 problems, so it does look). The
+  Termux arm64 `libunicorn.so` is API 24 as well (built with NDK r30), the Docker ones too.
+- **Built:** `assembleDebug -Precast.debugSuffix=true` and `assembleRelease` both pass (pip took the same local wheels as before).
+  `aapt2 dump badging`: `minSdkVersion:'24'`, target 36; the linked resources hold `mipmap/ic_launcher` for mdpi to xxxhdpi (PNG)
+  and anydpi-v26 (XML). `check_page_alignment.py`: **193 native libraries, 0 below 16 KB**, for both. The API check on the new
+  APKs: arm64-v8a 97 libraries (API notes 21: 65, 24: 32), x86_64 96 (21: 62, 24: 34), 0 problems. The release is signed with v2
+  only and `apksigner verify --min-sdk-version 24` passes (v2 is read from Android 7.0). Sizes: release 45,276,595 bytes (was
+  45,266,575), debug 46,506,806 (was 46,931,140; not looked into).
+- **Gotcha:** changing minSdk reruns Chaquopy's `install*PythonRequirements`, which needs `chaquo.com`. For about half an hour on
+  2026-11-03 the router's DNS answered "server failure" for that name only (pypi.org and dl.google.com worked) and pip found no
+  numpy; it came back by itself. Lint does not need the packages: `-x installDebugPythonRequirements` lets it run offline.
+- **Not tested on Android 7:** no API 24 or 25 system image is installed and none is approved. The smallest that would do:
+  `system-images;android-24;default;x86_64` r8 (419 MB download; the API 25 one is 423 MB; Google APIs images are 1.1 to 1.3 GB),
+  run with the existing emulator and WHPX. It runs the x86_64 build, so it tests the Java side, Python 3.13 and the x86_64 Unicorn
+  on Android 7 with 4 KB pages; it says nothing about speed or about the arm64 library. Things to watch there: the icon, the
+  document picker, import of a state file (the `renameTo` path), a recording on the Sound screen (the stream read path), a
+  screenshot (the app's own Pictures folder), Back opening the game's menu (`onBackPressed`), sound, and that the first start
+  extracts and imports Python without error.
+- **Not run on the S23:** `adb devices` listed only the stale `emulator-5554 offline`. The pending phone checks of the two chunks
+  above, and the Docker-built arm64 Unicorn trial, are still to do; `fetch_unicorn.ps1` was not run, so the app still has the Termux
+  library.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.

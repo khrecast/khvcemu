@@ -8,7 +8,7 @@
 #   /out/<abi>/libunicorn.so            the result, one per ABI
 #
 # Options as in android/build_unicorn_termux.sh: ARM guest only (-DUNICORN_ARCH=arm), Release, no tests, LOAD segments aligned
-# to 16 KB (-Wl,-z,max-page-size=16384). API level 24 (Android 7, the app's minSdk plan). The library is stripped of symbols it
+# to 16 KB (-Wl,-z,max-page-size=16384). API level 24 (Android 7, the app's minSdk). The library is stripped of symbols it
 # does not need to export. Usage inside the container: sh build_unicorn_android.sh <abi> [<abi> ...]   (arm64-v8a, x86_64)
 set -eu
 

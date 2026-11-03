@@ -423,7 +423,7 @@ public class SoundActivity extends Activity {
                 PyObject app = Python.getInstance().getModule("recast_app");
                 byte[] pcm;
                 if (asRecording) {
-                    pcm = gained(java.nio.file.Files.readAllBytes(new java.io.File(RecordingDecoder.decodedPath(recPath)).toPath()),
+                    pcm = gained(Compat.readAllBytes(new java.io.File(RecordingDecoder.decodedPath(recPath))),
                             recGain);
                 } else {
                     pcm = app.callAttr("render_tune", GameInstaller.gameDir(this).getAbsolutePath(), name, settings)

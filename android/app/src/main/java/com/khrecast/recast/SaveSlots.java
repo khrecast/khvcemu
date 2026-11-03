@@ -128,7 +128,7 @@ final class SaveSlots {
                 }
             }
             File target = new File(dir, "slot" + slotName + ".khs");
-            java.nio.file.Files.move(tmp.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Compat.moveReplacing(tmp, target);
             moved = true;
             new File(dir, "slot" + slotName + ".png").delete();    // the old picture belongs to the old state
             return true;

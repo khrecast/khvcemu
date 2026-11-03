@@ -12,7 +12,7 @@
 #   /cache/android-ndk-r28c-linux.zip, /cache/OpenBLAS-0.3.33.tar.gz, /cache/libjpeg-turbo-1.5.3.tar.gz   (checked by SHA-256)
 #   /out/openblas/{lib,include,LICENSE}, /out/libjpeg/{lib,include,LICENSE.md}                           (the results)
 #
-# API level 24 (Android 7, the app's minSdk plan); LOAD segments 16 KB aligned (NDK r28's default, and asked for explicitly).
+# API level 24 (Android 7, the app's minSdk); LOAD segments 16 KB aligned (NDK r28's default, and asked for explicitly).
 set -eu
 
 NDK_ZIP=/cache/android-ndk-r28c-linux.zip

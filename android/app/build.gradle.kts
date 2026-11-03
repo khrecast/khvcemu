@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.khrecast.recast"
-        minSdk = 26
+        minSdk = 24                          // Android 7.0, Chaquopy's floor (API 26+ calls are guarded; see android/NOTES.md "Chunk: Android 7")
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"                // the first release; raise versionCode with every release you hand out (Android refuses a lower one)

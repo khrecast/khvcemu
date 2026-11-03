@@ -1,6 +1,7 @@
 """Make the Android app icon: the Re:Cast heart, slightly pixelated, at the five launcher densities.
 
     python android/tools/make_icon_pixelated.py [cells] [rough]        (default 40 cells across the heart, no roughness)
+    python android/tools/make_icon_pixelated.py --legacy               (only the Android 7 icon, res/mipmap-*/ic_launcher.png)
 
 The heart is drawn here from the same outline formula as the window icon (tools/make_icon.py: the heart curve, with a smaller one cut out of it), so the
 thickness of its line and its height can be set (INNER, DROP, STRETCH). It is cut into a coarse grid of cells,
@@ -94,6 +95,36 @@ def icon(size: int, n_wide: int, rough: float = 0.0, edges: bool = False, stretc
     return canvas
 
 
+LEGACY_DENSITIES = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+LEGACY_BACKGROUND = (0x0B, 0x1E, 0x3F)  # res/values/ic_launcher_background.xml
+LEGACY_SQUARE = 44 / 48                 # the navy square: 44 of the icon's 48 dp (a margin all round, as old launcher icons have)
+LEGACY_CORNER = 0.16                    # its corner radius against its side
+LEGACY_HEART = 0.66                     # the heart's width against the 48 dp icon (72 percent of the square; on the adaptive icon it is 78 percent of the 72 dp mask)
+
+
+def legacy_icon(size: int, n_wide: int = 40) -> Image.Image:
+    """The icon for Android 7.0 and 7.1, which have no adaptive icons: the same heart on a navy rounded square. Drawn 4 times larger with
+    hard edges, then reduced by averaging, so the cells stay even at the small sizes (at mdpi a cell is under a pixel)."""
+    big_size = size * 4
+    canvas = Image.new("RGBA", (big_size, big_size), (0, 0, 0, 0))
+    side = round(big_size * LEGACY_SQUARE)
+    off = (big_size - side) // 2
+    ImageDraw.Draw(canvas).rounded_rectangle((off, off, off + side - 1, off + side - 1), radius=round(side * LEGACY_CORNER),
+                                             fill=LEGACY_BACKGROUND + (255,))
+    heart = icon(big_size, n_wide, share=LEGACY_HEART)
+    canvas.alpha_composite(heart)
+    return canvas.resize((size, size), Image.BOX)
+
+
+def main_legacy(n_wide: int = 40):
+    """Writes only res/mipmap-*/ic_launcher.png (Android 7; Android 8 and later use mipmap-anydpi-v26/ic_launcher.xml)."""
+    for name, size in LEGACY_DENSITIES.items():
+        folder = os.path.join(RES, "mipmap-" + name)
+        os.makedirs(folder, exist_ok=True)
+        legacy_icon(size, n_wide).save(os.path.join(folder, "ic_launcher.png"), optimize=True)
+    print("wrote the Android 7 launcher icon with %d cells across the heart" % n_wide)
+
+
 def main(n_wide: int = 40, rough: float = 0.0):
     for name, size in DENSITIES.items():
         folder = os.path.join(RES, "mipmap-" + name)
@@ -103,4 +134,7 @@ def main(n_wide: int = 40, rough: float = 0.0):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--legacy"]:
+        main_legacy()
+        sys.exit(0)
     main(int(sys.argv[1]) if len(sys.argv) > 1 else 40, float(sys.argv[2]) if len(sys.argv) > 2 else 0.0)
