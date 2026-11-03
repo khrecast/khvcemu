@@ -62,6 +62,33 @@ does not contain the font file, only small pictures of the tab names rendered fr
 | **UsernameAK** (also "/bin/cat") | Made Melange, a BREW emulator for Android, which ran Kingdom Hearts V CAST (without audio and without Wonderland) in a beta in early 2023. | [GitLab](https://gitlab.com/usernameak/brewemulator), [archive.org build](https://archive.org/details/app-release_20211031) |
 | **Dagu** | Announced Kingdom Hearts V CAST running on Melange (February 2023). | [@TheDaguar on X](https://x.com/TheDaguar/status/1620886267088220160) |
 
+## Software the apps include
+
+Re:Cast's own code is GPL-3.0. The installers and the Android app also carry open-source projects,
+each under its own license. The main ones:
+
+**In the Android app**
+
+| Project | Used for | License | Where |
+| --- | --- | --- | --- |
+| **Unicorn** 2.1.4 | The emulated phone processor. Built by this project from the unmodified 2.1.4 release (scripts in `android/tools/`). | GPLv2 | [unicorn-engine.org](https://www.unicorn-engine.org/), [source](https://github.com/unicorn-engine/unicorn/tree/2.1.4) |
+| **Python** 3.13, through **Chaquopy** | Runs the emulator's Python code inside the app. | Python Software Foundation License; Chaquopy: MIT | [python.org](https://www.python.org/), [chaquo.com](https://chaquo.com/chaquopy/) |
+| **NumPy** 1.26.2 | The music synth, sound mixing and the picture. | BSD-3-Clause | [numpy.org](https://numpy.org/) |
+| **OpenBLAS** | NumPy's math library (the x86_64 copy is built by this project from OpenBLAS 0.3.33). | BSD-3-Clause | [github.com/OpenMathLib/OpenBLAS](https://github.com/OpenMathLib/OpenBLAS) |
+| **Pillow** 11.0.0 | Drawing the game's text and decoding its images. | MIT-CMU (HPND) | [python-pillow.org](https://python-pillow.org/) |
+| **FreeType** 2.9.1 | Font drawing for Pillow. Built by this project from the unmodified 2.9.1 release. | FreeType License (used under it) | [freetype.org](https://freetype.org/) |
+| **libjpeg-turbo** 1.5.3 | JPEG decoding for Pillow (the x86_64 copy is built by this project). | IJG License and BSD-3-Clause | [libjpeg-turbo.org](https://libjpeg-turbo.org/) |
+
+Python in the app also brings OpenSSL (Apache-2.0) and SQLite (public domain), which Re:Cast does not use directly.
+
+Portions of this software are copyright &copy; The FreeType Project (www.freetype.org). All rights reserved.
+This software is based in part on the work of the Independent JPEG Group.
+
+**In the Windows, Mac and Linux installers:** Python, Unicorn (GPLv2), pygame-ce (LGPL-2.1) with SDL2
+(zlib License), NumPy (BSD-3-Clause), and an ffmpeg build for decoding the sound effects (ffmpeg's
+license depends on the build; the installers use the builds from gyan.dev, osxexperts.net and
+johnvansickle.com, named in `tools/build_installer.py`, `tools/build_mac.py` and `tools/build_linux.py`).
+
 ## Communities and references
 
 [The Lost Media Wiki](https://lostmediawiki.com/Kingdom_Hearts:_V_Cast_(partially_lost_mobile_game;_2005)),
