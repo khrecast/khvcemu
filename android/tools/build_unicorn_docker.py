@@ -9,10 +9,12 @@ What it does:
   * downloads NDK r28c for Linux (about 722 MB) and the Unicorn 2.1.4 source archive (GitHub tag 2.1.4) once into a cache
     folder outside the repository (default %LOCALAPPDATA%\\khrecast-android\\cache, or --cache), and checks both by SHA-256
     (and the NDK by the SHA-1 Google publishes, the archive by the tag's commit id)
-  * starts Docker Desktop if it is not running (Windows), runs the build in `debian:bookworm-slim` pinned by digest, and
-    afterwards removes that image if this run pulled it and, only if this run started Docker Desktop, quits it again (--keep
-    leaves both as they are). Quitting force-stops every Docker Desktop process (4.19 has no clean quit command), which also
-    stops any container that is running at that moment; a Docker Desktop that was already running is never stopped.
+  * starts Docker Desktop if it is neither running nor starting (Windows), runs the build in `debian:bookworm-slim` pinned
+    by digest, and afterwards removes that image if this run pulled it and, only if this run started Docker Desktop, quits
+    it again (--keep leaves both as they are). Starting it also starts the user's containers that have a restart policy;
+    those (except "unless-stopped" ones, which stop with Docker) are stopped cleanly with `docker stop` before Docker
+    Desktop is quit (`docker desktop stop`, or on 4.19, which has no clean quit command, by force-stopping its processes).
+    A Docker Desktop that was already running or starting is never stopped.
   * writes <out>/<abi>/libunicorn.so (default C:\\Android\\libs\\docker, or $ANDROID_ROOT\\libs\\docker, or --out) and prints
     each library's size, SHA-256 and LOAD alignment; it fails if a library is not 16 KB aligned or is the wrong machine
   * --install <abi> also copies that ABI's library to <root>\\libs\\<abi>\\libunicorn.so, where android/fetch_unicorn.ps1
@@ -94,24 +96,54 @@ def docker_ready() -> bool:
         return False
 
 
-def start_docker():
-    if not DOCKER_DESKTOP.exists():
+def desktop_process_running() -> bool:
+    """Whether Docker Desktop's own program is running (it may still be starting up)."""
+    try:
+        r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq Docker Desktop.exe", "/NH"], capture_output=True, text=True)
+    except OSError:                                              # not Windows
+        return False
+    return "Docker Desktop.exe" in r.stdout
+
+
+def start_docker() -> bool:
+    """Waits for Docker; starts Docker Desktop first unless it is already running or starting. True if this started it."""
+    started = not desktop_process_running()
+    if not started:
+        print("Docker Desktop is already starting: waiting for it (it will be left running)")
+    elif not DOCKER_DESKTOP.exists():
         sys.exit("Docker is not running and Docker Desktop was not found at %s: start Docker first" % DOCKER_DESKTOP)
-    print("starting Docker Desktop")
-    subprocess.Popen([str(DOCKER_DESKTOP)])
+    else:
+        print("starting Docker Desktop")
+        subprocess.Popen([str(DOCKER_DESKTOP)])
     for _ in range(90):
         time.sleep(4)
         if docker_ready():
             print("Docker is ready")
-            return
+            return started
     sys.exit("Docker did not become ready in 6 minutes")
 
 
 def stop_docker():
-    """Quits Docker Desktop and its WSL distributions (Docker Desktop 4.19 has no `docker desktop stop`) by force-stopping every
-    process started from its folder, which also stops any running container. run_in_container calls it only when it started
-    Docker Desktop itself."""
+    """Quits Docker Desktop. Starting it also starts the user's containers that have a restart policy: those are stopped
+    cleanly first (`docker stop`, 30 s each), except "unless-stopped" ones (`docker stop` would keep them down next time). Then `docker desktop stop` where this Docker has it, else (Docker Desktop 4.19)
+    every process started from its folder is force-stopped and its WSL distributions shut down. run_in_container calls it
+    only when it started Docker Desktop itself."""
+    ids = docker("ps", "-q", check=False, capture=True).stdout.split()
+    lines = docker("inspect", "--format", "{{.Id}} {{.Name}} {{.HostConfig.RestartPolicy.Name}}", *ids,
+                   check=False, capture=True).stdout.splitlines() if ids else []
+    stop, keep = [], []
+    for line in lines:
+        cid, name, policy = (line.split() + [""])[:3]
+        if name.lstrip("/") != "khrecast-android-build":
+            (keep if policy == "unless-stopped" else stop).append((cid, name.lstrip("/")))
+    if stop:
+        print("stopping the containers Docker Desktop started:", ", ".join(n for _, n in stop))
+        docker("stop", "-t", "30", *[c for c, _ in stop], check=False)
+    if keep:      # `docker stop` would keep an unless-stopped container down the next time Docker starts
+        print("left running until Docker quits, so they start with Docker next time:", ", ".join(n for _, n in keep))
     print("quitting Docker Desktop")
+    if docker("desktop", "stop", check=False, capture=True).returncode == 0:
+        return
     folder = str(DOCKER_DESKTOP.parent.parent)                   # every process started from C:\Program Files\Docker
     subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
                     "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith('%s\\') } | Stop-Process -Force" % folder],
@@ -149,8 +181,7 @@ def run_in_container(script: Path, args, cache: Path, out: Path, keep: bool):
     out.mkdir(parents=True, exist_ok=True)
     started = False
     if not docker_ready():
-        start_docker()
-        started = True
+        started = start_docker()
     had_image = docker("image", "inspect", IMAGE, check=False, capture=True).returncode == 0
     failed = None
     try:
