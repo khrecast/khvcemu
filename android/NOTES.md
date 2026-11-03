@@ -1355,6 +1355,48 @@ Screenshots (game art, scratchpad of this session, not kept in the repo): S23 `s
 `a7_first3.png`, `a7_setup1.png`, `a7_setup2.png`, `a7_play1.png` (the sharing question), `a7_title.png`, `a7_back.png`,
 `a7_new1.png`, `a7_world1.png`, `a7_world2.png`, `a7_world_final.png`, `a7_rec_play.png`.
 
+## Speed: Python 3.12 vs 3.13 (2026-11-03)
+
+**Verdict: Python 3.13 is not slower.** The 0.82x of the device checks above was the phone's heat, not the Python version.
+
+- **Builds** (same code, c481f15; `khvcemu/`, `android/app` and `android/spike` unchanged up to ae8543d): (a) HEAD, Chaquopy Python
+  3.13.9, build Python `recast313`; (b) `version = "3.12"` for one build only (Python 3.12.12, build Python the base miniconda 3.12.7;
+  numpy 1.26.2 and Pillow 11.0.0 cp312 from Chaquopy, our FreeType wheel), then `build.gradle.kts` copied back byte for byte (MD5
+  `25b27dcb...a96c9`, `git diff` empty). Both have the Termux arm64 Unicorn (1,416,496 bytes inside). Debug APKs with
+  `-Precast.debugSuffix=true`: 3.13 46,507,458 bytes (SHA-256 `1560cbf8...fcab`), 3.12 50,827,372 (`65c64149...dffe`). Installing one
+  over the other with `adb install -r` worked every time and kept the data.
+- **Method:** `BenchActivity` (boot, world scene a and b, nine tunes), a/b alternated, the phone on USB, Stay awake on. Every run gave
+  the same fingerprints (boot `9e9cda3d5f9db37e`, 3D `30f6070a8a5b231a`).
+- **Heat decides:** in the first four pairs (45 s rest only) the battery climbed from 32.3 to 36.5 C while charging (83 to 100 %),
+  and both Pythons fell together from about 1.06x to 0.78 to 0.91x on scene b once the battery passed about 34.5 C (a3 3.13 0.812x
+  at 35.2 C, b3 3.12 0.858x at 35.6 C, a4 3.13 0.782x at 35.6 C). Android's thermal status stayed 0 throughout (Samsung throttles
+  without reporting it). Then three pairs with the start held until the battery was at or below 33.0 C (rests of 45 to 765 s):
+
+  | Run | Python | Battery at start | Boot | Scene a | Scene b (fps capacity) | Nine tunes |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | a1 (45 s rest) | 3.13 | 32.3 C | 1.622x | 0.992x | 1.063x (26.6) | 6.47 s |
+  | b1 (45 s rest) | 3.12 | 33.3 C | 1.773x | 0.998x | 1.051x (26.3) | 6.52 s |
+  | a5 | 3.13 | 33.0 C | 1.802x | 1.002x | 1.072x (26.8) | 6.41 s |
+  | b5 | 3.12 | 33.0 C | 1.825x | 1.008x | 1.061x (26.5) | 6.44 s |
+  | a6 | 3.13 | 32.6 C | 1.797x | 0.987x | 1.074x (26.9) | 6.39 s |
+  | b6 | 3.12 | 33.0 C | 1.806x | 1.015x | 1.053x (26.3) | 6.45 s |
+  | a7 | 3.13 | 33.0 C | 1.778x | 0.991x | 1.070x (26.7) | 6.44 s |
+  | b7 | 3.12 | 33.0 C | 1.789x | 1.018x | 1.063x (26.6) | 6.39 s |
+
+  Gated means: scene b 3.13 1.072x, 3.12 1.059x (3.13 about 1 percent faster); scene a 0.993x against 1.014x (3.12 about 2 percent
+  faster); boot 1.79x against 1.81x; tunes equal. All within run-to-run noise. Peak RSS 203 to 226 MB for both.
+  These match chunk 4 (3.12, 2026-10-10: scene b 1.04 to 1.058x), so the code changes since then cost nothing measurable either.
+- **Not done:** the in-game fps of the title screen and Agrabah (`--es load 7`) per Python (stopped on request before it); no cProfile,
+  since nothing was slower. A run whose app was pushed to the background (the USB settings screen came up at 14:32) stalled and was
+  dropped.
+- **Gotcha:** after about ten installs in an hour, Google Play Protect asked "Send app for a security check?" on every `adb install`, and the
+  install waits until it is answered. It was answered "Don't send" (nothing sent, no setting changed). Benchmarks also need the phone
+  cool: compare only runs that start at the same battery temperature, ideally not while charging hard.
+- **Left behind:** the 3.13 HEAD debug build is installed again (installed APK hash = the 3.13 build); the debug app's data compared
+  equal to before (208 files), the `stall_*.txt` files deleted; the release app untouched (`lastUpdateTime` 2026-11-02 13:51:55).
+  `app/build/outputs/apk/debug/app-debug.apk` is the 3.13 APK copied back, but Chaquopy's intermediate folders hold the 3.12
+  packages, so the next build reinstalls the Python requirements (needs chaquo.com).
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
