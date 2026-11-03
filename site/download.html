@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Download - Kingdom Hearts Re:Cast</title>
-<meta name="description" content="Download Kingdom Hearts Re:Cast for Windows, Mac or Linux: the 2005 V CAST game with full sound, game files included. Android coming soon.">
+<meta name="description" content="Download Kingdom Hearts Re:Cast for Windows, Mac, Linux or Android: the 2005 V CAST game with full sound, game files included.">
 <meta name="theme-color" content="#0b1626">
 <link rel="icon" type="image/png" href="assets/recast_icon.png">
 <link rel="stylesheet" href="site.css">
@@ -31,9 +31,9 @@
     <p class="lead">Each file is a complete package with the game files included: download it, run it, play. On a PC, saves and settings live in your user folder, so uninstalling never deletes them (on Android they stay in the app: see <a href="#android-help">Installing on Android</a>).</p>
     <div class="dl">
       <div class="card" data-os="android">
-        <div class="os">Android</div><div class="name">Phone app <span class="badge">Coming soon</span></div>
-        <div class="meta">The app and the game files in one zip, for Android 8 or newer on 64-bit phones. <a href="index.html#android">See what it does</a>.</div>
-        <span class="btn" aria-disabled="true">Coming soon</span>
+        <div class="os">Android</div><div class="name">Phone app</div>
+        <div class="meta">The app and the game files in one zip, for Android 8 or newer on 64-bit phones. About 28&nbsp;MB. <a href="index.html#android">See what it does</a>.</div>
+        <a class="btn primary" data-link="android" href="#">Download for Android</a>
       </div>
       <div class="card" data-os="win64">
         <div class="os">Windows</div><div class="name">64-bit</div>
@@ -79,6 +79,7 @@
       If they differ, don't run it: download it again, from the other place if you can.</p>
       <p>Windows (PowerShell): <code>Get-FileHash .\KH-ReCast-Windows-x64.exe</code> &middot; macOS: <code>shasum -a 256 KH-ReCast-macOS-arm64.zip</code> &middot; Linux: <code>sha256sum KH-ReCast-Linux-x86_64.run</code></p>
       <ul>
+        <li><code>KH-ReCast-Android.zip</code><br><code style="word-break:break-all">b54e49aaccad08a89c58f1a1c081af2bdb3527035ad905078313a0d3ea436534</code></li>
         <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">e21b15054aeb24837868a3d030cb620bceac517f5d2861c53b336f10bff21546</code></li>
         <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">8997abee3f89a818c79ffad83a116d2a9422fb0574d7e2cd735905a9549adcc2</code></li>
         <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">7f946bfc95277ece6c675cdbc63e3baa71c8117ff86d862c2b52fa4a7d4f8a96</code></li>
@@ -106,7 +107,7 @@
       <p>It installs for your user only (no <code>sudo</code>) and adds <strong>Kingdom Hearts Re:Cast</strong> to your applications menu. To remove it: <code>sh KH-ReCast-Linux-x86_64.run --uninstall</code>. It needs a desktop Linux using glibc 2.28 or newer (not Alpine). On a 64-bit ARM machine, use the <code>aarch64</code> file instead.</p>
     </details>
     <details id="android-help">
-      <summary>Installing on Android (when it's out)</summary>
+      <summary>Installing on Android</summary>
       <ol>
         <li>Download <code>KH-ReCast-Android.zip</code> on the phone and extract it (in the Files app, tap the zip, then <strong>Extract</strong>). You get <code>KH-ReCast-Android.apk</code> and a <code>KH-ReCast-game</code> folder.</li>
         <li>Tap <code>KH-ReCast-Android.apk</code>. The first time, Android asks you to allow installing apps from your file manager: allow it, then tap <strong>Install</strong>.</li>

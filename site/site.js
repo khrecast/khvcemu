@@ -45,8 +45,9 @@ document.querySelectorAll("[data-link]").forEach(function (a) {
     hero.textContent = text; hero.href = href;
     if (note) note.textContent = small;
   }
-  if (os === "android") {                            // the Android app is not out yet: the big button points to the PC downloads
-    say("Download for PC", "download.html", "Free and open source. The Android app is coming soon.");
+  if (os === "android") {                            // on a phone the big button is the Android app
+    recommend('[data-os="android"]');
+    say("Download for Android", LINKS.android || "download.html", "Free and open source. Android 8 or newer, 64-bit phones.");
   } else if (os === "mac") {
     recommend('[data-os^="mac"]');
     say("Download for Mac", "download.html", "Free and open source. Pick Apple Silicon or Intel on the download page.");
