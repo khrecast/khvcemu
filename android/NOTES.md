@@ -1267,6 +1267,94 @@ libraries 16 KB aligned, and Pillow 11.0.0 itself is aligned for cp312 and cp313
   above, and the Docker-built arm64 Unicorn trial, are still to do; `fetch_unicorn.ps1` was not run, so the app still has the Termux
   library.
 
+## Device checks (2026-11-03): the S23 Ultra and an Android 7 emulator (debug builds; nothing committed)
+
+**The S23 Ultra:** Android 17 (SDK 37), `getconf PAGE_SIZE` 4096, ABIs `arm64-v8a,armeabi-v7a,armeabi`. The signed release
+`com.khrecast.recast` 0.1.0 was not touched (`lastUpdateTime` still 2026-11-02 13:51:55). The debug build
+(`assembleDebug -Precast.debugSuffix=true`, `com.khrecast.recast.debug`) installed over the old debug one with `adb install -r`
+(its data kept; minSdk 26 to 24 and the debug key raised nothing). Before: the debug app's `playtime.json`, `clear_times.csv`,
+`leaderboard.db` and prefs backed up (prefs: mute on, autosave off, sharing off; left so). After: `playtime.json` had grown and was put
+back, the benchmark's `stall_*.txt` files deleted, the rest compared equal. The phone was charging at 34 to 36 C.
+
+1. **HEAD 581f4b8 with the Termux arm64 Unicorn** (APK SHA-256 `9b560029...b46f`, 56,467,499 bytes; the zip entries are 46.5 MB
+   compressed, the rest is most likely the free space AGP's incremental packaging leaves in debug APKs, not looked into; the
+   library inside is 1,416,496 bytes against the 1,602,808-byte Termux file, so the build strips it): starts, title screen with its
+   menu text, `--es load 7` (Agrabah, saved Oct 06; sent after a force-stop, since a running game ignores the extra) loads, Sora
+   walks, the on-screen Back key opens "Game Paused / Press 0 to quit" with Continue and Options drawn. Logcat: no Python traceback, no linker or `dlopen` error for our libraries (Samsung's own
+   "libpenguin.so not found" from BufferQueueProducer is the system's), only the known `ResourceWarning: unclosed file` lines;
+   `/proc/<pid>/maps` shows the arm64 `libunicorn.so`, our `libfreetype.so` and `libopenblas.so`. Sound (measured, not heard):
+   title music peaks 4,366 to 5,242 per 100 blocks, Agrabah 5,221 to 11,220, **0 underruns**; the sound effects were decoded by
+   `c2.sec.qcelp.decoder` (three decoder instances during a short play).
+2. **The Docker arm64 Unicorn** (`fetch_unicorn.ps1 -Source C:\Android\libs\docker\arm64-v8a\libunicorn.so`, hash `ACDC11C0...3516`,
+   also the hash inside the APK; APK `639e1433...8e31`): the same checks pass the same way (title, slot 7, 0 faults, 0 underruns, same
+   peaks). **Passed, but about 4 percent slower** (table below). Not made the default: `fetch_unicorn.ps1` without `-Source` was run
+   afterwards and `jniLibs/arm64-v8a/libunicorn.so` is the Termux file again (SHA-256 `7CDDE399...CA72`, checked), and the phone has
+   the Termux debug build installed again.
+3. **Game fps** (status lines, one per second, 45 s after a cold start, no input; the first three lines skipped):
+
+   | Run | Title screen | Slot 7 (Agrabah) |
+   | --- | --- | --- |
+   | Termux library | median 25, mean 24.2 (18 to 26) | median 25; the first 12 s after the load 15 to 22 (mean 18), then 24 to 26 |
+   | Docker library | median 25, mean 24.1 (18 to 26) | median 25; the first 13 s 13 to 21 (mean 17), then 24 to 26 |
+
+   So the menus and a quiet scene still reach the game's 25 fps as on the 3.12 build; the busy start of the Agrabah scene does not
+   (tapping and walking there earlier gave 11 to 21 fps). No 3.12 figure exists for that scene.
+4. **Benchmark A/B** (`BenchActivity`, the headless benchmark of chunk 4, 20 s rest before each run, Termux and Docker alternated three
+   times, phone at 35.3 to 35.6 C). Every run gave the same frame fingerprints (boot `9e9cda3d5f9db37e`, 3D `30f6070a8a5b231a`):
+
+   | Library | Boot to title | 3D loading (scene a) | 3D steady (scene b) | Nine tunes |
+   | --- | --- | --- | --- | --- |
+   | Termux (x3) | 1.44 to 1.50x | 0.769x (19.2 fps capacity) | 0.822 to 0.823x (20.6 fps) | 7.5 to 7.7 s |
+   | Docker (x3) | 1.41 to 1.43x | 0.744 to 0.747x (18.6 fps) | 0.788 to 0.791x (19.7 fps) | 7.6 s |
+
+   Peak RSS 200 to 206 MB. Four earlier Docker runs, right after the game tests and before the phone had settled, gave 0.82, 0.91,
+   0.88 and 0.68x for scene b: only back-to-back runs compare. The cause of the 4 percent was not looked into (NDK r30 in Termux against r28c,
+   compiler flags).
+   **Against chunk 4** (Python 3.12, Android 16, 2026-10-10: scene b 1.04 to 1.058x) today's 0.82x is about 22 percent lower, but the
+   core changed since (the fingerprints differ) and so did Android. A 3.12 build of the same code to settle it was tried (Gradle file
+   switched for one build, then restored byte for byte) and failed: `chaquo.com` again did not resolve on the router's DNS
+   (`nslookup` "Server failed") and pip found no numpy. **Open:** rebuild that A/B when chaquo.com resolves.
+5. **Build state left behind:** because of that DNS failure the default debug build could not be redone at the end
+   (`installDebugPythonRequirements` needs chaquo.com once the requirements changed); the Termux debug APK of step 1 (identical
+   build of HEAD) was copied back into `app/build/outputs/apk/debug/app-debug.apk`. The next build needs chaquo.com.
+
+**Android 7.0 emulator:** `system-images;android-24;default;x86_64` r8 (sdkmanager, about 419 MB download, 3.0 GB unpacked) into
+`C:\Android\sdk`; AVD `recast_api24` (`avdmanager create avd -n recast_api24 -k "system-images;android-24;default;x86_64" -d pixel`,
+1080 x 1920); started headless with `Start-Process` (so it outlives the shell): `emulator -avd recast_api24 -no-window -no-audio
+-no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 3072`, `emulator-5556`, Android 7.0 (SDK 24), ABIs `x86_64,x86`
+(this image has no `getconf`; pages are 4 KB). The same debug APK installed fresh (`primaryCpuAbi=x86_64`, minSdk 24). Stopped
+afterwards with `adb emu kill`. The AVD folder is about 14 GB on disk (`userdata-qemu.img` 10 GB); delete it with
+`avdmanager delete avd -n recast_api24` when it is no longer needed.
+
+| Check | Result |
+| --- | --- |
+| Launcher icon | shows in the app drawer: the heart on the navy rounded square, label Re:Cast (`a7_drawer.png`) |
+| First start | the notice, the style question (Smartphone chosen), then Home with "Set up the game files" |
+| Game files picked and copied | the player's folder (`KH-ReCast-game/` from `dist/KH-ReCast-Android.zip`) pushed to `/sdcard/Download/`, picked in the document picker (internal storage is hidden there until "Show internal storage" in its menu), its 142 files copied to `files/game` |
+| Sharing | "Share your high scores?" at the first play, answered "Keep scores on this phone"; `share_scores` false |
+| Title, text | title menu text; the journal page and the "First, try moving forward" box drawn |
+| A world | New Game, the intro pages, the Obstacle Course; Sora walks; 18 to 25 fps (software rendering on the PC, not a speed figure) |
+| Back | opens the Re:Cast menu (`onBackPressed` path) |
+| Screenshot | saved to the app's own `Android/data/.../files/Pictures/Re-Cast/` (the pre-29 path) |
+| State saved, exported, imported | Quick save to slot 1; exported to Downloads (same MD5 as the slot); imported back into slot 1 "(replace)": new inode, same MD5, so `Compat.moveReplacing` (`renameTo`) replaced the file; the imported slot loads |
+| Recording on the Sound screen | a 4 s 44.1 kHz stereo WAV made in the scratchpad, scanned into Music, picked from the Audio root: copied, decoded to `training.22050.pcm` (176,400 bytes, 4 s mono), "Playing the recording." (`Compat.readAllBytes` path) |
+| Sound | title music peaks 4,366 to 5,668, 1 to 4 underruns (PC emulator); no sound effects: no QCELP decoder ("Unable to instantiate a decoder for type 'audio/qcelp'", then the core's "PMD sound effects need ffmpeg"), the known x86_64 limit |
+| Logcat | no Python traceback, no `FATAL EXCEPTION`, no linker or `dlopen` error; maps show `libunicorn.so`, `libfreetype.so`, `libopenblas.so`, `libjpeg_chaquopy.so`, `libpython3.13.so` |
+
+Seen on Android 7 and **not explained** (follow-ups, nothing changed):
+- **Music stops in the Obstacle Course** on the emulator (loudest sample 0 from the moment the course starts, both after a state load
+  and in a fresh New Game). The title music played. Not compared with the desktop or the S23 in the same scene; on the ps16k emulator
+  Agrabah was silent the same way.
+- **The core's clock was UTC** in processes started straight into the game: the save backup was named `...-144459.bak` at 09:44 local
+  (EST), and a state saved at 09:36 local showed "saved Nov 03 14:36". The first process (started from the launcher) showed local time.
+  The S23's names are local. The core's local times on Android 7 may need the time zone passed in (not looked into).
+- The emulator's document picker ignored `input tap` on folders and files; keyboard (`DPAD_DOWN`, `ENTER`) worked.
+
+Screenshots (game art, scratchpad of this session, not kept in the repo): S23 `s23_termux_title.png`, `s23_termux_play.png`,
+`s23_termux_menu.png`, `termux_slot7.png`, `docker_title.png`, `docker_slot7.png`; Android 7 `a7_drawer.png`, `a7_first1.png` to
+`a7_first3.png`, `a7_setup1.png`, `a7_setup2.png`, `a7_play1.png` (the sharing question), `a7_title.png`, `a7_back.png`,
+`a7_new1.png`, `a7_world1.png`, `a7_world2.png`, `a7_world_final.png`, `a7_rec_play.png`.
+
 ## 1. This machine (checked 2026-10-06, before Chunk 2 installed the toolchain)
 
 Windows 10 Home 19045, Intel i7-11700F (8 cores, 2.5 GHz base, about 4.9 GHz turbo), 16 GB RAM.
