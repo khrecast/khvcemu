@@ -218,6 +218,10 @@ nav img, .page-title img { display: block; image-rendering: pixelated; }
 /* Download: the menu font with a touch of green, and a down arrow */
 .get { display: inline-flex; align-items: center; gap: 3px; color: #7fd394; }
 .get .arrow { display: block; margin-top: -2px; }
+@media (prefers-reduced-motion: no-preference) {
+  a.get:hover .arrow, a.get:focus-visible .arrow { animation: bob .8s ease-in-out infinite; }   /* the arrow bobs down and up, like a download starting */
+  @keyframes bob { 50% { transform: translateY(3px); } }
+}
 /* Find Wonderland: letters tumbling down the rabbit hole, in the Cheshire Cat's stripes; they straighten up on hover */
 .wl { font: 400 17px/1 "Alice", Georgia, "Times New Roman", serif; white-space: nowrap; }
 .wl .suit { display: inline-block; font-size: 16px; }

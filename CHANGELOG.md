@@ -48,7 +48,7 @@
   center, with screenshots of each control style, a download card and install help. The site is now
   several pages with a themed menu. **Main Menu**, **Leaderboard** (with a gold crown sitting on its d) and
   **Download** (with a touch of green and a down arrow before it) are in the KHMenu font, drawn by
-  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the Android page and the home page's parts, Help among them.
+  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the Android page and the home page's parts, Help among them. The Download button's arrow bobs down and up while the pointer or keyboard focus is on it (not for visitors whose device asks for less motion).
   **Find Wonderland** is in the storybook Alice font between a heart and a spade, its letters tumbling (and wobbling as the page scrolls, unless the visitor's device asks for less motion) in the Cheshire Cat's
   colors, and **Jiminy's Journal** is a handwritten note (the Caveat font) with a top hat on the J. Both fonts are free
   (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
