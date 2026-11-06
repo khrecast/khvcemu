@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- only to share high scores with the leaderboard (when the player agrees) and to test that connection -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Re:Cast"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <!-- what the app opens on, every time: the fan project notice, then the home screen -->
+        <activity
+            android:name=".DisclaimerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- the first-run question: smartphone style or flip phone style (exported so adb can start it for testing) -->
+        <activity
+            android:name=".StyleActivity"
+            android:exported="true" />
+        <!-- the home screen: Continue, Saved games, Options, game files (exported so adb can start it for testing) -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true" />
+        <!-- pick the game folder (opened from the home screen or the game's menu) -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection|density|fontScale" />
+        <!-- the game -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|locale|layoutDirection|density|fontScale" />
+        <!-- the save slots (opened from the game's menu) -->
+        <activity
+            android:name=".SavesActivity"
+            android:exported="false" />
+        <!-- Options (opened from the game's menu) -->
+        <activity
+            android:name=".OptionsActivity"
+            android:exported="false" />
+        <!-- the music mix and sliders (opened from Options) -->
+        <activity
+            android:name=".SoundActivity"
+            android:exported="false" />
+        <!-- the speed spike (start it with: adb shell am start -n com.khrecast.recast/.BenchActivity) -->
+        <activity
+            android:name=".BenchActivity"
+            android:exported="true"
+            android:screenOrientation="portrait" />
+    </application>
+
+</manifest>

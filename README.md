@@ -5,7 +5,7 @@
 
 **An emulator for the 2005 Verizon V CAST *Kingdom Hearts* mobile game**
 (Superscape / Disney Mobile, Qualcomm BREW), so a lost piece of Kingdom Hearts
-history can be played again on a PC. The project is called *Kingdom Hearts
+history can be played again on a PC or an Android phone. The project is called *Kingdom Hearts
 Re:Cast*; the code, package and command are `khvcemu`.
 
 It runs the game's own `kh.mod` and Superscape's `swv21brew.mod` Swerve 3D
@@ -19,6 +19,13 @@ surviving Wonderland journal and splash screen, then carries on to Agrabah.
 only on its original phones, on a collector's modified Zeebo console, or without
 any audio in an Android emulator. As far as we know, khvcemu is the first
 emulator to play it with its music and sound effects in context.
+
+**Now on Android, for the first time ever with full sound.** The Re:Cast app (a sideloaded
+`.apk`, Android 7 or newer, 64-bit phones and Chromebooks; tested on a Galaxy S23 Ultra, and on emulators for Android 7 and for phones with 16 KB memory pages) runs the same core with touch controls in three layouts, a
+2005 flip phone mode with a real keypad, an Action button that shows what it will do, the sound screen
+and save states that move between the PC and the phone. It is on [khrecast.com](https://khrecast.com)
+as one zip with the game files (`KH-ReCast-Android.zip` for phones, `KH-ReCast-Android-x86_64.zip` for Chromebooks and emulators);
+how it is built and tested is in [`android/NOTES.md`](android/NOTES.md).
 
 > **Please read.** Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.
 
@@ -97,28 +104,41 @@ Each build is **one file** that holds Python, the libraries, ffmpeg, khvcemu and
 game files (from this folder, or `--game <dump>`), so the person running it needs
 nothing else. The outputs contain the game files, so `dist/` and `build/` are
 git-ignored and are not part of the repo. Building needs internet access the first
-time (Python, ffmpeg and the wheels are downloaded and cached in `build/`).
+time (Python and the wheels are downloaded and cached in `build/`).
+
+The source code of the GPL and LGPL programs the builds carry (Unicorn, FFmpeg, pygame-ce) is offered next to them as `KH-ReCast-sources.zip`.
+
+The ffmpeg inside is the project's own small build of FFmpeg 9.0.2 (LGPL 2.1 or later, only
+the decoders Re:Cast uses: 2.4 to 2.6 MB instead of the 49 to 105 MB of the full builds used
+before). Make it once before the installers with `python -I tools/build_ffmpeg.py`: it needs
+Docker, builds all six in a throwaway Linux container with zig as the cross compiler, checks
+them, decodes a few test sounds with the Windows and Linux builds, and writes them to
+`build/ffmpeg/` (`BUILDINFO.txt` there lists the source and tool hashes and each configure
+line). The installer scripts stop and say so if it is missing. If Docker Desktop is not
+running or starting, the script starts it and quits it again afterwards. Starting Docker Desktop also
+starts your own containers that have a restart policy; the script stops them cleanly with
+`docker stop` before quitting (containers set to "unless-stopped" stop with Docker instead, so
+they still start with it next time). A Docker Desktop you started yourself is left running.
 
 | Build | Command | Result |
 | --- | --- | --- |
-| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~54 MB) |
-| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~41 MB) |
-| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~77 MB) |
-| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~82 MB) |
-| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~100 MB) |
-| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~89 MB) |
+| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~31 MB) |
+| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~25 MB) |
+| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~60 MB) |
+| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~63 MB) |
+| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~77 MB) |
+| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~69 MB) |
 
 **Windows:** double-click the exe. It asks once, installs for the current user only (no
 administrator rights), adds Start Menu and desktop shortcuts and an entry under
 Settings > Apps, and offers to start the game. Saves and settings stay in your user
 folder when you uninstall. Windows may show a SmartScreen warning because the file is
-not code-signed (More info > Run anyway). Building needs Windows and 7-Zip. The 32-bit
-build uses a community 32-bit ffmpeg (ffmpeg 6.0, from GitHub `sudo-nautilus/FFmpeg-Builds-Win32`).
+not code-signed (More info > Run anyway). Building needs Windows and 7-Zip.
 
 **macOS:** unzip, drag "Kingdom Hearts Re-Cast" to Applications, and right-click > Open
 the first time (the app is not signed by Apple). The zip is built on Windows without a
 Mac: Python is python-build-standalone (with tkinter), the libraries are macOS wheels,
-ffmpeg is a static build from osxexperts.net, and every compiled file is checked to be
+ffmpeg is the project's own build (see above), and every compiled file is checked to be
 for the right chip. **It has not been run on a Mac yet**, so report anything that fails.
 
 **Linux:** run `sh KH-ReCast-Linux-x86_64.run` (or the `aarch64` one). It installs for your
@@ -127,7 +147,7 @@ applications menu, and removes itself with `--uninstall` (`--dir PATH`, `--yes` 
 `--no-launch` are also understood). It needs a glibc 2.28 or newer desktop Linux (Ubuntu
 20.04, Debian 10, Fedora 29 or later) with X11 or Wayland; Alpine and other musl systems are
 not supported. Built like the Mac one (Python from python-build-standalone, manylinux wheels,
-a static ffmpeg from johnvansickle.com, every compiled file checked for the right CPU). The
+the project's own ffmpeg, every compiled file checked for the right CPU). The
 x86-64 installer was tested in clean Ubuntu 20.04 and Debian 10 containers (install, launcher
 under a virtual display, game boot, sound decoding, upgrade, uninstall); the ARM64 one was
 only run under emulation.
@@ -201,8 +221,8 @@ include everything). The launcher:
   **Screenshots (F12)** (the folder, chosen with the folder icon; a list of the pictures in it by the time they
   were taken, newest first; a preview of the one selected; and icons to open it, open the folder, or delete it (a red x: on Windows it goes to the Recycle Bin, after a question that has a box to stop asking; Restore default settings brings the question back); double-click opens one); **Online scores** (whether to share high scores, and
   where); and a **Speed enhancements...** button, which opens a small window with a switch and an info bubble
-  for each of the 3D engine's speed-ups (all on by default; each draws exactly the same picture, and the bubble
-  says when you might turn it off). **Restore default
+  for each speed-up: the 3D engine's two (they draw exactly the same picture) and the steady frame rate
+  (all on by default; the bubble says when you might turn one off). **Restore default
   settings** puts the settings on this tab back if one was changed by mistake (only this tab: your saves,
   the Saves tab's autosave settings, the game folder and the Sound tab are not touched). "Auto" window size picks the largest
   that fits your desktop but never more than 2x, since the game looks best small;
@@ -294,9 +314,26 @@ clock, not a completion time). It counts the game's clock while a world is on sc
 pausing, switching to another window, closing the window or loading a save state never adds or removes time, and the
 Summary screen ends the run. Every world you finish, and every score the game posts, is appended to
 `~/.khvcemu/<dump folder name>/clear_times.csv` with the time measured, and totals are kept
-in `playtime.json` beside it. The measured time is also sent with a shared score, and
+in `playtime.json` beside it. The measured time is also sent with a shared score (unless a save state was used, see below), and
 the shared leaderboard turns away runs under a minimum for the world (Island 6 minutes, Agrabah 10,
 Castle 8).
+
+**Save states and the shared leaderboard.** A score is shared only from a run played to its Summary screen
+without loading a save state (autosaves count as save states). Save states make a run easy to repeat, so a run
+in which one was loaded, or a score posted after loading one, goes into your own table only: it is still timed
+and logged, but it is sent without its time, which the shared leaderboard does not record. Saving a state is
+fine; loading one is what counts. A clear finished in an earlier sitting is not sent either. A world in which you loaded a state
+and then gave up stays marked until its next Summary, so the next finished run of it is not
+shared either; the one after is.
+
+**Only your best is shared.** A score goes to the shared leaderboard only when it beats the best this copy of
+Re:Cast has already shared for that world (a higher score, or the same score in less time), so replays and
+weaker runs never pile up. The best is kept in `playtime.json`. A score the server never answered does not count;
+one it answered but chose not to store (the ten-minute limit, say) still does, so post your next better run.
+
+**Feedback.** Bugs, ideas, reviews or Wonderland memories go in Jiminy's Journal on the website
+([khrecast.com/journal](https://khrecast.com/journal)): entries show at once and the owner answers there. Each
+entry is public and also emailed to the project inbox; an email address you leave is kept privately, only to answer you.
 
 **The shared leaderboard.** Scores can also be ranked against other people's.
 The launcher's Options has **Share high scores with:**, **ticked by default** and
@@ -306,17 +343,18 @@ can be edited to point at your own server, and leaving it empty means the defaul
 line it is opt-in with `--leaderboard URL`, and you can run your own server. Your
 scores are always kept offline too, and khvcemu falls back to them whenever the
 server can't be reached. There are no accounts or names: only the world, score,
-time and the Munny, EXP and level behind the score (read from the game's Summary screen) are
-sent, and the game never shows another player's name, only a rank number. The project's
+time and the Munny, EXP and level behind the score (read from the game's Summary screen), and the kind of device
+(Windows, Mac, Linux or Android) and the Re:Cast version, are sent; the board shows all but the version, plus
+when each score was shared. The game never shows another player's name, only a rank number. The project's
 leaderboard page, `site/leaderboard.html`, shows the top 100 of each world with those
-columns. The server uses a salted, shortened hash of the sender's address solely
-to allow one score per address every ten minutes and deletes it after ten minutes (details in
+columns, the platform and the date. The server stores no addresses (details in
 [`server/README.md`](server/README.md)). Scores come from the player's machine,
-so treat a shared rank as a rough comparison rather than a competitive ranking.
+so treat a shared rank as a rough comparison rather than a competitive ranking. The Android app
+shares scores the same way, but asks first and starts out not sharing until you answer ("Restore the default settings" brings the question back).
 
 **Website counters.** The project website counts, anonymously and per day, how often its pages are
 opened, which parts of the main page are scrolled to and which buttons are clicked (downloads per platform,
-source and issue links), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
+source and issue links, journal entries sent), plus four separate tallies for each opening: the hour, the country (Cloudflare's coarse
 location of the connection), the kind of computer (Windows, Mac, Linux, phone) and the website that linked to it
 (its name only, from a short fixed list). No cookies, and the project's server keeps no address, browser string or
 anything else about the visitor, only a day, a name and a number; the tallies are kept apart and never stored per visit, though on a very quiet day (a visit or two) the counts could still be matched up by eye. Browsers that send Do Not Track or Global Privacy Control are not counted
@@ -342,6 +380,7 @@ Other options:
 | `--screenshots DIR` | Where F12 saves screenshots (made if missing). Default: a `khvcemu` folder inside your Pictures folder, or the current folder if there is no Pictures folder. The game shows "Saved: ..." at the top of the window when one is taken; the launcher's Options tab has the folder setting. |
 | `--no-quit-prompt` | Quits at once on Esc or the window's X, without the "Quit the game?" question (autosave on exit still happens). In the question, **D** quits and turns it off for good (it is saved in the launcher's settings, which the game reads itself, so it also holds for games started from the command line). The launcher's Options tab has a checkbox: "Ask before quitting". |
 | `--key ACTION=KEY` | Uses another key for one of the game's actions (repeatable): `UP`, `DOWN`, `LEFT`, `RIGHT`, `SELECT` (action, attack), `STAR` (magic), `0` (status and items), `SOFT1` (pause, Continue), `SOFT2` (back, Options), `CLR` (back; twice goes to the title screen); keys are letters, `space`, `tab`, `backspace` and `; ' / , . - = `` ` ``. A key can have only one job. The launcher's Controls tab sets these. |
+| `--no-frame-lock` | Turns off the steady frame rate (see [Steady frame rate](#known-issues--limitations)): the game's clock is no longer held still while it draws a frame, so the time a frame takes is added to its delay again. For comparing or troubleshooting. The launcher's Options tab has it under **Speed enhancements...**. |
 | `--no-speed-patch[=NAMES]` | Turns off the 3D engine speed-ups (see [Speed](#known-issues--limitations)); the picture is the same either way. Alone (after the game folder) or `=all` turns off all of them, or give a comma separated list, written with an equals sign, of `span` (the blended pixel fill) and `matinv` (the matrix cache). The launcher's Options tab has them under **Speed enhancements...**. For troubleshooting. |
 | `--no-focus-pause` | Keeps the game running when its window loses focus (by default it pauses, dims the picture and shows "PAUSED - Click the window to continue", and time away is not counted as play time). The launcher's Options tab has a checkbox for it. |
 | `--load-state SLOT` | Resumes a save state: `1`–`9`, `auto` (newest autosave), `auto2` or `auto3`. |
@@ -504,9 +543,21 @@ These were checked headless on your dump; `tests/test_game.py` automates them:
   Measured on the machine this was built on (real-time factor, 1.0 = the 25 fps
   the game asks for), without and with them: a fight 0.70 to 0.79, Agrabah's lava
   cave 0.54 to 0.59, a Castle room 0.84 to 1.09, the Island's opening about 0.75
-  to 0.93. Agrabah's lava cave stays the slowest scene, at about 15 frames per second
-  there. Other speed-ups were built and dropped because they did not pay (see
+  to 0.93. Other speed-ups were built and dropped because they did not pay (see
   `tools/gen_swerve_patch.py`): fewer instructions is not the same as faster here.
+* **Steady frame rate.** The game sets the timer for its next frame as the very last thing it does in a frame,
+  so on a real clock the time a frame took is added to its 30 to 40 millisecond delay: a PC that could draw 33
+  frames a second showed about 16. (The benchmarks above run on a virtual clock that stands still while the game
+  works, which is why they never showed it.) Re:Cast now holds the game's clock still while it runs a frame, the
+  same way, and lets it run in real time in between, so the frame period is the larger of 40 ms and the time the
+  PC needs. The game still sees real elapsed time from one frame to the next, so its speed does not change.
+  Real-time frames per second on the machine this was built on, without and with it (with the speed-ups on):
+  the title screen 15.8 to 24.6, the Obstacle Course 15.5 to 24.6, a Castle room 16.6 to 24.9, a fight 11.2 to
+  18.5, Agrabah's lava cave 11.9 to 19.0 (the two busiest scenes have the PC fully busy, so they are limited by
+  speed again). The game's speed does not depend on the frame rate: walking forward in the Obstacle Course for six
+  seconds at 25, 16 and 14 frames per second ends in the same place (the final pictures differ in under 1% of
+  their pixels). It is on by default; **Speed enhancements...** under Options has a switch, and
+  `--no-frame-lock` turns it off. `tools/bench_realtime.py` measures it.
 * **Font.** The game asks for a custom font class (`0x0100a004`) that no
   firmware file provides, so text uses a host font (Verdana by default, drawn
   without smoothing). It's readable, but the shapes aren't the phone's; use
@@ -539,6 +590,14 @@ screenshots from the time. khvcemu shows the journal and splash where the game
 always showed them, between the Island and Agrabah:
 
 ![Wonderland journal and splash in khvcemu](docs/wonderland/khvcemu_wonderland_screens.png)
+
+**A recording exists.** On August 31, 2026, Spanish games writer Pablo González
+([@Caith_Sith on X](https://x.com/Caith_Sith/status/2094527931410252207)) posted a 16-second
+clip of the chapter (a flower in a dark garden asks Sora to find the seeds the Queen of Hearts
+stole) and showed a 24-minute video file, "3 - Alice in Wonderland (part1)", reportedly recorded in
+2014 for an article that was never written. We, and members of the Kingdom Hearts preservation
+community, have reached out to him and have not heard back yet; he is said to be holding the
+recording for the series' 25th anniversary. It is a video, not the game: Wonderland still needs its files from a phone.
 
 Screenshots of the lost level (from 2005-era coverage) and its splash art:
 
@@ -583,6 +642,8 @@ khvcemu/
   display.py    IDisplay, IBitmap/IDIB (RGB565), raster ops, text
   graphics.py   IGraphics (UI polygons, dialog boxes)
   image.py      IImage (BMP/PNG via pygame)
+  hostgfx.py    Pillow fallbacks for images and text where pygame is missing (the Android port)
+  pcmmixer.py   a small software mixer for hosts that pull audio themselves (the Android port); desktop uses pygame.mixer
   files.py      IFileMgr/IFile + VFS (dump read-only, writes to an overlay)
   media.py      IMedia -> audio.py (mixer), midi_synth.py (built-in synth), pmd.py (CMX/QCELP)
   web.py        IWeb/IWebResp/ISource: the game's HTTP calls;  leaderboard.py  offline score table behind them
@@ -614,7 +675,7 @@ python -m unittest tests.test_units tests.test_music_settings tests.test_music_m
 KH_DUMP=path/to/kh_dump python -m unittest tests.test_game  # end-to-end, ~4 min
 python tools/probe.py <dump> --ms 12000 -v                  # headless run, logs + last frame
 python tools/frames.py <dump> out/ --save castle --keys 11000:DOWN,12000:SELECT,15000:SOFT1
-python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names (font not included)
+python tools/make_tab_labels.py [KHMenu.otf]                # redraw the launcher's tab names and the Android app's menu names (font not included)
 python tools/launcher_screenshots.py                        # Windows: retake the launcher screenshots for the website
 python tools/disasm.py <mod> 0x100000 <addr> [n]            # needs capstone
 python tools/bench_state.py --root <dump> --state 7         # speed from one of your save states, speed-ups on and off
@@ -667,9 +728,10 @@ recorded and wrote about the game. The full list, with links, is in
 * **Playing and recording it:** [KrZ One](https://www.youtube.com/@krzbrew) (on real Zeebo
   hardware), [Negative Space](https://www.youtube.com/@negativespace7868) (the Castle on a
   real phone), [Zero-Up](https://www.youtube.com/@michaelkindt3288) and
-  [TheGamersJoint](https://www.youtube.com/@TheGamersJoint).
+  [TheGamersJoint](https://www.youtube.com/@TheGamersJoint). Pablo González
+  ([@Caith_Sith](https://x.com/Caith_Sith/status/2094527931410252207)) showed the lost Wonderland chapter on video.
 * **Look and feel:** [Televo](https://github.com/Televo/kingdom-hearts-recollection) recreated the Kingdom
-  Hearts menu font (KHMenu) that the Re:Cast title and the launcher's tab names are drawn in.
+  Hearts menu font (KHMenu) that the Re:Cast title, the launcher's tab names and the Android app's menu names are drawn in.
 * **Emulation research:** [zeebulator](https://github.com/requeijaum/zeebulator), whose BREW
   interface research this project builds on, and
   [Melange](https://gitlab.com/usernameak/brewemulator) by UsernameAK, the Android BREW

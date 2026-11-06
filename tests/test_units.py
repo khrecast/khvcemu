@@ -261,6 +261,15 @@ class DisclaimerTests(unittest.TestCase):
         for name in ("Disney", "Square Enix", "Superscape", "Verizon"):
             self.assertIn(name, DISCLAIMER)
 
+    def test_the_android_splash_carries_the_same_disclaimer(self):
+        import os
+        from khvcemu.launcher import DISCLAIMER
+        java = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "android", "app", "src", "main",
+                            "java", "com", "khrecast", "recast", "DisclaimerActivity.java")
+        with open(java, encoding="utf-8") as f:
+            source = f.read()
+        self.assertIn('static final String DISCLAIMER = "' + DISCLAIMER + '";', source)      # the constant itself, on one line
+
 
 class ControlsTests(unittest.TestCase):
     def test_the_web_page_lists_the_launchers_controls(self):

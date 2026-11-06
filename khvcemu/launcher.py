@@ -294,6 +294,8 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
     off = [n for n in swerve_patch.NAMES if n in (opts.get("speed_patches_off") or ())]
     if off:                                                  # the 3D engine speed-ups (same picture), each can be off
         cmd += ["--no-speed-patch", ",".join(off)]
+    if FRAME_LOCK in (opts.get("speed_patches_off") or ()):  # the steady frame rate is on unless it is switched off
+        cmd.append("--no-frame-lock")
     if not opts.get("ask_before_quit", True):
         cmd.append("--no-quit-prompt")
     if opts.get("leaderboard"):
@@ -308,6 +310,19 @@ def build_command(dump: str, opts: dict, load_state: str = None, start: str = No
 # The defaults of the Options tab ("Restore default settings" puts these back) and of the Saves tab's autosave
 # settings (which that button leaves alone). Not the game folder, the saves, the Sound tab (its music sliders, mixes,
 # recordings and SoundFont: the "As tuned" mix resets the sliders).
+# The Speed enhancements window: the 3D engine's patches (--no-speed-patch) and the steady frame rate (--no-frame-lock).
+# Which are off is kept in the "speed_patches_off" setting, the frame rate under the name below.
+FRAME_LOCK = "framelock"
+SPEED_ITEMS = swerve_patch.NAMES + (FRAME_LOCK,)
+_FRAME_LOCK_WHAT = ("Holds the game's clock still while it draws a frame, so it can run at its own 25 frames a second "
+                    "whenever your PC keeps up. The game sets its next frame 30 to 40 milliseconds after it finishes "
+                    "one, which on a real clock adds the time the frame took: a PC that could draw 33 frames a second "
+                    "showed about 16.")
+_FRAME_LOCK_WHY = ("Practically never: it changes only how often the picture is drawn, not the game's speed or your "
+                   "saves. Turn it off to compare, or to see whether it is behind a problem you notice.")
+SPEED_LABELS = {**swerve_patch.LABELS, FRAME_LOCK: "Steady frame rate"}
+SPEED_HINTS = {**swerve_patch.HINTS, FRAME_LOCK: f"{_FRAME_LOCK_WHAT}\n\nWhy turn it off? {_FRAME_LOCK_WHY}"}
+
 OPTION_DEFAULTS = {"scale": "Auto", "font_size": 11, "mute": False, "hires_text": False,
                    "filter": "nearest", "autosave": True, "autosave_minutes": 5, "autosave_on_quit": True,
                    "autosave_on_loading": True, "pause_on_focus_loss": True, "screenshots": "",
@@ -975,7 +990,7 @@ class Launcher:
         box = ttk.LabelFrame(left, text="Speed")
         box.pack(fill="x", pady=(0, 6))
         off = set(cfg.get("speed_patches_off") or ())
-        self.speed_vars = {n: tk.BooleanVar(value=n not in off) for n in swerve_patch.NAMES}
+        self.speed_vars = {n: tk.BooleanVar(value=n not in off) for n in SPEED_ITEMS}
         row = ttk.Frame(box)
         row.pack(fill="x", padx=6, pady=4)
         speed_button = ttk.Button(row, text="Speed enhancements...", command=self.open_speed_window,
@@ -1065,8 +1080,16 @@ class Launcher:
         # high scores are kept offline either way; this only adds a shared ranking
         self.leaderboard = tk.StringVar(value=cfg.get("leaderboard_url") or LEADERBOARD_URL)
         self.share = tk.BooleanVar(value=bool(cfg.get("share_scores", True)))
-        ttk.Checkbutton(box, text="Share high scores with:", variable=self.share, command=self.sync_share).pack(
-            anchor="w", padx=6, pady=(2, 0))
+        share_row = ttk.Frame(box)
+        share_row.pack(fill="x", padx=6, pady=(2, 0))
+        ttk.Checkbutton(share_row, text="Share high scores with:", variable=self.share,
+                        command=self.sync_share).pack(side="left")
+        self.icons.setdefault("info", make_icon("info"))
+        share_info = ttk.Label(share_row, image=self.icons["info"], cursor="question_arrow")
+        share_info.pack(side="left", padx=(6, 0))
+        self.tooltip(share_info, "Scores are always kept on your own PC. A score reaches the shared leaderboard only "
+                     "from a run you play from the start of the world to its Summary screen without loading a "
+                     "save state (autosaves count too). A run that used one stays on your own table.")
         self.share_entry = ttk.Entry(box, textvariable=self.leaderboard)
         self.share_entry.pack(fill="x", padx=6, pady=(2, 4))
 
@@ -1222,20 +1245,21 @@ class Launcher:
         body.pack(fill="both", expand=True)
         ttk.Label(body, text="Speed enhancements", font=("Segoe UI", 12, "bold")).pack(anchor="w")
         ttk.Label(body, wraplength=380, justify="left", text=(
-            "Faster ways of running parts of the game's 3D engine. Each one draws exactly the same picture "
-            "and leaves your saves alone, so there is normally no reason to turn any off. "
+            "Faster ways of running the game. The first two speed up parts of the 3D engine and draw exactly the "
+            "same picture; the steady frame rate changes only how often the picture is drawn. None touches your "
+            "saves, so there is normally no reason to turn any off. "
             "Changes apply the next time the game starts.")).pack(anchor="w", pady=(6, 10))
         if "info" not in self.icons:
             self.icons["info"] = make_icon("info")
-        for n in swerve_patch.NAMES:
+        for n in SPEED_ITEMS:
             row = ttk.Frame(body)
             row.pack(fill="x", pady=2)
-            check = ttk.Checkbutton(row, text=swerve_patch.LABELS[n], variable=self.speed_vars[n])
+            check = ttk.Checkbutton(row, text=SPEED_LABELS[n], variable=self.speed_vars[n])
             check.pack(side="left")
             info = ttk.Label(row, image=self.icons["info"], cursor="question_arrow")
             info.pack(side="left", padx=(8, 0))
             for widget in (check, info):
-                self.tooltip(widget, swerve_patch.HINTS[n])
+                self.tooltip(widget, SPEED_HINTS[n])
         buttons = ttk.Frame(body)
         buttons.pack(fill="x", pady=(12, 0))
         ttk.Button(buttons, text="Turn all on", style="Small.TButton",

@@ -68,6 +68,14 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn("hour:", text.split("Last 14 days")[0].split("Totals")[1].split("Download clicks")[0],
                          "the extra tallies are not mixed into the plain totals")
 
+    def test_android_counts_as_a_download_and_a_section(self):
+        rows = [("2026-11-02", "view:home", 10), ("2026-11-02", "dl:android", 3), ("2026-11-02", "dl:win64", 1),
+                ("2026-11-02", "sec:android", 7)]
+        self.assertIn("Download clicks: 4 from 10 visits", site_stats.summarize(rows, days=14))
+        page = site_stats.build_html(rows, days=30, generated="2026-11-02 12:00")
+        self.assertIn("Android (app and game files)", page)
+        self.assertIn('<span class="lab">Android</span>', page)
+
     def test_the_page_has_every_section_and_the_right_numbers(self):
         page = site_stats.build_html(MANY, days=30, generated="2026-10-06 12:00")
         for heading in ("Each day", "Time of day", "Where visitors came from", "Countries", "Kinds of computer",

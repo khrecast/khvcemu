@@ -39,12 +39,15 @@ Chapter 2, *Alice in Wonderland*, has never been recovered. See the
 | **Negative Space** (YouTube) | Recorded the final chapter on a real phone. | [Channel](https://www.youtube.com/@negativespace7868), [Maleficent's Castle (last stage)](https://www.youtube.com/watch?v=M1Ya55LRTd0) |
 | **Zero-Up** (YouTube) | Keeps a playlist of Kingdom Hearts V CAST videos. | [Channel](https://www.youtube.com/@michaelkindt3288), ["Kingdom Hearts V-cast Stuff" playlist](https://www.youtube.com/playlist?list=PLRBCukFwWzHsJK_nBBu9d4lgU2Z4hVi5I) |
 | **TheGamersJoint** (YouTube) | Made a video about the game. | [Channel](https://www.youtube.com/@TheGamersJoint), ["Kingdom Hearts V-Cast is a Very Real Kingdom Hearts Game..."](https://www.youtube.com/watch?v=f2d6WExP93o) |
+| **Pablo González** ([@Caith_Sith](https://x.com/Caith_Sith) on X) | Showed the lost Wonderland chapter on video on August 31, 2026: a 16-second clip and a 24-minute recording. The clip and two stills on the website's Find Wonderland page are from his post, shown unedited with his watermark. | [Post on X](https://x.com/Caith_Sith/status/2094527931410252207) |
 
 ## Look and feel
 
 | Who | What | Links |
 | --- | --- | --- |
-| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo and the launcher's tab names are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
+| **Televo** | Recreated the KHMenu font (the Kingdom Hearts start-menu lettering) for the free "Kingdom Hearts Re:Collection" set. The Re:Cast title in the logo, the launcher's tab names, the Android app's menu names and the website menu's Main Menu, Leaderboard and Download are drawn in it. | [Kingdom Hearts Re:Collection](https://github.com/Televo/kingdom-hearts-recollection) |
+| **The Caveat Project Authors** | The Caveat handwriting font, used for the website menu's "Jiminy's Journal" note. SIL Open Font License 1.1; the font and its license are in `site/assets/fonts/`. | [Caveat on GitHub](https://github.com/googlefonts/caveat) |
+| **Cyreal (The Alice Project Authors)** | The Alice font, inspired by Lewis Carroll's books, used for "Find Wonderland" in the website menu. SIL Open Font License 1.1; the font and its license are in `site/assets/fonts/`. | [Alice on GitHub](https://github.com/cyrealtype/Alice) |
 
 The Re:Collection set has no formal license. Its README says: "If you decide to use these assets
 and fonts publicly, giving credit is much appreciated although not necessary." This repository
@@ -58,6 +61,36 @@ does not contain the font file, only small pictures of the tab names rendered fr
 | **requeijaum** and the **zeebulator** contributors | zeebulator, an open-source (GPL-3.0) Zeebo/BREW emulator. Re:Cast's BREW interface layouts and resource-file measurements come from it, which is why Re:Cast is GPL-3.0 too. | [github.com/requeijaum/zeebulator](https://github.com/requeijaum/zeebulator) |
 | **UsernameAK** (also "/bin/cat") | Made Melange, a BREW emulator for Android, which ran Kingdom Hearts V CAST (without audio and without Wonderland) in a beta in early 2023. | [GitLab](https://gitlab.com/usernameak/brewemulator), [archive.org build](https://archive.org/details/app-release_20211031) |
 | **Dagu** | Announced Kingdom Hearts V CAST running on Melange (February 2023). | [@TheDaguar on X](https://x.com/TheDaguar/status/1620886267088220160) |
+
+## Software the apps include
+
+The source code of the GPL and LGPL programs below (Unicorn, FFmpeg and pygame-ce) is offered as `KH-ReCast-sources.zip` on the [download page](https://khrecast.com/download.html).
+
+Re:Cast's own code is GPL-3.0. The installers and the Android app also carry open-source projects,
+each under its own license. The main ones:
+
+**In the Android app**
+
+| Project | Used for | License | Where |
+| --- | --- | --- | --- |
+| **Unicorn** 2.1.4 | The emulated phone processor. Built by this project from the unmodified 2.1.4 release (scripts in `android/tools/`). | GPLv2 | [unicorn-engine.org](https://www.unicorn-engine.org/), [source](https://github.com/unicorn-engine/unicorn/tree/2.1.4) |
+| **Python** 3.13, through **Chaquopy** | Runs the emulator's Python code inside the app. | Python Software Foundation License; Chaquopy: MIT | [python.org](https://www.python.org/), [chaquo.com](https://chaquo.com/chaquopy/) |
+| **NumPy** 1.26.2 | The music synth, sound mixing and the picture. | BSD-3-Clause | [numpy.org](https://numpy.org/) |
+| **OpenBLAS** | NumPy's math library (the x86_64 copy is built by this project from OpenBLAS 0.3.33). | BSD-3-Clause | [github.com/OpenMathLib/OpenBLAS](https://github.com/OpenMathLib/OpenBLAS) |
+| **Pillow** 11.0.0 | Drawing the game's text and decoding its images. | MIT-CMU (HPND) | [python-pillow.org](https://python-pillow.org/) |
+| **FreeType** 2.9.1 | Font drawing for Pillow. Built by this project from the unmodified 2.9.1 release. | FreeType License (used under it) | [freetype.org](https://freetype.org/) |
+| **libjpeg-turbo** 1.5.3 | JPEG decoding for Pillow (the x86_64 copy is built by this project). | IJG License and BSD-3-Clause | [libjpeg-turbo.org](https://libjpeg-turbo.org/) |
+
+Python in the app also brings OpenSSL (Apache-2.0) and SQLite (public domain), which Re:Cast does not use directly.
+
+Portions of this software are copyright &copy; The FreeType Project (www.freetype.org). All rights reserved.
+This software is based in part on the work of the Independent JPEG Group.
+
+**In the Windows, Mac and Linux installers:** Python, Unicorn (GPLv2), pygame-ce (LGPL-2.1) with SDL2
+(zlib License), NumPy (BSD-3-Clause), and [FFmpeg](https://ffmpeg.org/) 9.0.2 for decoding the sound
+effects and players' recordings: the project's own small build (LGPL 2.1 or later, no external libraries),
+made from the unmodified FFmpeg source tree by `tools/build_ffmpeg.py` (one configure setting is adjusted after configure, as `FFMPEG-BUILDINFO.txt` says). Its license text and configure line are
+next to it in each installer (`FFMPEG-LICENSE.txt`, `FFMPEG-BUILDINFO.txt`).
 
 ## Communities and references
 

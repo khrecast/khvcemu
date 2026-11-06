@@ -11,7 +11,8 @@ desktop shortcuts and an entry in Settings > Apps, and offers to start the game.
 are put into the installer; they are never added to git (dist/ and build/ are ignored).
 
 Needs on the building PC: Windows, Python 3.10+ with tkinter (the same Python version is
-bundled), 7-Zip (7z.exe), and internet access the first time (Python, ffmpeg and the 7-Zip
+bundled), 7-Zip (7z.exe), Re:Cast's own ffmpeg in build/ffmpeg/ (made by
+`python -I tools/build_ffmpeg.py`), and internet access the first time (Python and the 7-Zip
 self-extractor stub are downloaded and kept in build/installer/cache).
 """
 
@@ -30,7 +31,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, "build", "installer")
 CACHE = os.path.join(BUILD, "cache")
-FFMPEG_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+FFMPEG_DIR = os.path.join(ROOT, "build", "ffmpeg")      # Re:Cast's own LGPL ffmpeg, made by tools/build_ffmpeg.py
 NAME = "Kingdom Hearts Re:Cast"
 
 SETUP_PS1 = r'''# Installs Kingdom Hearts Re:Cast for the current user. Run by the installer exe.
@@ -269,14 +270,9 @@ def win32_tk(sevenz: str, v: str) -> str:
 
 
 TARGETS = {
-    "win64": dict(embed="amd64", pip_platform="win_amd64", exe="KH-ReCast-Windows-x64.exe",
-                  ffmpeg=("ffmpeg-release-essentials.zip", FFMPEG_URL)),
-    # Windows on 32-bit hardware. The only maintained 32-bit ffmpeg build is a community one
-    # (GitHub: sudo-nautilus/FFmpeg-Builds-Win32, ffmpeg 6.0); the game needs only its decoders.
-    "win32": dict(embed="win32", pip_platform="win32", exe="KH-ReCast-Windows-x86.exe",
-                  ffmpeg=("ffmpeg-n6.0-win32-lgpl.zip",
-                          "https://github.com/sudo-nautilus/FFmpeg-Builds-Win32/releases/download/latest/"
-                          "ffmpeg-n6.0-latest-win32-lgpl-6.0.zip")),
+    "win64": dict(embed="amd64", pip_platform="win_amd64", exe="KH-ReCast-Windows-x64.exe", ffmpeg="windows-x64"),
+    # Windows on 32-bit hardware
+    "win32": dict(embed="win32", pip_platform="win32", exe="KH-ReCast-Windows-x86.exe", ffmpeg="windows-x86"),
 }
 
 
@@ -313,16 +309,24 @@ def build_python(dest: str, target: str, sevenz: str):
     trim_site(site)
 
 
+def our_ffmpeg(target: str) -> dict:
+    """The files of Re:Cast's own ffmpeg for a tools/build_ffmpeg.py target (windows-x64, macos-arm64, linux-x86_64...):
+    {name in the installer's khvcemu/bin: path}. Stops with the command to run if it has not been built."""
+    exe = "ffmpeg.exe" if target.startswith("windows") else "ffmpeg"
+    files = {exe: os.path.join(FFMPEG_DIR, target, exe),
+             "FFMPEG-LICENSE.txt": os.path.join(FFMPEG_DIR, "LICENSE.txt"),
+             "FFMPEG-BUILDINFO.txt": os.path.join(FFMPEG_DIR, "BUILDINFO.txt")}
+    missing = [p for p in files.values() if not os.path.isfile(p)]
+    if missing:
+        sys.exit(f"Re:Cast's ffmpeg for {target} is not built ({missing[0]} is missing).\n"
+                 f"Build it first (needs Docker):  python -I tools/build_ffmpeg.py --target {target}")
+    return files
+
+
 def build_ffmpeg(dest: str, target: str):
-    name, url = TARGETS[target]["ffmpeg"]
-    z = download(url, name)
     os.makedirs(dest, exist_ok=True)
-    with zipfile.ZipFile(z) as zf:
-        for n in zf.namelist():
-            base = os.path.basename(n)
-            if base == "ffmpeg.exe" or (base in ("LICENSE", "README.txt") and n.count("/") == 1):
-                with zf.open(n) as src, open(os.path.join(dest, "FFMPEG-" + base if base != "ffmpeg.exe" else base), "wb") as out:
-                    shutil.copyfileobj(src, out)
+    for name, src in our_ffmpeg(TARGETS[target]["ffmpeg"]).items():
+        shutil.copyfile(src, os.path.join(dest, name))
 
 
 def build_app(dest: str, game: str):
@@ -351,9 +355,12 @@ def main():
     game = os.path.abspath(args.game)
     if not (os.path.isdir(os.path.join(game, "mif")) and os.path.isdir(os.path.join(game, "mod"))):
         sys.exit(f"{game} does not contain mif/ and mod/ (the game files).")
+    targets = list(TARGETS) if args.target == "all" else [args.target]
+    for target in targets:                              # stop before the long steps if ffmpeg is missing
+        our_ffmpeg(TARGETS[target]["ffmpeg"])
     sevenz = find_7zip()
     sfx = with_manifest(find_sfx(sevenz))
-    for target in (list(TARGETS) if args.target == "all" else [args.target]):
+    for target in targets:
         print(f"=== {target}")
         build_target(args, target, game, sevenz, sfx)
 

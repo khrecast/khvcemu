@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS scores (
   secs   INTEGER,                   -- how long the run took, or NULL
   munny  INTEGER,                   -- the Munny, EXP and level behind the score, read from the
   exp    INTEGER,                   -- game's Summary screen; NULL for scores from older clients
-  level  INTEGER                    -- (an existing database gets them from migrate_001_stats.sql)
+  level  INTEGER,                   -- (an existing database gets them from migrate_001_stats.sql)
+  device TEXT,                      -- windows/mac/linux/android/other, shown on the board, and the Re:Cast version,
+  version TEXT                      -- not shown; sent by newer clients (migrate_003_device_feedback.sql)
 );
 CREATE INDEX IF NOT EXISTS scores_lid ON scores (lid, score);
 
@@ -30,4 +32,30 @@ CREATE TABLE IF NOT EXISTS site_stats (
   name TEXT    NOT NULL,            -- view:home, dl:win64, ...
   n    INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (day, name)
+);
+
+-- The public feedback board on the website (feedback.js). A post is what the poster typed: a kind
+-- (review, idea, bug...), an optional nickname, device and version, the message, and an optional
+-- email address that is never shown or sent anywhere except to the project's own inbox, so the owner
+-- can answer. The owner's public reply, and whether a reported bug is fixed, are kept with it.
+-- (An existing database gets these from migrate_003_device_feedback.sql.)
+CREATE TABLE IF NOT EXISTS feedback (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  posted  INTEGER NOT NULL,          -- unix seconds
+  kind    TEXT    NOT NULL,          -- one of feedback.js KINDS
+  nick    TEXT,                      -- shown; empty shows as "A player"
+  device  TEXT,                      -- one of feedback.js DEVICES, shown
+  version TEXT,                      -- shown
+  message TEXT    NOT NULL,          -- shown
+  email   TEXT,                      -- private: never shown, only in the email to the owner
+  hidden  INTEGER NOT NULL DEFAULT 0,
+  fixed   INTEGER NOT NULL DEFAULT 0,
+  reply   TEXT,                      -- the owner's public answer
+  replied INTEGER                    -- unix seconds of that answer
+);
+CREATE INDEX IF NOT EXISTS feedback_list ON feedback (hidden, id);
+-- Posting is limited per address with the same salted, shortened hash as scores, kept an hour.
+CREATE TABLE IF NOT EXISTS feedback_recent (
+  k    TEXT    NOT NULL,
+  seen INTEGER NOT NULL
 );

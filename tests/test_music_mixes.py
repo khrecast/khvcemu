@@ -179,15 +179,9 @@ class EngineOverrideMoreTests(EngineOverrideTests):
         self.assertAlmostEqual(float(np.abs(pcm[: R]).max()), 8000, delta=200, msg="same level, now mono at 22.05 kHz")
 
     def test_an_m4a_is_read_from_its_file(self):
-        import shutil
-        import subprocess
-        src = os.path.join(self.tmp.name, "src.wav")
-        write_wav(src, 3.0)
-        m4a = os.path.join(self.tmp.name, "song.m4a")
-        r = subprocess.run([shutil.which("ffmpeg"), "-v", "quiet", "-y", "-i", src, "-c:a", "aac", m4a],
-                           capture_output=True)
-        if r.returncode or not os.path.isfile(m4a):
-            self.skipTest("this ffmpeg cannot make an .m4a")
+        # tests/fixtures/tone.m4a: 2 s of a 330 Hz sine at a quarter of full scale, AAC in MP4, made for this test (the
+        # installers' ffmpeg has no AAC encoder, so the file is kept rather than made here)
+        m4a = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "tone.m4a")
         pcm = self.engine(m4a).decode(self.mid, "title.mid")
         self.assertGreater(np.abs(pcm[: R]).max(), 5000, "the recording, not the MIDI")
 
@@ -220,6 +214,103 @@ class EngineOverrideMoreTests(EngineOverrideTests):
         eng.fluidsynth = "fluidsynth"                       # pretend one is in use
         eng._fluidsynth = lambda data: self.fail("the SoundFont should not be used for a replaced tune")
         self.assertGreater(np.abs(eng.decode(self.mid, "title.mid")[: R]).max(), 7000)
+
+
+class FileDecoderHookTests(unittest.TestCase):
+    """Without ffmpeg (the phone), a recording is read by audio.FILE_DECODER, then fitted and scaled as usual."""
+
+    def test_the_hook_reads_the_recording_when_there_is_no_ffmpeg(self):
+        from khvcemu import audio
+        mid = tune()
+        seen = []
+
+        def decoder(path):
+            seen.append(path)
+            return (np.ones(R * 3, np.int16) * 4000)
+
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = decoder
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False, music={"master": 0.5},
+                                    music_files={"title.mid": {"path": "x.flac", "gain": 0.5}})
+            eng.ffmpeg = None
+            pcm = eng.decode(mid, "title.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertEqual(seen, ["x.flac"])
+        self.assertEqual(len(pcm), len(midi_synth.render_midi(mid)))
+        self.assertEqual(int(pcm[R]), 1000, "4000 x gain 0.5 x music volume 0.5")
+
+    def test_the_hook_also_reads_an_audio_buffer_the_game_asks_for(self):
+        """The Wonderland theme reaches the engine as the bytes of a FLAC under the name wonderland.mid."""
+        from khvcemu import audio
+        seen = []
+
+        def decoder(path):
+            with open(path, "rb") as f:
+                seen.append(f.read())
+            return np.ones(R * 2, np.int16) * 777
+
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = decoder
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False)
+            eng.ffmpeg = None
+            pcm = eng.decode(b"fLaC-not-really", "wonderland.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertEqual(seen, [b"fLaC-not-really"])
+        self.assertEqual(len(pcm), R * 2)
+        self.assertEqual(int(pcm[5]), 777)
+
+    def test_without_ffmpeg_or_a_hook_the_tune_falls_back_to_the_games_music(self):
+        from khvcemu import audio
+        mid = tune()
+        old = audio.FILE_DECODER
+        audio.FILE_DECODER = None
+        try:
+            eng = audio.AudioEngine(EngineOverrideTests.E(), enabled=False,
+                                    music_files={"title.mid": {"path": "x.flac", "gain": 1.0}})
+            eng.ffmpeg = None
+            pcm = eng.decode(mid, "title.mid")
+        finally:
+            audio.FILE_DECODER = old
+        self.assertTrue(np.array_equal(pcm, midi_synth.render_midi(mid)))
+
+
+class QcelpHookTests(unittest.TestCase):
+    """Without ffmpeg (the phone), a sound effect's QCELP packets go to pmd.QCELP_DECODER and come out at the game's rate."""
+
+    def pmd_bytes(self):
+        from khvcemu import pmd
+        packets = [bytes([4]) + bytes(34)] * 3                         # three full-rate packets
+        wave = b"\0" * 7 + b"".join(packets)
+        track = b"\xff\xf1" + len(wave).to_bytes(2, "big") + wave
+        body = b"cmid" + (0).to_bytes(4, "big") + (3).to_bytes(2, "big") + b"\0\0\0"
+        return body + b"trac" + len(track).to_bytes(4, "big") + track
+
+    def test_the_hook_decodes_when_there_is_no_ffmpeg(self):
+        from unittest import mock
+        from khvcemu import pmd
+        seen = []
+
+        def decoder(packets):
+            seen.append(packets)
+            return np.ones(480, np.int16) * 1000, 8000                  # 60 ms at 8 kHz
+
+        with mock.patch.object(pmd, "QCELP_DECODER", decoder), mock.patch("shutil.which", return_value=None):
+            pcm = pmd.decode(self.pmd_bytes(), 22050)
+        self.assertEqual(len(seen[0]), 3)
+        self.assertTrue(all(len(p) == 35 for p in seen[0]))
+        self.assertEqual(len(pcm), int(480 * 22050 / 8000))
+        self.assertEqual(int(pcm[100]), 1000)
+
+    def test_without_ffmpeg_or_a_hook_it_still_says_so(self):
+        from unittest import mock
+        from khvcemu import pmd
+        with mock.patch.object(pmd, "QCELP_DECODER", None), mock.patch("shutil.which", return_value=None):
+            with self.assertRaises(RuntimeError):
+                pmd.decode(self.pmd_bytes(), 22050)
 
 
 class CommandLineTests(unittest.TestCase):

@@ -1,4 +1,4 @@
-"""IImage (BMP/PNG resources) decoded on the host with pygame."""
+"""IImage (BMP/PNG resources) decoded on the host with pygame (or Pillow where pygame is missing)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,11 @@ IPARM_DISPLAY = 7
 
 def decode_image(raw: bytes):
     """-> (rgb565 (h,w) uint16, alpha mask (h,w) bool)."""
-    import pygame
+    try:
+        import pygame
+    except ImportError:                      # no pygame (Android): Pillow does the same job, see hostgfx.py
+        from .hostgfx import decode_image as decode_with_pillow
+        return decode_with_pillow(raw)
     surf = pygame.image.load(io.BytesIO(raw))
     has_alpha = surf.get_flags() & pygame.SRCALPHA or surf.get_colorkey() is not None
     if surf.get_colorkey() is not None:

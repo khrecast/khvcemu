@@ -28,6 +28,10 @@ from .paths import no_window
 
 RATE = midi_synth.RATE
 
+# A way to read a recording when there is no ffmpeg: a function (path) -> mono 16-bit samples at RATE. The Android app sets it
+# (its own decoder reads FLAC, MP3, AAC and OGG); on the desktop it stays None and ffmpeg is used.
+FILE_DECODER: Optional[Callable[[str], np.ndarray]] = None
+
 
 def _synth_version() -> str:
     """A fingerprint of the code that turns a tune into sound: when it changes, every cached render
@@ -67,7 +71,9 @@ class Voice:
 
 class AudioEngine:
     def __init__(self, emu, enabled=True, soundfont: Optional[str] = None, music: Optional[dict] = None,
-                 music_files: Optional[dict] = None, wonderland_volume: float = 1.0):
+                 music_files: Optional[dict] = None, wonderland_volume: float = 1.0, mixer=None):
+        """`mixer`: a pygame.mixer look-alike the host supplies and pulls audio from (pcmmixer.PcmMixer, used by
+        the Android app); without one, pygame.mixer is opened."""
         self.emu = emu
         self.wonderland_volume = max(0.0, min(2.0, float(wonderland_volume)))   # the Setup tab's slider
         self.enabled = enabled
@@ -89,7 +95,11 @@ class AudioEngine:
         self.master_volume = 1.0
         self.capture: Optional[list] = None      # tests: list of (name, samples)
         self.out_rate, self.out_channels = RATE, 1
-        if enabled:
+        if enabled and mixer is not None:
+            self.mixer = mixer
+            self.out_rate, self.out_channels = mixer.get_init()[0], mixer.get_init()[2]
+            emu.logv(f"[audio] host mixer {self.out_rate} Hz, {self.out_channels} channel(s)")
+        elif enabled:
             try:
                 import pygame
                 pygame.mixer.pre_init(RATE, -16, 1, 512)
@@ -307,6 +317,8 @@ class AudioEngine:
     def _ffmpeg_file(self, path: str) -> np.ndarray:
         """A file on disk, read by ffmpeg itself (some formats, such as .m4a, cannot be read
         from a pipe), as mono 16-bit at RATE."""
+        if not self.ffmpeg and FILE_DECODER is not None:
+            return np.ascontiguousarray(FILE_DECODER(path), dtype=np.int16)
         if not self.ffmpeg:
             raise ValueError("ffmpeg is not installed")
         r = subprocess.run([self.ffmpeg, "-nostdin", "-v", "quiet", "-i", path, "-f", "s16le", "-ac", "1",
@@ -332,6 +344,13 @@ class AudioEngine:
         return resample(a, rate, RATE)
 
     def _ffmpeg(self, data: bytes) -> np.ndarray:
+        if not self.ffmpeg and FILE_DECODER is not None:
+            # no ffmpeg (the phone): the same decoder that reads a player's recording reads this buffer, from a temporary file
+            with tempfile.TemporaryDirectory() as tmp:
+                path = os.path.join(tmp, "buffer.bin")
+                with open(path, "wb") as f:
+                    f.write(data)
+                return np.ascontiguousarray(FILE_DECODER(path), dtype=np.int16)
         if not self.ffmpeg:
             raise ValueError("unknown format and ffmpeg is not installed")
         r = subprocess.run([self.ffmpeg, "-v", "quiet", "-i", "pipe:0", "-f", "s16le", "-ac", "1",

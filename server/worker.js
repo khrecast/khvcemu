@@ -13,12 +13,14 @@
 //
 // Nothing here identifies anybody. No player id is issued or stored: the game
 // needs field 2 to exist, so every client is told it is "anon" and sends that
-// back. A row is (level, score, seconds, and the Munny, EXP and level the score was made of)
-// and nothing else, so a rank is simply "where this score falls among all scores posted for
-// that level".
+// back. A row is (level, score, seconds, the Munny, EXP and level the score was made of, and the
+// kind of device and Re:Cast version it came from) and nothing else, so a rank is simply "where
+// this score falls among all scores posted for that level".
 //
-// The only IP-derived value is a salted hash used to rate-limit posts, kept for
-// ten minutes and then deleted. See server/README.md.
+// The only IP-derived values are salted hashes used to rate-limit posts: for scores kept ten
+// minutes, for the feedback board (feedback.js) kept an hour, then deleted. See server/README.md.
+
+import { handleFeedback } from "./feedback.js";
 
 const WORLDS = ["training", "island", "wonderland", "agrabah", "castle"];
 // Score is Munny + 100 x EXP. A full human playthrough in the emulator scored 939 (Island),
@@ -45,6 +47,18 @@ export const MIN_SECONDS = { training: 60, island: 360, wonderland: 360, agrabah
 // post inside the window is NOT an error: the game is told the rank the score would have had
 // and the score is simply not stored, so nobody can tell it was dropped.
 const COOLDOWN = 600;
+// A save state loaded at a Summary screen makes the emulator post again with the time of the run
+// it already posted (the last clear time it measured), so a second score for the same world with
+// exactly the same time, to the second, within a week, is that replay and is not stored. Two real
+// runs matching to the second inside a week are rare enough to accept losing one.
+export const REPLAY_WINDOW = 7 * 24 * 60 * 60;
+// At most this many scores are stored per day, all worlds together, so a flood (many addresses,
+// a script) cannot fill the board in one go. Far above what real players post; past it a post is
+// answered as usual and not stored.
+export const MAX_SCORES_PER_DAY = 200;
+// The kind of device a score came from (`pl`) and the Re:Cast version (`vr`), sent by newer
+// clients. The board shows the kind of device with each score; the version is kept, not shown.
+export const DEVICES = new Set(["windows", "mac", "linux", "android", "other"]);
 
 const OK = (body) => new Response(body, {
   status: 200,
@@ -97,17 +111,25 @@ export function validStats(q, score) {
   return { munny, exp, level };
 }
 
-// The columns for those numbers were added later (server/migrate_001_stats.sql). Until the
-// database has them the worker carries on without, so deploying it and migrating the
-// database can be done in either order. Once seen it is remembered for that database
-// (columns never go away); until then it is checked again on each request.
-const seenStatsColumns = new WeakSet();
-async function hasStatsColumns(db) {
-  if (seenStatsColumns.has(db)) return true;
+// The columns for those numbers were added later (server/migrate_001_stats.sql), and the device
+// columns later still (migrate_003). Until the database has them the worker carries on without, so
+// deploying it and migrating the database can be done in either order. Once seen a column is
+// remembered for that database (columns never go away); until then it is checked again on each request.
+const seenColumns = new WeakMap();
+async function hasColumn(db, name) {
+  if (seenColumns.get(db)?.has(name)) return true;
   const info = await db.prepare("PRAGMA table_info(scores)").all();
-  const found = (info.results || []).some((c) => c.name === "munny");
-  if (found) seenStatsColumns.add(db);
-  return found;
+  const names = new Set((info.results || []).map((c) => c.name));
+  if (names.size) seenColumns.set(db, names);
+  return names.has(name);
+}
+const hasStatsColumns = (db) => hasColumn(db, "munny");
+
+/** The kind of device and version a score came from, or nulls when not sent or not believable. */
+export function validDevice(q) {
+  const pl = String(q.get("pl") || "").toLowerCase();
+  const vr = String(q.get("vr") || "");
+  return { device: DEVICES.has(pl) ? pl : null, version: /^\d{1,3}(\.\d{1,4}){1,3}$/.test(vr) ? vr : null };
 }
 
 /** Equal scores are ordered by the faster time. Without a time (the game's Score screen only
@@ -161,10 +183,21 @@ async function handleRank(db, q, ip, salt, now) {
   const dup = await db.prepare("SELECT 1 FROM scores WHERE lid = ? AND score = ? AND secs = ? LIMIT 1")
     .bind(lid, score, secs).first();
   if (dup) return answer();
+  // the same world and the same time within a week: a save state replaying a run already posted
+  const replay = await db.prepare("SELECT 1 FROM scores WHERE lid = ? AND secs = ? AND posted > ? LIMIT 1")
+    .bind(lid, secs, now - REPLAY_WINDOW).first();
+  if (replay) return answer();
+  const today = await db.prepare("SELECT COUNT(*) AS n FROM scores WHERE posted > ?").bind(now - 86400).first();
+  if ((today?.n ?? 0) >= MAX_SCORES_PER_DAY) return answer();
   if (await inCooldown(db, ip, salt, now)) return answer();  // one score per address per ten minutes
 
   const aid = String(q.get("aid") || "KH").slice(0, 8);
-  if (await hasStatsColumns(db)) {
+  const { device, version } = validDevice(q);
+  if (await hasColumn(db, "device")) {
+    await db.prepare("INSERT INTO scores (posted, aid, lid, score, secs, munny, exp, level, device, version) "
+      + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(now, aid, lid, score, secs, stats?.munny ?? null, stats?.exp ?? null, stats?.level ?? null, device, version).run();
+  } else if (await hasStatsColumns(db)) {
     await db.prepare("INSERT INTO scores (posted, aid, lid, score, secs, munny, exp, level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(now, aid, lid, score, secs, stats?.munny ?? null, stats?.exp ?? null, stats?.level ?? null).run();
   } else {
@@ -190,15 +223,16 @@ async function handleRankex(db, q) {
   return OK(reply(entries));
 }
 
-/** The public board: the best scores per world (up to 100, or `?n=`) with their play times and
- *  the Munny, EXP and level they were made of (null for scores from older clients), and how
- *  many were posted. No address, nothing that says who. Cached for a minute so a busy page
- *  costs nothing. */
+/** The public board: the best scores per world (up to 100, or `?n=`) with their play times, the
+ *  Munny, EXP and level they were made of, when they were posted and the kind of device (null for
+ *  scores from older clients), and how many were posted. No address, no version, nothing that says
+ *  who. Cached for a minute so a busy page costs nothing. */
 async function handleTop(db, now, q = new URLSearchParams()) {
   const asked = Number(q.get("n"));
   const limit = Number.isInteger(asked) && asked >= 1 ? Math.min(asked, TOP_N) : TOP_N;
-  const stats = await hasStatsColumns(db);
-  const columns = stats ? "score, secs, munny, exp, level" : "score, secs";
+  let columns = "score, secs, posted";
+  if (await hasStatsColumns(db)) columns += ", munny, exp, level";
+  if (await hasColumn(db, "device")) columns += ", device";
   const worlds = {};
   for (const lid of TOP_WORLDS) {
     const rows = await db.prepare(
@@ -209,6 +243,7 @@ async function handleTop(db, now, q = new URLSearchParams()) {
     worlds[lid] = {
       scores: (rows.results || []).map((r) => ({
         score: r.score, secs: r.secs ?? null, munny: r.munny ?? null, exp: r.exp ?? null, level: r.level ?? null,
+        posted: r.posted ?? null, device: r.device ?? null,
       })),
       total: count?.n ?? 0,
     };
@@ -223,8 +258,8 @@ async function handleTop(db, now, q = new URLSearchParams()) {
   });
 }
 
-// Anonymous website counters. The page (site/index.html, leaderboard.html) asks `GET /hit?e=<name>` when
-// it is opened, when a section is scrolled to, or a button is clicked; the worker adds one to today's
+// Anonymous website counters. The pages (site/site.js) ask `GET /hit?e=<name>` when one is opened, when a
+// section of the home page is scrolled to, or a button is clicked; the worker adds one to today's
 // count for that name. Only the names below count (anything else is ignored), so nobody can fill the
 // table. Nothing about the visitor is stored: no address, no cookie, no browser string. A browser that
 // sends Do Not Track never asks. Read the totals with tools/site_stats.py (or its dashboard button).
@@ -233,15 +268,16 @@ async function handleTop(db, now, q = new URLSearchParams()) {
 // stored per visit, though on a very quiet day, a visit or two, the counts could still be matched up by eye): the hour of day, the country (Cloudflare's coarse location
 // of the connection; the address itself is neither read nor kept), the kind of computer the page says it
 // is (a short fixed list) and where the visitor came from (a short fixed list of sites, domain only).
-// Each name has a daily ceiling. They bound the database writes the counters can cause (about 57,000 a
+// Each name has a daily ceiling. They bound the database writes the counters can cause (about 67,000 a
 // day at most, against the free plan's daily allowance, which the scores share), so someone calling the
 // address in a loop cannot use them up and stop scores being saved: past a ceiling a call changes nothing.
 export const SITE_EVENTS = {
-  "view:home": 8000, "view:leaderboard": 1500,
+  "view:home": 8000, "view:leaderboard": 1500, "view:download": 1500, "view:journal": 1500, "view:wonderland": 1500, "view:android": 1500,
   "dl:win64": 600, "dl:win32": 600, "dl:macArm": 600, "dl:macIntel": 600, "dl:linux64": 600, "dl:linuxArm": 600,
-  "dl:sums": 600, "click:repo": 600, "click:issues": 600, "click:soundtrack": 600, "click:email": 600,
+  "dl:android": 600, "dl:androidX64": 600,
+  "dl:sums": 600, "click:repo": 600, "click:issues": 600, "click:soundtrack": 600, "click:email": 600, "click:feedback": 600,
   "sec:about": 1000, "sec:features": 1000, "sec:screens": 1000, "sec:launcher": 1000, "sec:composer": 1000,
-  "sec:download": 1000, "sec:help": 1000, "sec:wonderland": 1000, "sec:credits": 1000,
+  "sec:download": 1000, "sec:help": 1000, "sec:wonderland": 1000, "sec:credits": 1000, "sec:android": 1000, "sec:feedback": 1000,
 };
 export const SITE_OS = new Set(["windows", "mac", "linux", "android", "ios", "chromeos", "other"]);
 export const SITE_REFS = new Set(["direct", "reddit", "google", "bing", "duckduckgo", "youtube", "x", "bluesky", "facebook",
@@ -281,15 +317,24 @@ export async function handleHit(db, params, request, now) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const script = url.pathname.split("/").pop().toLowerCase();
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response("method not allowed", { status: 405 });
-    }
     const now = Math.floor(Date.now() / 1000);
     const ip = request.headers.get("cf-connecting-ip") || "0.0.0.0";
     const salt = env.IP_SALT || "khvcemu";
+    if (url.pathname.toLowerCase().startsWith("/feedback")) {     // the website's feedback board (feedback.js)
+      try {
+        const answer = await handleFeedback(request, env, ctx, now, ip, salt);
+        if (answer) return answer;
+      } catch (err) {
+        console.error("feedback error:", err && err.message);
+        return new Response("server error", { status: 503 });
+      }
+    }
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response("method not allowed", { status: 405 });
+    }
     try {
       if (script === "rank.php") return await handleRank(env.DB, url.searchParams, ip, salt, now);
       if (script === "rankex.php") return await handleRankex(env.DB, url.searchParams);
@@ -301,7 +346,7 @@ export default {
       // own offline table when the reply is not a usable one
       return new Response("server error", { status: 503 });
     }
-    return new Response("khvcemu leaderboard: /disney/rank.php, /disney/rankex.php, /top and /hit\n",
+    return new Response("khvcemu leaderboard: /disney/rank.php, /disney/rankex.php, /top, /hit and /feedback\n",
                         { status: 404, headers: { "content-type": "text/plain" } });
   },
 };

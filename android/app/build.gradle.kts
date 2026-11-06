@@ -1,0 +1,190 @@
+import java.util.Properties
+
+plugins {
+    id("com.android.application")
+    id("com.chaquo.python")
+}
+
+android {
+    namespace = "com.khrecast.recast"
+    compileSdk = 36
+    ndkVersion = "28.2.13676358"
+
+    defaultConfig {
+        applicationId = "com.khrecast.recast"
+        minSdk = 24                          // Android 7.0, Chaquopy's floor (API 26+ calls are guarded; see android/NOTES.md "Chunk: Android 7")
+        targetSdk = 36
+        versionCode = 2
+        versionName = "0.2.0"                // raise versionCode with every release you hand out (Android refuses a lower one)
+        ndk {
+            // 64-bit only: ARM phones, and x86_64 (Chromebooks, PC emulators). Unicorn is built for both by
+            // android/tools/build_unicorn_docker.py and copied in by android/fetch_unicorn.ps1 (see android/NOTES.md)
+            // -Precast.abi=arm64-v8a (or x86_64) builds one APK for the two downloads (phones, Chromebooks and emulators)
+            val only = project.findProperty("recast.abi") as String?
+            require(only == null || only in listOf("arm64-v8a", "x86_64")) { "-Precast.abi must be arm64-v8a or x86_64, not $only" }
+            abiFilters += if (only != null) listOf(only) else listOf("arm64-v8a", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.31.6"
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // libunicorn.so is loaded from Python by its file path, so it has to be a real file on disk
+            useLegacyPackaging = true
+        }
+    }
+
+    // The release signing key is read from android/keystore.properties (gitignored: storeFile, storePassword, keyAlias, keyPassword). Without that
+    // file the release build is simply unsigned, as before. Keep the key file and that file safe: an app signed with another key cannot update this one.
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.isFile) {
+            f.inputStream().use { load(it) }
+        }
+    }
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // -Precast.debugSuffix=true installs the debug build beside the release one (app id ...recast.debug), for screenshots
+            if (project.hasProperty("recast.debugSuffix")) applicationIdSuffix = ".debug"
+        }
+        release {
+            isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+// The emulator core is the repository's own khvcemu/ package: it is copied (not duplicated in git) into a
+// staging folder that Chaquopy packs as Python source, together with the benchmark script of the spike.
+val stagePython = tasks.register<Copy>("stagePython") {
+    into(layout.buildDirectory.dir("python-stage"))
+    from("../../khvcemu") {
+        into("khvcemu")
+        exclude("**/__pycache__/**", "**/*.flac", "**/*.wav", "**/*.mp3", "**/*.ogg")
+    }
+    from("../spike/bench_headless.py")
+}
+tasks.named("preBuild") { dependsOn(stagePython) }
+
+// The Wonderland theme (Aid1043's rendering, credited in docs/CREDITS.md) is packed into the app the same way the desktop installers
+// carry it: from the repository's gitignored wonderland/ folder, only if that file is there when the app is built. It is not in git.
+val stageWonderland = tasks.register<Copy>("stageWonderland") {
+    into(layout.buildDirectory.dir("wonderland-assets/wonderland"))
+    doFirst { delete(layout.buildDirectory.dir("wonderland-assets")) }      // (a theme removed from wonderland/ must leave the next build too)
+    from("../../wonderland") {
+        include("Wonderland.flac")
+    }
+}
+tasks.named("preBuild") { dependsOn(stageWonderland) }
+tasks.matching { it.name.contains("Assets") }.configureEach { dependsOn(stageWonderland) }
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(stageWonderland, { project.objects.directoryProperty().also { it.set(layout.buildDirectory.dir("wonderland-assets")) } })
+    }
+}
+// Chaquopy's merge task reads the staging folder, so Gradle needs the dependency spelled out
+tasks.matching { it.name.endsWith("PythonSources") }.configureEach { dependsOn(stagePython) }
+
+// Without the locally built wheels pip would quietly fall back to Chaquopy's 4 KB aligned builds, which a device with 16 KB pages
+// cannot load: stop the build instead and say how to make them. FreeType for every ABI; OpenBLAS (numpy) and libjpeg (Pillow) for
+// x86_64 only (Chaquopy's arm64-v8a builds of those are already 16 KB aligned).
+val appAbis = android.defaultConfig.ndk.abiFilters.toList()
+val localWheelDir = rootProject.file("wheels")
+val localWheels = listOf(
+    Triple("chaquopy_freetype-2.9.1-100-", listOf("arm64-v8a", "x86_64"),
+        "run . .\\android\\env.ps1, then python android/tools/build_freetype_wheel.py"),
+    Triple("chaquopy_openblas-0.2.20+openblas0.3.33-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+    Triple("chaquopy_libgfortran-4.9+none-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+    Triple("chaquopy_libjpeg-1.5.3-100-", listOf("x86_64"), "python -I android/tools/build_x86_64_wheels.py (Docker)"),
+)
+val checkLocalWheels = tasks.register("checkLocalWheels") {
+    doLast {
+        val problems = localWheels.flatMap { (prefix, abis, how) ->
+            appAbis.filter { it in abis }.filter { abi ->
+                val tag = abi.replace("-", "_")
+                localWheelDir.listFiles()?.none { it.name.startsWith(prefix) && it.name.endsWith("_$tag.whl") } ?: true
+            }.map { abi -> "${prefix.trimEnd('-')} for $abi: run $how" }
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException("Missing 16 KB wheels in $localWheelDir (see android/NOTES.md):\n" + problems.joinToString("\n"))
+        }
+    }
+}
+tasks.matching { it.name.endsWith("PythonRequirements") }.configureEach { dependsOn(checkLocalWheels) }
+
+// The same for Unicorn: an APK without libunicorn.so for one of its ABIs would install there and fail at the first start.
+val unicornJniDir = file("src/main/jniLibs")
+val checkUnicornLibs = tasks.register("checkUnicornLibs") {
+    doLast {
+        val missing = appAbis.filter { abi -> !File(unicornJniDir, "$abi/libunicorn.so").isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("No libunicorn.so for ${missing.joinToString()} in $unicornJniDir: run .\\android\\fetch_unicorn.ps1 " +
+                "(the libraries come from android/tools/build_unicorn_docker.py; see android/NOTES.md)")
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(checkUnicornLibs) }
+
+chaquopy {
+    defaultConfig {
+        // 3.13: Chaquopy's numpy 1.26.2 for 3.13 has every library 16 KB aligned (the 3.12 one does not; see android/NOTES.md)
+        version = "3.13"
+        // Chaquopy needs a Python of the same version (3.13) on this PC to fetch the packages. Give its path with
+        // -Precast.buildPython=<path to python.exe or python3.13> (kept out of the repository on purpose); without it
+        // the py launcher (Windows, py -3.13) or python3.13 is tried.
+        val buildPy = providers.gradleProperty("recast.buildPython").orNull
+        if (buildPy != null) {
+            buildPython(buildPy)
+        } else if (System.getProperty("os.name").lowercase().contains("windows")) {
+            buildPython("py", "-3.13")
+        } else {
+            buildPython("python3.13")
+        }
+        pip {
+            // 16 KB page aligned rebuilds in android/wheels/ (not committed; checked by checkLocalWheels above): FreeType for Pillow
+            // (android/tools/build_freetype_wheel.py), and for x86_64 OpenBLAS 0.3.33 for numpy and libjpeg 1.5.3 for Pillow
+            // (android/tools/build_x86_64_wheels.py, which explains the "0.2.20+openblas0.3.33" and empty "4.9+none" libgfortran
+            // labels). Their android_24 tag and build number 100 (and the local version labels) make pip take them over
+            // Chaquopy's 4 KB aligned builds.
+            options("--find-links", rootProject.file("wheels").path)
+            install("numpy==1.26.2")
+            // draws the game's text and decodes its images where pygame is missing (khvcemu/hostgfx.py)
+            install("Pillow==11.0.0")
+        }
+        // These packages build file paths from their own location (Unicorn's loader, the core's data files), so they
+        // are unpacked to real files at startup instead of being read from inside the APK.
+        extractPackages("unicorn", "khvcemu")
+    }
+    sourceSets {
+        getByName("main") {
+            srcDir(layout.buildDirectory.dir("python-stage"))
+        }
+    }
+}

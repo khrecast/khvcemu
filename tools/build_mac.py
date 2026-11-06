@@ -6,8 +6,9 @@ Result: dist/KH-ReCast-macOS-arm64.zip (Apple Silicon) and/or dist/KH-ReCast-mac
 (Intel). Unzip, drag the app to Applications, right-click > Open the first time.
 
 It is built on Windows (or anywhere) without a Mac: Python comes from python-build-standalone
-(with tkinter), the libraries are downloaded as macOS wheels, ffmpeg is a static macOS build
-from osxexperts.net, and the zip is written with the right permissions and symlinks. Every
+(with tkinter), the libraries are downloaded as macOS wheels, ffmpeg is Re:Cast's own LGPL
+build from build/ffmpeg/ (made first by `python -I tools/build_ffmpeg.py`), and the zip is
+written with the right permissions and symlinks. Every
 compiled file in the result is checked to be for the right CPU. It could not be tried on a
 Mac here, so treat it as untested until someone has run it.
 
@@ -36,9 +37,9 @@ import build_installer as bi                                           # noqa: E
 
 ARCHES = {
     "arm64": dict(triple="aarch64-apple-darwin", wheel_platform="macosx_14_0_arm64", cpu=0x0100000C,
-                  ffmpeg="https://www.osxexperts.net/ffmpeg7arm.zip", min_os="11.0"),
+                  ffmpeg="macos-arm64", min_os="11.0"),
     "x86_64": dict(triple="x86_64-apple-darwin", wheel_platform="macosx_14_0_x86_64", cpu=0x01000007,
-                   ffmpeg="https://www.osxexperts.net/ffmpeg7intel.zip", min_os="10.15"),
+                   ffmpeg="macos-x86_64", min_os="10.15"),
 }
 APP = "Kingdom Hearts Re-Cast.app"
 CPU_NAMES = {0x0100000C: "arm64", 0x01000007: "x86_64"}
@@ -172,15 +173,6 @@ def info_plist(arch: str, version: str) -> bytes:
     })
 
 
-def ffmpeg_binary(arch: str) -> bytes:
-    z = bi.download(ARCHES[arch]["ffmpeg"], f"ffmpeg-mac-{arch}.zip")
-    with zipfile.ZipFile(z) as zf:
-        for n in zf.namelist():
-            if os.path.basename(n) == "ffmpeg" and not n.endswith("/") and "__MACOSX" not in n:
-                return zf.read(n)
-    sys.exit("No ffmpeg binary found in " + z)
-
-
 def build(arch: str, game: str, out_dir: str, version: str):
     print(f"=== macOS {arch}")
     stage = os.path.join(bi.BUILD, "mac-" + arch)
@@ -212,7 +204,8 @@ def build(arch: str, game: str, out_dir: str, version: str):
                 az.file(name, tf.extractfile(m).read(), m.mode & 0o777 or 0o644)
     az.tree(site, f"{res}/python/lib/python{pyver}/site-packages")
     az.tree(proj, f"{res}/khvcemu")
-    az.file(f"{res}/khvcemu/bin/ffmpeg", ffmpeg_binary(arch), 0o755)
+    for name, path in bi.our_ffmpeg(ARCHES[arch]["ffmpeg"]).items():
+        az.file(f"{res}/khvcemu/bin/{name}", open(path, "rb").read(), 0o755 if name == "ffmpeg" else 0o644)
     print("4/4 app bundle and zip")
     az.file(f"{APP}/Contents/Info.plist", info_plist(arch, version))
     az.file(f"{APP}/Contents/MacOS/launcher", LAUNCHER_SH.encode(), 0o755)
@@ -238,7 +231,10 @@ def main():
     game = os.path.abspath(a.game)
     if not (os.path.isdir(os.path.join(game, "mif")) and os.path.isdir(os.path.join(game, "mod"))):
         sys.exit(f"{game} does not contain mif/ and mod/ (the game files).")
-    for arch in (list(ARCHES) if a.arch == "all" else [a.arch]):
+    arches = list(ARCHES) if a.arch == "all" else [a.arch]
+    for arch in arches:                                                 # stop early if ffmpeg is missing
+        bi.our_ffmpeg(ARCHES[arch]["ffmpeg"])
+    for arch in arches:
         build(arch, game, a.out, a.version)
 
 

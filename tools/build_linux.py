@@ -8,10 +8,11 @@ Result: dist/KH-ReCast-Linux-x86_64.run and/or dist/KH-ReCast-Linux-aarch64.run.
 (`sh KH-ReCast-Linux-x86_64.run --uninstall`).
 
 Built on any OS (it is made on Windows): Python is python-build-standalone (with tkinter),
-the libraries are manylinux wheels, ffmpeg is a static Linux build, and the payload is a tar
-written with the right permissions and symlinks. Every compiled file is checked to be for the
-right CPU. Needs a glibc 2.28 or newer Linux (Ubuntu 20.04, Debian 10, Fedora 29 or later)
-with an X11 or Wayland desktop; musl systems such as Alpine are not supported.
+the libraries are manylinux wheels, ffmpeg is Re:Cast's own LGPL build from build/ffmpeg/ (made
+first by `python -I tools/build_ffmpeg.py`), and the payload is a tar written with the right
+permissions and symlinks. Every compiled file is checked to be for the right CPU. Needs a
+glibc 2.28 or newer Linux (Ubuntu 20.04, Debian 10, Fedora 29 or later) with an X11 or
+Wayland desktop; musl systems such as Alpine are not supported.
 
 --game is the folder holding mif/ and mod/ (default: this project folder). The output holds
 the game files, so dist/ and build/ are git-ignored.
@@ -36,9 +37,9 @@ import build_installer as bi                                           # noqa: E
 
 ARCHES = {
     "x86_64": dict(triple="x86_64-unknown-linux-gnu", machine=0x3E,
-                   ffmpeg="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"),
+                   ffmpeg="linux-x86_64"),
     "aarch64": dict(triple="aarch64-unknown-linux-gnu", machine=0xB7,
-                    ffmpeg="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz"),
+                    ffmpeg="linux-aarch64"),
 }
 # wheels are tagged with older "manylinux" names; list every one this glibc generation accepts
 MANYLINUX = ("manylinux_2_28", "manylinux_2_27", "manylinux_2_17", "manylinux2014", "manylinux_2_12",
@@ -215,15 +216,6 @@ def python_tarball(arch: str) -> str:
     return bi.download(m["url"], m["name"])
 
 
-def ffmpeg_binary(arch: str) -> bytes:
-    path = bi.download(ARCHES[arch]["ffmpeg"], f"ffmpeg-linux-{arch}.tar.xz")
-    with tarfile.open(path, "r:xz") as tf:
-        for m in tf:
-            if m.isfile() and os.path.basename(m.name) == "ffmpeg":
-                return tf.extractfile(m).read()
-    sys.exit("No ffmpeg binary found in " + path)
-
-
 def build(arch: str, game: str, out_dir: str, version: str):
     print(f"=== Linux {arch}")
     stage = os.path.join(bi.BUILD, "linux-" + arch)
@@ -252,7 +244,8 @@ def build(arch: str, game: str, out_dir: str, version: str):
                 pl.file(m.name, tf.extractfile(m).read(), m.mode & 0o777 or 0o644)
     pl.tree(site, f"python/lib/python{pyver}/site-packages")
     pl.tree(proj, "khvcemu")
-    pl.file("khvcemu/bin/ffmpeg", ffmpeg_binary(arch), 0o755)
+    for name, path in bi.our_ffmpeg(ARCHES[arch]["ffmpeg"]).items():
+        pl.file(f"khvcemu/bin/{name}", open(path, "rb").read(), 0o755 if name == "ffmpeg" else 0o644)
     pl.file("launch.sh", LAUNCH_SH.encode(), 0o755)
     pl.file("uninstall.sh", UNINSTALL_SH.encode(), 0o755)
     pl.file(".khvcemu-install", f"{version}\n".encode())
@@ -284,7 +277,10 @@ def main():
     game = os.path.abspath(a.game)
     if not (os.path.isdir(os.path.join(game, "mif")) and os.path.isdir(os.path.join(game, "mod"))):
         sys.exit(f"{game} does not contain mif/ and mod/ (the game files).")
-    for arch in (list(ARCHES) if a.arch == "all" else [a.arch]):
+    arches = list(ARCHES) if a.arch == "all" else [a.arch]
+    for arch in arches:                                                 # stop early if ffmpeg is missing
+        bi.our_ffmpeg(ARCHES[arch]["ffmpeg"])
+    for arch in arches:
         build(arch, game, a.out, a.version)
 
 

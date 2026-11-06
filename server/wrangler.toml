@@ -15,3 +15,13 @@ database_id = "3ab18948-6279-46e2-8ece-ea6362b926c4"
 
 # Optional: a random string, so the rate-limit hashes are not guessable.
 #   wrangler secret put IP_SALT
+
+# The website's feedback board (feedback.js):
+#   wrangler secret put FEEDBACK_KEY        the owner's key for https://scores.khrecast.com/feedback/admin (a long random string)
+#   wrangler secret put TURNSTILE_SECRET    optional: Cloudflare Turnstile, only if spam gets through (then set the site key
+#                                           in site/journal.html, TURNSTILE_SITEKEY)
+# Each post is emailed to the project inbox. This needs Email Routing on for khrecast.com and khrecast@gmail.com
+# verified as a destination address (both done 2026-11-02); without them a deploy with this binding fails.
+[[send_email]]
+name = "MAIL"
+destination_address = "khrecast@gmail.com"

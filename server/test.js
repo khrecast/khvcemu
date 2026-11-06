@@ -7,7 +7,8 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import assert from "node:assert";
-import worker, { reply, validLevel, validScore, validStats, MAX_SCORE, SITE_EVENTS } from "./worker.js";
+import worker, { reply, validLevel, validScore, validStats, MAX_SCORE, MAX_SCORES_PER_DAY, SITE_EVENTS } from "./worker.js";
+import { ownerEmail } from "./feedback.js";
 
 // the database as it was before the Munny/EXP/level columns (what the live one is until migrated)
 const OLD_SCHEMA = `
@@ -34,7 +35,8 @@ function makeDb(schema = readFileSync(new URL("./schema.sql", import.meta.url), 
 }
 
 const env = (schema) => ({ DB: makeDb(schema), IP_SALT: "test-salt" });
-const row = (score, secs, munny = null, exp = null, level = null) => ({ score, secs, munny, exp, level });
+const row = (score, secs, munny = null, exp = null, level = null, device = null) => ({ score, secs, munny, exp, level, device });
+const plain = (scores) => scores.map(({ posted, ...r }) => r);   // the board's rows without the time each was posted
 
 let nextHost = 0;       // each request is from a new address unless a test says otherwise,
                         // because one address may only post once every ten minutes
@@ -79,10 +81,10 @@ await check("a first score ranks first", async () => {
 await check("ranks count every score posted, ties sharing a place", async () => {
   const e = env();
   await get(e, rank("island", 1500));
-  assert.strictEqual((await get(e, rank("island", 900))).body, "*r|ok|anon~|island~2");
-  assert.strictEqual((await get(e, rank("island", 2000))).body, "*r|ok|anon~|island~1");
-  assert.strictEqual((await get(e, rank("island", 900))).body, "*r|ok|anon~|island~3");
-  assert.strictEqual((await get(e, rank("island", 2000))).body, "*r|ok|anon~|island~1");
+  assert.strictEqual((await get(e, rank("island", 900, 601))).body, "*r|ok|anon~|island~2");
+  assert.strictEqual((await get(e, rank("island", 2000, 602))).body, "*r|ok|anon~|island~1");
+  assert.strictEqual((await get(e, rank("island", 900, 601))).body, "*r|ok|anon~|island~3");
+  assert.strictEqual((await get(e, rank("island", 2000, 602))).body, "*r|ok|anon~|island~1");
 });
 
 await check("levels are ranked separately", async () => {
@@ -94,7 +96,7 @@ await check("levels are ranked separately", async () => {
 await check("rankex ranks the game's own table and skips unposted levels", async () => {
   const e = env();
   await get(e, rank("island", 1500));
-  await get(e, rank("island", 2000));
+  await get(e, rank("island", 2000, 601));
   assert.strictEqual((await get(e, rankex("wonderland,island", "1,1500"))).body,
     "*r|ok|anon~|island~2");
   assert.strictEqual((await get(e, rankex("wonderland", "1"))).body, "*r|ok|anon~");
@@ -118,10 +120,10 @@ await check("one score per address per ten minutes, silently", async () => {
   assert.strictEqual(again.body, "*r|ok|anon~|island~1", "the game sees a normal answer, with the rank it would have had");
   assert.deepStrictEqual(rows(), [500], "but the second score was not kept");
   assert.deepStrictEqual(await board(e, "island"), [500]);
-  assert.ok((await get(e, rank("island", 50), "5.5.5.5")).body.startsWith("*r|ok|anon~|island~"), "another address is unaffected");
+  assert.ok((await get(e, rank("island", 50, 650), "5.5.5.5")).body.startsWith("*r|ok|anon~|island~"), "another address is unaffected");
   assert.deepStrictEqual(rows(), [50, 500]);
   e.DB.prepare("UPDATE recent SET seen = seen - 601").run();          // ten minutes later
-  await get(e, rank("island", 900), "9.9.9.9");
+  await get(e, rank("island", 900, 700), "9.9.9.9");
   assert.deepStrictEqual(rows(), [50, 500, 900], "allowed again after the wait");
 });
 
@@ -155,7 +157,7 @@ await check("equal scores are ordered by the faster time, and times are shown", 
   assert.strictEqual((await get(e, rank("island", 1000, 1200))).body, "*r|ok|anon~|island~3", "slower goes behind both");
   assert.strictEqual((await get(e, rank("island", 2000, 3000))).body, "*r|ok|anon~|island~1", "a higher score still wins");
   const t = await top(e);
-  assert.deepStrictEqual(t.json.worlds.island.scores,
+  assert.deepStrictEqual(plain(t.json.worlds.island.scores),
     [row(2000, 3000), row(1000, 600), row(1000, 900), row(1000, 1200)]);
   assert.deepStrictEqual(t.json.minSeconds, { training: 60, island: 360, wonderland: 360, agrabah: 600, castle: 480 });
 });
@@ -164,7 +166,7 @@ await check("older scores without a time still show, after timed ones of the sam
   const e = env();
   e.DB.prepare("INSERT INTO scores (posted, aid, lid, score, secs) VALUES (1, 'KH', 'island', 700, NULL)").run();
   await get(e, rank("island", 700, 500));
-  assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [row(700, 500), row(700, null)]);
+  assert.deepStrictEqual(plain((await top(e)).json.worlds.island.scores), [row(700, 500), row(700, null)]);
   const e2 = (await get(e, "/disney/rankex.php?uid=&aid=KH&lid=island&s=700&t=12&u1=1")).body;
   assert.strictEqual(e2, "*r|ok|anon~|island~1", "the Score screen cannot split a tie, so it shares the place");
 });
@@ -173,9 +175,9 @@ await check("a refused repeat does not extend the wait", async () => {
   const e = env();
   await get(e, rank("island", 500), "7.7.7.7");
   e.DB.prepare("UPDATE recent SET seen = seen - 400").run();
-  await get(e, rank("island", 600), "7.7.7.7");                      // dropped, must not reset the clock
+  await get(e, rank("island", 600, 610), "7.7.7.7");                 // dropped, must not reset the clock
   e.DB.prepare("UPDATE recent SET seen = seen - 250").run();         // 650 s after the first
-  await get(e, rank("island", 700), "7.7.7.7");
+  await get(e, rank("island", 700, 620), "7.7.7.7");
   assert.deepStrictEqual(e.DB.prepare("SELECT score FROM scores ORDER BY score").all().results.map((r) => r.score), [500, 700]);
 });
 
@@ -184,7 +186,56 @@ await check("no identity is stored", async () => {
   await get(e, rank("island", 1500));
   const cols = e.DB.prepare("SELECT * FROM scores").all().results[0];
   assert.deepStrictEqual(Object.keys(cols).sort(),
-    ["aid", "exp", "id", "level", "lid", "munny", "posted", "score", "secs"]);
+    ["aid", "device", "exp", "id", "level", "lid", "munny", "posted", "score", "secs", "version"]);
+});
+
+await check("a replayed time (a save state at a Summary) is not stored, a new time is", async () => {
+  const e = env();
+  const rows = () => e.DB.prepare("SELECT score, secs FROM scores ORDER BY id").all().results.map((r) => [r.score, r.secs]);
+  await get(e, rank("island", 939, 1590));
+  const again = await get(e, rank("island", 918, 1590));                  // another score with the very same time
+  assert.ok(again.body.startsWith("*r|ok|anon~|island~"), "answered like any post");
+  assert.deepStrictEqual(rows(), [[939, 1590]], "the replay is not kept");
+  await get(e, rank("agrabah", 24005, 1590));                             // another world may share the time
+  await get(e, rank("island", 944, 1591));                                // a different time is a different run
+  assert.deepStrictEqual(rows(), [[939, 1590], [24005, 1590], [944, 1591]]);
+  e.DB.prepare("UPDATE scores SET posted = posted - 8 * 86400").run();    // more than a week later
+  await get(e, rank("island", 930, 1590));
+  assert.deepStrictEqual(rows().length, 4, "an old time no longer blocks");
+});
+
+await check("at most MAX_SCORES_PER_DAY are stored a day", async () => {
+  const e = env();
+  const now = Math.floor(Date.now() / 1000);
+  for (let i = 0; i < MAX_SCORES_PER_DAY; i++) {
+    e.DB.prepare("INSERT INTO scores (posted, aid, lid, score, secs) VALUES (?, 'KH', 'castle', ?, ?)").bind(now - 60, i, 10000 + i).run();
+  }
+  const r = await get(e, rank("island", 939, 1590));
+  assert.ok(r.body.startsWith("*r|ok|anon~|island~"), "answered as usual");
+  assert.strictEqual(e.DB.prepare("SELECT COUNT(*) AS n FROM scores WHERE lid = 'island'").first().n, 0, "and not stored");
+  e.DB.prepare("UPDATE scores SET posted = posted - 86400").run();        // a day later
+  await get(e, rank("island", 939, 1590));
+  assert.strictEqual(e.DB.prepare("SELECT COUNT(*) AS n FROM scores WHERE lid = 'island'").first().n, 1);
+});
+
+await check("the device and version are stored when sent and believable; the board shows only the device", async () => {
+  const e = env();
+  await get(e, rank("island", 939, 1590) + "&pl=android&vr=0.2.0");
+  await get(e, rank("agrabah", 24005, 3235) + "&pl=toaster&vr=<script>");
+  await get(e, rank("castle", 51282, 2556));
+  const got = e.DB.prepare("SELECT lid, device, version FROM scores ORDER BY id").all().results;
+  assert.deepStrictEqual(got.map((r) => [r.lid, r.device, r.version]),
+    [["island", "android", "0.2.0"], ["agrabah", null, null], ["castle", null, null]]);
+  const shown = (await top(e)).json.worlds;
+  assert.deepStrictEqual([shown.island.scores[0].device, shown.agrabah.scores[0].device, shown.castle.scores[0].device],
+    ["android", null, null], "/top shows the device, null when not sent");
+  assert.ok(!/0\.2\.0/.test(JSON.stringify(shown)), "/top does not show the version");
+  const old = env(OLD_SCHEMA);                                            // a database before migrate_001 and 003
+  await get(old, rank("island", 939, 1590) + "&pl=windows&vr=0.2.0");
+  assert.strictEqual(old.DB.prepare("SELECT COUNT(*) AS n FROM scores").first().n, 1, "still stored without the columns");
+  const oldRow = (await top(old)).json.worlds.island.scores[0];
+  assert.strictEqual(oldRow.device, null, "without the column /top still answers, with no device");
+  assert.strictEqual(typeof oldRow.posted, "number");
 });
 
 await check("other paths and methods are refused", async () => {
@@ -216,6 +267,7 @@ await check("/top lists the best hundred per world, highest first, and is public
   assert.strictEqual(got.length, 100);
   assert.deepStrictEqual(got.slice(0, 3), [12000, 11900, 11800]);
   assert.strictEqual(got[99], 2100, "the 100th is the 21st-lowest of 120");
+  assert.strictEqual(t.json.worlds.castle.scores[0].posted, 1, "each score says when it was posted");
   assert.strictEqual(t.json.worlds.castle.total, 120, "the total counts them all");
   const few = await worker.fetch(new Request("https://x/top?n=10", { headers: { "cf-connecting-ip": "9.9.9.9" } }), e);
   assert.strictEqual((await few.json()).worlds.castle.scores.length, 10, "?n= asks for fewer");
@@ -232,7 +284,7 @@ await check("Munny, EXP and level are stored and shown with the score", async ()
   assert.strictEqual(r.body, "*r|ok|anon~|island~1", "the game's reply is unchanged");
   await get(e, rankStats("island", 2880, 1480, 14, 3, 1312));
   const t = await top(e);
-  assert.deepStrictEqual(t.json.worlds.island.scores, [row(2880, 1312, 1480, 14, 3), row(1531, 600, 931, 6, 2)]);
+  assert.deepStrictEqual(plain(t.json.worlds.island.scores), [row(2880, 1312, 1480, 14, 3), row(1531, 600, 931, 6, 2)]);
   assert.strictEqual(t.json.worlds.island.scores[0].munny + 100 * t.json.worlds.island.scores[0].exp, 2880);
 });
 
@@ -247,24 +299,24 @@ await check("Munny and EXP that do not make the score are dropped silently", asy
   }
   assert.deepStrictEqual(await board(e, "island"), [], "nothing was kept");
   assert.ok((await get(e, rankStats("island", 1531, 931, 6))).body.endsWith("island~1"));
-  assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [row(1531, 600, 931, 6, null)], "level is optional");
+  assert.deepStrictEqual(plain((await top(e)).json.worlds.island.scores), [row(1531, 600, 931, 6, null)], "level is optional");
 });
 
 await check("older clients that send no Munny or EXP are still accepted", async () => {
   const e = env();
   await get(e, rank("island", 1000));
-  assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [row(1000, 600)]);
+  assert.deepStrictEqual(plain((await top(e)).json.worlds.island.scores), [row(1000, 600)]);
 });
 
 await check("a database without the new columns still works, in either deploy order", async () => {
   const e = env(OLD_SCHEMA);
   const first = await get(e, rankStats("island", 1531, 931, 6, 2)); assert.ok(first.body.endsWith("island~1"), first.status + " " + first.body);
-  assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [{ score: 1531, secs: 600, munny: null, exp: null, level: null }],
+  assert.deepStrictEqual(plain((await top(e)).json.worlds.island.scores), [{ score: 1531, secs: 600, munny: null, exp: null, level: null, device: null }],
     "the score is kept, without the numbers it could not store");
   // ...then the migration is run, and from the next score on they are kept
   for (const col of ["munny", "exp", "level"]) e.DB.prepare(`ALTER TABLE scores ADD COLUMN ${col} INTEGER`).run();
   await get(e, rankStats("island", 2880, 1480, 14, 3, 700));
-  assert.deepStrictEqual((await top(e)).json.worlds.island.scores, [row(2880, 700, 1480, 14, 3), row(1531, 600)]);
+  assert.deepStrictEqual(plain((await top(e)).json.worlds.island.scores), [row(2880, 700, 1480, 14, 3), row(1531, 600)]);
 });
 
 // the website's anonymous counters
@@ -300,6 +352,9 @@ await check("only the known names are counted, so the table cannot be filled", a
   }
   assert.deepStrictEqual(allCounts(e), {});
   assert.ok(Object.keys(SITE_EVENTS).length < 40);
+  // the most the counters can write in a day: every name to its ceiling, plus the four extra tallies of each home view
+  const bound = Object.values(SITE_EVENTS).reduce((a, b) => a + b, 0) + 4 * SITE_EVENTS["view:home"];
+  assert.ok(bound <= 67500, `the counters can write up to ${bound} rows a day; the comments in worker.js and README say about 67,000`);
 });
 
 await check("a probe, a wrong method or another site does not count; one of ours, or no referrer, does", async () => {
@@ -369,7 +424,7 @@ await check("a name stops counting at its daily ceiling, and the extra tallies s
   assert.strictEqual(dims(e)["os:linux"], 2, "3 views counted (one earlier, without a system type): the 7 above the ceiling add nothing");
   // the worst case of all the ceilings together stays well under the free plan's daily writes
   const total = Object.entries(SITE_EVENTS).reduce((a, [n, c]) => a + c * (n === "view:home" ? 5 : 1), 0);
-  assert.ok(total < 65000, "writes a day at the ceilings: " + total);
+  assert.ok(total < 67500, "writes a day at the ceilings: " + total);
 });
 
 await check("if the database does not say whether a row changed, the extra tallies are not written (the ceiling is never skipped)", async () => {
@@ -407,9 +462,139 @@ await check("helpers", () => {
   assert.strictEqual(validScore("1.5"), null);
 });
 
+// ------------------------------------------------------------------ the feedback board (feedback.js)
+console.log("feedback:");
+const SITE = "https://khrecast.com";
+let fbHost = 0;
+async function fb(e, method, path, { body = null, origin = SITE, key = null, ip = `10.8.${fbHost >> 8}.${fbHost++ & 255}` } = {}) {
+  const headers = { "cf-connecting-ip": ip, "content-type": "application/x-www-form-urlencoded" };
+  if (origin) headers.origin = origin;
+  if (key !== null) headers["x-feedback-key"] = key;
+  const res = await worker.fetch(new Request("https://scores.khrecast.com" + path, { method, headers,
+    body: body === null ? undefined : new URLSearchParams(body).toString() }), e);
+  const text = await res.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch { /* the admin page is HTML */ }
+  return { status: res.status, headers: res.headers, text, data };
+}
+const entry = (extra = {}) => ({ kind: "bug", message: "The sound stops in the lava cave.", nick: "Sora", device: "android",
+  version: "0.2.0", email: "", website: "", t: String(Date.now() - 60000), s: String(Date.now()), ...extra });
+const fbEnv = () => ({ ...env(), FEEDBACK_KEY: "k".repeat(32) });
+
+await check("a post from the website is stored and shown at once, without its email", async () => {
+  const e = fbEnv();
+  const r = await fb(e, "POST", "/feedback", { body: entry({ email: "sora@example.com" }) });
+  assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.data, { ok: true, id: 1 });
+  assert.strictEqual(r.headers.get("access-control-allow-origin"), SITE);
+  const list = await fb(e, "GET", "/feedback");
+  assert.strictEqual(list.data.total, 1);
+  const p = list.data.posts[0];
+  assert.deepStrictEqual([p.kind, p.nick, p.device, p.version, p.message, p.fixed, p.reply],
+    ["bug", "Sora", "android", "0.2.0", "The sound stops in the lava cave.", false, null]);
+  assert.ok(!list.text.includes("sora@example.com"), "the email is never shown");
+  assert.strictEqual(list.headers.get("access-control-allow-origin"), "*");
+});
+
+await check("feedback refuses junk, and robots are told it worked", async () => {
+  const e = fbEnv();
+  const count = () => e.DB.prepare("SELECT COUNT(*) AS n FROM feedback").first().n;
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry(), origin: "https://evil.example" })).status, 403);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry(), origin: null })).status, 403);
+  assert.deepStrictEqual((await fb(e, "POST", "/feedback", { body: entry({ website: "http://spam" }) })).data, { ok: true, id: null }, "the hidden field");
+  assert.deepStrictEqual((await fb(e, "POST", "/feedback", { body: entry({ t: String(Date.now() - 500) }) })).data, { ok: true, id: null }, "sent too fast");
+  const skewed = await fb(e, "POST", "/feedback", { body: entry({ t: "5000", s: "65000" }) });        // a clock set far wrong: only the gap counts
+  assert.strictEqual(skewed.status, 200);
+  assert.ok(skewed.data.id > 0, "a visitor whose clock is wrong still gets in");
+  e.DB.prepare("DELETE FROM feedback").run();
+  assert.deepStrictEqual((await fb(e, "POST", "/feedback", { body: entry({ t: "" }) })).data, { ok: true, id: null }, "no clock");
+  const stale = await fb(e, "POST", "/feedback", { body: entry({ t: "1000", s: String(3 * 86400 * 1000) }) });
+  assert.strictEqual(stale.status, 400, "a page open for days is told to reload, not silently dropped");
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry({ kind: "spam" }) })).status, 400);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry({ message: "short" }) })).status, 400);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry({ message: "x".repeat(3001) }) })).status, 400);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry({ message: "see http://a.b http://c.d http://e.f www.g.h" }) })).status, 400);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry({ email: "not an email" }) })).status, 400);
+  assert.strictEqual(count(), 0);
+  const ok = await fb(e, "POST", "/feedback", { body: entry({ device: "toaster", version: "<b>", nick: "Ri\r\nku\u0007", message: "Line one\nline two is here" }) });
+  assert.strictEqual(ok.status, 200);
+  const row = e.DB.prepare("SELECT nick, device, version, message FROM feedback").first();
+  assert.deepStrictEqual({ ...row }, { nick: "Ri ku", device: null, version: null, message: "Line one\nline two is here" });
+});
+
+await check("an address may post three entries an hour", async () => {
+  const e = fbEnv();
+  for (let i = 0; i < 3; i++) assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry(), ip: "7.7.7.7" })).status, 200);
+  const fourth = await fb(e, "POST", "/feedback", { body: entry(), ip: "7.7.7.7" });
+  assert.strictEqual(fourth.status, 429);
+  assert.ok(fourth.data.error.length > 0);
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry(), ip: "8.8.8.8" })).status, 200, "others are not affected");
+  e.DB.prepare("UPDATE feedback_recent SET seen = seen - 3601").run();
+  assert.strictEqual((await fb(e, "POST", "/feedback", { body: entry(), ip: "7.7.7.7" })).status, 200, "an hour later");
+  const keys = JSON.stringify(e.DB.prepare("SELECT * FROM feedback_recent").all().results);
+  assert.ok(!keys.includes("7.7.7.7"), "the address itself is not kept");
+});
+
+await check("the owner's page: key, list with emails, reply, fix, hide, delete", async () => {
+  const e = fbEnv();
+  await fb(e, "POST", "/feedback", { body: entry({ email: "sora@example.com" }) });
+  await fb(e, "POST", "/feedback", { body: entry({ kind: "idea", message: "A New Game Plus mode please." }) });
+  const page = await fb(e, "GET", "/feedback/admin");
+  assert.strictEqual(page.status, 200);
+  assert.ok(page.text.includes("Re:Cast journal") && !page.text.includes("sora@example.com"), "the page holds no data");
+  assert.strictEqual((await fb(e, "POST", "/feedback/admin/list", { key: "wrong" })).status, 403);
+  assert.strictEqual((await fb({ ...e, FEEDBACK_KEY: "" }, "POST", "/feedback/admin/list", { key: "" })).status, 503, "no key set: closed");
+  const K = e.FEEDBACK_KEY;
+  const all = await fb(e, "POST", "/feedback/admin/list", { key: K });
+  assert.deepStrictEqual(all.data.posts.map((p) => [p.id, p.email]), [[2, null], [1, "sora@example.com"]]);
+  const act = (id, action, text) => fb(e, "POST", "/feedback/admin/act", { key: K, body: { id, action, ...(text ? { text } : {}) } });
+  assert.strictEqual((await act(1, "reply", "Fixed in 0.2.1, thank you!")).status, 200);
+  assert.strictEqual((await act(1, "fix")).status, 200);
+  assert.strictEqual((await act(2, "hide")).status, 200);
+  assert.strictEqual((await act(2, "explode")).status, 400);
+  let pub = (await fb(e, "GET", "/feedback")).data;
+  assert.deepStrictEqual([pub.total, pub.squashed, pub.posts.length], [1, 1, 1]);
+  assert.strictEqual(pub.posts[0].reply, "Fixed in 0.2.1, thank you!");
+  assert.ok(pub.posts[0].replied > 0 && pub.posts[0].fixed);
+  await act(2, "show");
+  await act(1, "delete");
+  pub = (await fb(e, "GET", "/feedback")).data;
+  assert.deepStrictEqual(pub.posts.map((p) => p.id), [2]);
+  assert.strictEqual((await fb(e, "POST", "/feedback/admin/act", { key: "nope", body: { id: 2, action: "delete" } })).status, 403);
+});
+
+await check("the list pages backwards, and a database without the tables still answers", async () => {
+  const e = fbEnv();
+  for (let i = 0; i < 25; i++) {
+    e.DB.prepare("INSERT INTO feedback (posted, kind, message) VALUES (?, 'review', ?)").bind(1000 + i, "Entry number " + i).run();
+  }
+  const first = (await fb(e, "GET", "/feedback")).data;
+  assert.deepStrictEqual([first.posts.length, first.more, first.posts[0].id], [20, true, 25]);
+  const next = (await fb(e, "GET", "/feedback?before=" + first.posts.at(-1).id)).data;
+  assert.deepStrictEqual([next.posts.length, next.more, next.posts.at(-1).id], [5, false, 1]);
+  const old = { ...env(OLD_SCHEMA), FEEDBACK_KEY: "x" };                  // the live database until migrate_003 is run
+  assert.deepStrictEqual((await fb(old, "GET", "/feedback")).data.posts, []);
+  assert.strictEqual((await fb(old, "POST", "/feedback", { body: entry() })).status, 503);
+  assert.strictEqual((await get(old, rank("island", 939, 1590))).status, 200, "scores are not affected");
+});
+
+await check("the owner's email: reply-to the poster, readable subject, the message intact", async () => {
+  const post = { kind: "wonderland", message: "I still have a VX8100 with Wonderland on it!\nHow do I dump it?",
+    nick: "Kairi ❤", device: "android", version: "0.2.0", email: "kairi@example.com" };
+  const raw = ownerEmail(post, 7, 1793600000, "feedback@khrecast.com", "khrecast@gmail.com");
+  assert.ok(raw.includes("Reply-To: <kairi@example.com>"));
+  assert.ok(/^Subject: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?=$/m.test(raw), "a non-ASCII subject is encoded");
+  assert.ok(Buffer.from(raw.match(/^Subject: =\?UTF-8\?B\?(.+)\?=$/m)[1], "base64").toString("utf8").includes("WONDERLAND INFO from Kairi"));
+  const body = Buffer.from(raw.split("\r\n\r\n")[1].replace(/\r\n/g, ""), "base64").toString("utf8");
+  assert.ok(body.includes("How do I dump it?") && body.includes("https://scores.khrecast.com/feedback/admin#7"));
+  assert.ok(raw.includes('From: "Re:Cast journal" <feedback@khrecast.com>'), "the colon in the name is quoted");
+  const none = ownerEmail({ ...post, email: null, nick: null }, 8, 1793600000, "a@b.c", "d@e.f");
+  assert.ok(!none.includes("Reply-To") && none.includes("from A player"));
+});
+
 // the exact exchanges the Python side replays, for a byte-for-byte comparison
 const e = env();
-for (const p of [rank("island", 1500), rank("island", 2000), rank("island", 900),
+for (const p of [rank("island", 1500), rank("island", 2000, 601), rank("island", 900, 602),
                  rank("agrabah", 10), rankex("wonderland,island", "1,1500"),
                  rankex("island,agrabah", "2000,10"), rank("island", "abc"),
                  rank("notaworld", 5)]) {

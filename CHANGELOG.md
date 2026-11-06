@@ -2,7 +2,92 @@
 
 ## Unreleased
 
+### Added
+- **Android 0.2.0: more phones.** The app now runs on Android 7 or newer (it needed 8), on phones that use 16 KB
+  memory pages (newer Pixels and Samsungs), and on 64-bit Intel and AMD machines (Chromebooks and PC Android emulators).
+  There are two downloads, both signed with the same key as 0.1.0 so it installs over it and keeps your saves:
+  `KH-ReCast-Android.zip` for phones and `KH-ReCast-Android-x86_64.zip` for Chromebooks and emulators
+  (`android/tools/make_android_zip.py` packs them). Python is 3.13 now, and the Unicorn library is built in Docker
+  (`android/tools/build_unicorn_docker.py`) instead of Termux for the x86_64 build. On the S23 the speed matches 3.12.
+  The credits list every program the apps carry, and `KH-ReCast-sources.zip` offers the source code of the GPL and LGPL ones.
+  The website has a second Android card and a second download counter (`dl:androidX64`, live after the server is deployed).
+
+### Changed
+- **Smaller installers with our own small ffmpeg.** The Windows, Mac and Linux installers used to carry full ffmpeg
+  builds from other sites (49 to 105 MB each, some under the GPL, one configured as "nonfree"). They now carry
+  the project's own FFmpeg 9.0.2 build with only what Re:Cast uses (the game's sound effects and players' recordings in
+  WAV, FLAC, MP3, Ogg, Opus, AAC/M4A, ALAC, AIFF, WMA and WavPack), under the LGPL and with no extra libraries, so the FFmpeg source
+  tarball is its complete source and the installers shrink. `python -I tools/build_ffmpeg.py` builds all six.
+
+### Fixed
+- **The two Wonderland screenshots were WebP files named .png.** pygame reads either, but a Pillow without WebP support (the
+  Android app's) could not, so they are now real PNG files with identical pixels. A test checks every `.png` in the assets.
+
 ### New
+- **Jiminy's Journal: a public feedback board on the website.** Reviews, ideas, bug reports, complaints, rants,
+  Wonderland info or anything else, with an optional nickname, device and version, show on the site at once; an optional
+  email address stays private and lets the owner answer. Each entry is emailed to the project inbox (through Cloudflare Email
+  Routing; replying to the email answers the poster when they left an address), and the owner replies in public, hides, deletes or marks a bug fixed from a key-protected page. A
+  "Heartless defeated" counter and a Squashed badge show fixed bugs.
+  Spam is kept out with a hidden field, a minimum time to fill in the form, a link limit, per-address and daily limits,
+  and optional Turnstile (`server/feedback.js`, `migrate_003_device_feedback.sql`).
+- **Only a better run is shared.** A score goes to the shared leaderboard only when it beats the best this copy has
+  already shared for that world (a higher score, or the same score in less time), kept in `playtime.json`.
+- **The shared leaderboard knows the device and the date.** Scores carry the kind of device (Windows, Mac, Linux,
+  Android) and the Re:Cast version. The leaderboard page shows each score's platform and when it was shared (in the
+  visitor's own time zone); the version is kept, not shown. Scores shared before this came from the PC installers and
+  say "PC".
+- **The server catches replayed runs and floods.** A second score for the same world with exactly the same time within
+  a week (what a save state loaded at a Summary sends) is not stored, which also covers installers already out there, and
+  at most 200 scores are stored a day.
+- **Runs that used a save state are no longer shared.** A score goes to the shared leaderboard only from a run played
+  to its Summary screen without loading a save state (autosaves count); loading one, even after the Summary and before
+  posting, keeps that score on your own table. The run is still timed and logged, it is just sent without its time, which
+  the shared leaderboard does not record. This also stops a score being posted with the time of an older run, and a clear
+  from an earlier sitting being posted. A world where a state was loaded and then abandoned stays marked until its next
+  Summary. The Online scores box on the Options tab has an info bubble that says so; the README, the server notes and the
+  leaderboard page do too. (Found when a state loaded at an Island Summary posted a score with the time of the earlier run.)
+- **Android app (sideloaded `.apk`, version 0.1.0).** The game runs on a phone, with full sound, for the first time:
+  touch controls in three layouts (a cross, two thumbs, a direction pad; every button movable and resizable), a 2005 flip
+  phone mode with a keypad, seven colors and a small bezel, an Action button that shows what it will do, softkeys with the
+  game's words, sharp text, the sound screen with mixes and recordings, the Wonderland theme, saves and save states that
+  move between the PC and the phone (the same `.khs` files), and a first-start question about sharing high scores (nothing
+  is sent until the player says yes). The debug line under the game (frames, fps, faults) now shows only when the game
+  stops or hits an error. See `android/NOTES.md`.
+- **Website: launched.** The password splash is off, and the Android app is front and
+  center, with screenshots of each control style, a download card and install help. The site is now
+  several pages with a themed menu. **Main Menu**, **Leaderboard** (with a gold crown sitting on its d) and
+  **Download** (with a touch of green and a down arrow before it) are in the KHMenu font, drawn by
+  `tools/make_tab_labels.py --site` in finer pixels than the launcher's tabs, so the e and a stay readable; Main Menu opens a list of the Android page and the home page's parts, Help among them. The Download button's arrow bobs down and up while the pointer or keyboard focus is on it (not for visitors whose device asks for less motion). The big arrow in the Download page's title bobs the same way all the time.
+  **Find Wonderland** is in the storybook Alice font between a heart and a spade, its letters tumbling (and wobbling as the page scrolls, unless the visitor's device asks for less motion) in the Cheshire Cat's
+  colors, and **Jiminy's Journal** is a handwritten note (the Caveat font) with a top hat on the J. Both fonts are free
+  (SIL Open Font License) and kept on the site itself, so nothing loads from elsewhere. Each of those four pages has its
+  menu button, big, as its title. The Find Wonderland page now shows Pablo González's 16-second Wonderland clip,
+  the picture of his 24-minute recording and the two stills from his post, unedited, with his
+  watermark and a credit line linking his post, and he is in the Credits. The Televo credit now names the Android app's menu too. Help points to the project email and the journal. Download (with the install help and checksums), Find Wonderland, Jiminy's Journal and Android (the app's pictures and features, moved off the home page so its cards no longer sit right above the PC ones) have their own pages,
+  sharing `site/site.css` and `site/site.js`, and old links such as `khrecast.com/#download` or `#android` still land on them. The journal's Device field starts blank: it is filled only when a link from an app says which device, never guessed from the browser (a phone visitor writing about the PC version was put down as Android). The Android download is one zip,
+  `KH-ReCast-Android.zip`: the signed app, a `KH-ReCast-game` folder with the game files and a README (its checksum is in
+  `SHA256SUMS.txt`, and the link in the untracked `site/links.js`). The Wonderland section tells of the recording Pablo
+  González showed on X. The leaderboard Worker and `tools/site_stats.py` count Android downloads (`dl:android`), journal entries sent (`click:feedback`), and visits to the new pages (`view:download`,
+  `view:journal`, `view:wonderland`, `view:android`; the Android part was a home-page section, `sec:android`, until 2026-11-03); the stats dashboard has an "Other pages opened" section. An old link to a part
+  that moved (`#download`, `#feedback`) is not also counted as a home page visit. The menu-font pictures come from
+  `python tools/make_tab_labels.py --site`, which writes only the website's labels. The Android pictures are
+  retaken at the phone's full resolution (810 px wide instead of 540, the sideways one 1600 instead of 1000, so the text is
+  clearer on a phone).
+- **A save state that cannot be read is an error message, not a crash.** If loading a state fails while it is
+  being read (a damaged file, or one made by a different setup), the game keeps running with nothing changed and says
+  "this state cannot be read here". States made on a computer with numpy 2 also load where numpy 1 is installed
+  (needed for the Android app; a state made on the phone already loaded on the PC).
+- **A steady frame rate.** The game sets the timer for its next frame as the last thing it does in a frame, so on a
+  real clock the time a frame took was added to its 30 to 40 ms delay: a PC that could draw 33 frames a second
+  showed about 16 (the benchmarks never saw it: they run on a virtual clock that stands still while the game works).
+  Re:Cast now holds the game's clock still while it runs a frame and lets it run in real time in between, so the
+  frame period is the larger of 40 ms and the PC's own time per frame, and the game's speed is unchanged. Real-time
+  frames per second on the development PC, without and with it: title screen 15.8 to 24.6, the Obstacle Course 15.5
+  to 24.6, a Castle room 16.6 to 24.9, a fight 11.2 to 18.5, Agrabah's lava cave 11.9 to 19.0 (the game's speed does
+  not depend on the frame rate: the same six-second walk ends in the same place at 25, 16 and 14 fps). On by default; a switch
+  in **Speed enhancements...** under Options, `--no-frame-lock` on the command line, and `tools/bench_realtime.py` to
+  measure it (it can also run with the speed-ups off).
 - **Change the game's keys.** The Controls tab's keys (W, A, S, D, Space for the action, F, Z, Q, E and Backspace) are now buttons: click one, press the
   new key. A key already in use is refused with a message, a changed key is starred, Esc cancels, and **Reset game keys**
   puts them back. Letters, space, tab, backspace and `; ' / , . - = `` ` `` can be used; the arrows, Enter and 5 (the action), number keys, F1, F2,
