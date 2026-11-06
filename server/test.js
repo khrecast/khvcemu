@@ -354,7 +354,7 @@ await check("only the known names are counted, so the table cannot be filled", a
   assert.ok(Object.keys(SITE_EVENTS).length < 40);
   // the most the counters can write in a day: every name to its ceiling, plus the four extra tallies of each home view
   const bound = Object.values(SITE_EVENTS).reduce((a, b) => a + b, 0) + 4 * SITE_EVENTS["view:home"];
-  assert.ok(bound <= 66500, `the counters can write up to ${bound} rows a day; the comments in worker.js and README say about 66,000`);
+  assert.ok(bound <= 67500, `the counters can write up to ${bound} rows a day; the comments in worker.js and README say about 67,000`);
 });
 
 await check("a probe, a wrong method or another site does not count; one of ours, or no referrer, does", async () => {
@@ -424,7 +424,7 @@ await check("a name stops counting at its daily ceiling, and the extra tallies s
   assert.strictEqual(dims(e)["os:linux"], 2, "3 views counted (one earlier, without a system type): the 7 above the ceiling add nothing");
   // the worst case of all the ceilings together stays well under the free plan's daily writes
   const total = Object.entries(SITE_EVENTS).reduce((a, [n, c]) => a + c * (n === "view:home" ? 5 : 1), 0);
-  assert.ok(total < 66500, "writes a day at the ceilings: " + total);
+  assert.ok(total < 67500, "writes a day at the ceilings: " + total);
 });
 
 await check("if the database does not say whether a row changed, the extra tallies are not written (the ceiling is never skipped)", async () => {

@@ -268,13 +268,13 @@ async function handleTop(db, now, q = new URLSearchParams()) {
 // stored per visit, though on a very quiet day, a visit or two, the counts could still be matched up by eye): the hour of day, the country (Cloudflare's coarse location
 // of the connection; the address itself is neither read nor kept), the kind of computer the page says it
 // is (a short fixed list) and where the visitor came from (a short fixed list of sites, domain only).
-// Each name has a daily ceiling. They bound the database writes the counters can cause (about 66,000 a
+// Each name has a daily ceiling. They bound the database writes the counters can cause (about 67,000 a
 // day at most, against the free plan's daily allowance, which the scores share), so someone calling the
 // address in a loop cannot use them up and stop scores being saved: past a ceiling a call changes nothing.
 export const SITE_EVENTS = {
   "view:home": 8000, "view:leaderboard": 1500, "view:download": 1500, "view:journal": 1500, "view:wonderland": 1500, "view:android": 1500,
   "dl:win64": 600, "dl:win32": 600, "dl:macArm": 600, "dl:macIntel": 600, "dl:linux64": 600, "dl:linuxArm": 600,
-  "dl:android": 600,
+  "dl:android": 600, "dl:androidX64": 600,
   "dl:sums": 600, "click:repo": 600, "click:issues": 600, "click:soundtrack": 600, "click:email": 600, "click:feedback": 600,
   "sec:about": 1000, "sec:features": 1000, "sec:screens": 1000, "sec:launcher": 1000, "sec:composer": 1000,
   "sec:download": 1000, "sec:help": 1000, "sec:wonderland": 1000, "sec:credits": 1000, "sec:android": 1000, "sec:feedback": 1000,
