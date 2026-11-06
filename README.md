@@ -21,10 +21,10 @@ any audio in an Android emulator. As far as we know, khvcemu is the first
 emulator to play it with its music and sound effects in context.
 
 **Now on Android, for the first time ever with full sound.** The Re:Cast app (a sideloaded
-`.apk`, Android 8 or newer, 64-bit phones; tested on a Galaxy S23 Ultra) runs the same core with touch controls in three layouts, a
+`.apk`, Android 7 or newer, 64-bit phones and Chromebooks; tested on a Galaxy S23 Ultra, and on emulators for Android 7 and for phones with 16 KB memory pages) runs the same core with touch controls in three layouts, a
 2005 flip phone mode with a real keypad, an Action button that shows what it will do, the sound screen
 and save states that move between the PC and the phone. It is on [khrecast.com](https://khrecast.com)
-as one zip with the game files (`KH-ReCast-Android.zip`);
+as one zip with the game files (`KH-ReCast-Android.zip` for phones, `KH-ReCast-Android-x86_64.zip` for Chromebooks and emulators);
 how it is built and tested is in [`android/NOTES.md`](android/NOTES.md).
 
 > **Please read.** Kingdom Hearts and all related characters, names and assets belong to their respective rights holders. This is an unofficial fan project and is not affiliated with, endorsed by or connected to Disney, Square Enix, Superscape, Verizon, Qualcomm or any other rights holder. It exists only to preserve, and let people experience, a piece of gaming history. It is free and non-profit: nobody earns money from it, and it should never be sold.
@@ -106,6 +106,8 @@ nothing else. The outputs contain the game files, so `dist/` and `build/` are
 git-ignored and are not part of the repo. Building needs internet access the first
 time (Python and the wheels are downloaded and cached in `build/`).
 
+The source code of the GPL and LGPL programs the builds carry (Unicorn, FFmpeg, pygame-ce) is offered next to them as `KH-ReCast-sources.zip`.
+
 The ffmpeg inside is the project's own small build of FFmpeg 9.0.2 (LGPL 2.1 or later, only
 the decoders Re:Cast uses: 2.4 to 2.6 MB instead of the 49 to 105 MB of the full builds used
 before). Make it once before the installers with `python -I tools/build_ffmpeg.py`: it needs
@@ -120,12 +122,12 @@ they still start with it next time). A Docker Desktop you started yourself is le
 
 | Build | Command | Result |
 | --- | --- | --- |
-| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~54 MB) |
-| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~41 MB) |
-| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~77 MB) |
-| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~82 MB) |
-| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~100 MB) |
-| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~89 MB) |
+| Windows, 64-bit | `python tools/build_installer.py` | `dist/KH-ReCast-Windows-x64.exe` (~31 MB) |
+| Windows, 32-bit | `python tools/build_installer.py --target win32` | `dist/KH-ReCast-Windows-x86.exe` (~25 MB) |
+| macOS, Apple Silicon | `python tools/build_mac.py --arch arm64` | `dist/KH-ReCast-macOS-arm64.zip` (~60 MB) |
+| macOS, Intel | `python tools/build_mac.py --arch x86_64` | `dist/KH-ReCast-macOS-x86_64.zip` (~63 MB) |
+| Linux, x86-64 | `python tools/build_linux.py --arch x86_64` | `dist/KH-ReCast-Linux-x86_64.run` (~77 MB) |
+| Linux, ARM64 | `python tools/build_linux.py --arch aarch64` | `dist/KH-ReCast-Linux-aarch64.run` (~69 MB) |
 
 **Windows:** double-click the exe. It asks once, installs for the current user only (no
 administrator rights), adds Start Menu and desktop shortcuts and an entry under

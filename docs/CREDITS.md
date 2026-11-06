@@ -64,6 +64,8 @@ does not contain the font file, only small pictures of the tab names rendered fr
 
 ## Software the apps include
 
+The source code of the GPL and LGPL programs below (Unicorn, FFmpeg and pygame-ce) is offered as `KH-ReCast-sources.zip` on the [download page](https://khrecast.com/download.html).
+
 Re:Cast's own code is GPL-3.0. The installers and the Android app also carry open-source projects,
 each under its own license. The main ones:
 

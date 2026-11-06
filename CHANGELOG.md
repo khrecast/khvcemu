@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+- **Android 0.2.0: more phones.** The app now runs on Android 7 or newer (it needed 8), on phones that use 16 KB
+  memory pages (newer Pixels and Samsungs), and on 64-bit Intel and AMD machines (Chromebooks and PC Android emulators).
+  There are two downloads, both signed with the same key as 0.1.0 so it installs over it and keeps your saves:
+  `KH-ReCast-Android.zip` for phones and `KH-ReCast-Android-x86_64.zip` for Chromebooks and emulators
+  (`android/tools/make_android_zip.py` packs them). Python is 3.13 now, and the Unicorn library is built in Docker
+  (`android/tools/build_unicorn_docker.py`) instead of Termux for the x86_64 build. On the S23 the speed matches 3.12.
+  The credits list every program the apps carry, and `KH-ReCast-sources.zip` offers the source code of the GPL and LGPL ones.
+  The website has a second Android card and a second download counter (`dl:androidX64`, live after the server is deployed).
+
 ### Changed
 - **Smaller installers with our own small ffmpeg.** The Windows, Mac and Linux installers used to carry full ffmpeg
   builds from other sites (49 to 105 MB each, some under the GPL, one configured as "nonfree"). They now carry
