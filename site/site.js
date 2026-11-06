@@ -13,7 +13,9 @@ var LINKS = {
   macIntel: "",   // KH-ReCast-macOS-x86_64.zip
   linux64:  "",   // KH-ReCast-Linux-x86_64.run
   linuxArm: "",   // KH-ReCast-Linux-aarch64.run
-  android:  "",   // KH-ReCast-Android.zip (the app and the game files)
+  android:  "",   // KH-ReCast-Android.zip (the app and the game files, for phones)
+  androidX64: "", // KH-ReCast-Android-x86_64.zip (the same, for Chromebooks and emulators)
+  sources:  "",   // KH-ReCast-sources.zip (the source code of the bundled GPL and LGPL programs)
   repo:     "https://github.com/khrecast/khvcemu",
   issues:   "https://github.com/khrecast/khvcemu/issues",
 };
@@ -47,7 +49,7 @@ document.querySelectorAll("[data-link]").forEach(function (a) {
   }
   if (os === "android") {                            // on a phone the big button is the Android app
     recommend('[data-os="android"]');
-    say("Download for Android", LINKS.android || "download.html", "Free and open source. Android 8 or newer, 64-bit phones.");
+    say("Download for Android", LINKS.android || "download.html", "Free and open source. Android 7 or newer, 64-bit phones.");
   } else if (os === "mac") {
     recommend('[data-os^="mac"]');
     say("Download for Mac", "download.html", "Free and open source. Pick Apple Silicon or Intel on the download page.");
@@ -187,9 +189,9 @@ document.querySelectorAll("[data-link]").forEach(function (a) {
     var a = ev.target && ev.target.closest ? ev.target.closest("a") : null;
     if (!a || !a.getAttribute("href") || a.getAttribute("aria-disabled") === "true") return;
     var key = a.getAttribute("data-link") || "", href = a.getAttribute("href"), links = window.KH_LINKS || {}, dl = "";
-    for (var k in links) if (/^(win64|win32|macArm|macIntel|linux64|linuxArm|android)$/.test(k) && links[k] && links[k] === href) dl = k;     // any button that goes to an installer, the big Download one too
+    for (var k in links) if (/^(win64|win32|macArm|macIntel|linux64|linuxArm|android|androidX64)$/.test(k) && links[k] && links[k] === href) dl = k;     // any button that goes to an installer, the big Download one too
     if (dl) hit("dl:" + dl);
-    else if (/^(win64|win32|macArm|macIntel|linux64|linuxArm|android)$/.test(key)) hit("dl:" + key);
+    else if (/^(win64|win32|macArm|macIntel|linux64|linuxArm|android|androidX64)$/.test(key)) hit("dl:" + key);
     else if (/^(repo|issues|email)$/.test(key)) hit("click:" + key);
     else if (/SHA256SUMS\.txt$/.test(href)) hit("dl:sums");
     else if (href.indexOf("khinsider.com") >= 0) hit("click:soundtrack");

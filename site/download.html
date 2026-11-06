@@ -32,40 +32,46 @@
     <div class="dl">
       <div class="card" data-os="android">
         <div class="os">Android</div><div class="name">Phone app</div>
-        <div class="meta">The app and the game files in one zip, for Android 8 or newer on 64-bit phones. About 28&nbsp;MB. <a href="android.html">See what it does</a>.</div>
+        <div class="meta">The app and the game files in one zip, for phones and tablets with Android 7 or newer and a 64-bit ARM chip (almost every phone today). About 30&nbsp;MB. <a href="android.html">See what it does</a>.</div>
         <a class="btn primary" data-link="android" href="#">Download for Android</a>
+      </div>
+      <div class="card" data-os="android-x64">
+        <div class="os">Android</div><div class="name">Chromebooks and emulators</div>
+        <div class="meta">The same app for Chromebooks and PC Android emulators (a 64-bit Intel or AMD chip). Phones should use the other download. About 32&nbsp;MB.</div>
+        <a class="btn" data-link="androidX64" href="#">Download for Chromebook</a>
       </div>
       <div class="card" data-os="win64">
         <div class="os">Windows</div><div class="name">64-bit</div>
-        <div class="meta">Windows 10 or 11. This is the one most PCs need. About 54&nbsp;MB.</div>
+        <div class="meta">Windows 10 or 11. This is the one most PCs need. About 31&nbsp;MB.</div>
         <a class="btn primary" data-link="win64" href="#">Download for Windows</a>
       </div>
       <div class="card" data-os="win32">
         <div class="os">Windows</div><div class="name">32-bit</div>
-        <div class="meta">For older 32-bit versions of Windows. About 41&nbsp;MB.</div>
+        <div class="meta">For older 32-bit versions of Windows. About 25&nbsp;MB.</div>
         <a class="btn" data-link="win32" href="#">Download 32-bit</a>
       </div>
       <div class="card" data-os="macArm">
         <div class="os">macOS</div><div class="name">Apple Silicon</div>
-        <div class="meta">Macs with an M1 chip or later. macOS 11 or newer. About 77&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
+        <div class="meta">Macs with an M1 chip or later. macOS 11 or newer. About 60&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
         <a class="btn" data-link="macArm" href="#">Download for Apple Silicon</a>
       </div>
       <div class="card" data-os="macIntel">
         <div class="os">macOS</div><div class="name">Intel</div>
-        <div class="meta">Macs with an Intel chip. macOS 10.15 or newer. About 82&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
+        <div class="meta">Macs with an Intel chip. macOS 10.15 or newer. About 63&nbsp;MB. <span class="badge warn">Untested: tell us if it breaks</span></div>
         <a class="btn" data-link="macIntel" href="#">Download for Intel</a>
       </div>
       <div class="card" data-os="linux64">
         <div class="os">Linux</div><div class="name">x86-64</div>
-        <div class="meta">Most Linux PCs and laptops. Ubuntu 20.04, Debian 10, Fedora 29 or newer. About 100&nbsp;MB.</div>
+        <div class="meta">Most Linux PCs and laptops. Ubuntu 20.04, Debian 10, Fedora 29 or newer. About 77&nbsp;MB.</div>
         <a class="btn" data-link="linux64" href="#">Download for Linux</a>
       </div>
       <div class="card" data-os="linuxArm">
         <div class="os">Linux</div><div class="name">ARM64</div>
-        <div class="meta">Raspberry Pi 4 and 5 and other 64-bit ARM machines. About 89&nbsp;MB. <span class="badge warn">Untested on real hardware</span></div>
+        <div class="meta">Raspberry Pi 4 and 5 and other 64-bit ARM machines. About 69&nbsp;MB. <span class="badge warn">Untested on real hardware</span></div>
         <a class="btn" data-link="linuxArm" href="#">Download for ARM64</a>
       </div>
     </div>
+    <p class="small" style="margin-top:14px">Re:Cast is free software, and so are most of the programs inside it. The source code of the ones under the GPL and LGPL (Unicorn, FFmpeg and pygame-ce) is in <a data-link="sources" href="#">KH-ReCast-sources.zip</a>; the list of everything the apps include is in the <a href="https://github.com/khrecast/khvcemu/blob/main/docs/CREDITS.md" target="_blank" rel="noopener">credits</a>.</p>
     <p class="small" style="margin-top:14px">Not sure which Mac you have? Apple menu &rarr; About This Mac: &ldquo;Chip: Apple M&hellip;&rdquo; means Apple Silicon, &ldquo;Processor: Intel&rdquo; means Intel.</p>
   </div></section>
 
@@ -79,13 +85,15 @@
       If they differ, don't run it: download it again, from the other place if you can.</p>
       <p>Windows (PowerShell): <code>Get-FileHash .\KH-ReCast-Windows-x64.exe</code> &middot; macOS: <code>shasum -a 256 KH-ReCast-macOS-arm64.zip</code> &middot; Linux: <code>sha256sum KH-ReCast-Linux-x86_64.run</code></p>
       <ul>
-        <li><code>KH-ReCast-Android.zip</code><br><code style="word-break:break-all">b54e49aaccad08a89c58f1a1c081af2bdb3527035ad905078313a0d3ea436534</code></li>
-        <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">e21b15054aeb24837868a3d030cb620bceac517f5d2861c53b336f10bff21546</code></li>
-        <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">8997abee3f89a818c79ffad83a116d2a9422fb0574d7e2cd735905a9549adcc2</code></li>
-        <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">7f946bfc95277ece6c675cdbc63e3baa71c8117ff86d862c2b52fa4a7d4f8a96</code></li>
-        <li><code>KH-ReCast-Windows-x86.exe</code><br><code style="word-break:break-all">9ce76b7cba049404106de532f22d6a476bc9eeb8b0a735521996cb0aee9cb894</code></li>
-        <li><code>KH-ReCast-macOS-arm64.zip</code><br><code style="word-break:break-all">61e2be22050e31df2452cfc5ebe9ba1ab9874c3aa504e75a2f63baa33b4a6a91</code></li>
-        <li><code>KH-ReCast-macOS-x86_64.zip</code><br><code style="word-break:break-all">3e4fb4728769788668e76ad3f78537dc0ea4e32b5fe7b0b08c99624b60831000</code></li>
+        <li><code>KH-ReCast-Android.zip</code><br><code style="word-break:break-all">16c9b1fe3591238e2ba47c765f08c58d9e3692688621809d12f63aa63335a12f</code></li>
+        <li><code>KH-ReCast-Android-x86_64.zip</code><br><code style="word-break:break-all">f623d19493b881c919b28e0c3819f5fad900d0f5520eda0028b725c09a9e82f6</code></li>
+        <li><code>KH-ReCast-Linux-aarch64.run</code><br><code style="word-break:break-all">ecc89a8263db8b50286be37e352e6e8f5a26ec54713b183048bd5a22cd602759</code></li>
+        <li><code>KH-ReCast-Linux-x86_64.run</code><br><code style="word-break:break-all">2af9d2bea5649df7d98f59617ef0d42ab14de1948cda804640b3db5c532d0344</code></li>
+        <li><code>KH-ReCast-Windows-x64.exe</code><br><code style="word-break:break-all">0979c309941f5778cdb643ca7ce300de0d8da100e7aac2a25078da7cf6d635e3</code></li>
+        <li><code>KH-ReCast-Windows-x86.exe</code><br><code style="word-break:break-all">33a242089865a280fc98026c0f42cc4a0d22b12663a92310929c9aa1285fd289</code></li>
+        <li><code>KH-ReCast-macOS-arm64.zip</code><br><code style="word-break:break-all">263460ce98cb8346309d1e0b02677727b7b045b5c60d24ea4c732d6cb3dc11b2</code></li>
+        <li><code>KH-ReCast-macOS-x86_64.zip</code><br><code style="word-break:break-all">591cd2d6c05c5bfd2a08d592db1333283a1554011d0b8f86e999d153f9b97fa1</code></li>
+        <li><code>KH-ReCast-sources.zip</code><br><code style="word-break:break-all">3294f7b745bd4f4f625fa574213be4d76e62e8286dad320d2e2a79d358bd1a3e</code></li>
       </ul>
     </details>
     <details>
@@ -109,11 +117,11 @@
     <details id="android-help">
       <summary>Installing on Android</summary>
       <ol>
-        <li>Download <code>KH-ReCast-Android.zip</code> on the phone and extract it (in the Files app, tap the zip, then <strong>Extract</strong>). You get <code>KH-ReCast-Android.apk</code> and a <code>KH-ReCast-game</code> folder.</li>
+        <li>Download <code>KH-ReCast-Android.zip</code> on the phone (on a Chromebook or an Android emulator, take <code>KH-ReCast-Android-x86_64.zip</code> instead) and extract it (in the Files app, tap the zip, then <strong>Extract</strong>). You get <code>KH-ReCast-Android.apk</code> and a <code>KH-ReCast-game</code> folder.</li>
         <li>Tap <code>KH-ReCast-Android.apk</code>. The first time, Android asks you to allow installing apps from your file manager: allow it, then tap <strong>Install</strong>.</li>
         <li>Open Re:Cast and choose smartphone or flip phone style. When it asks for the game files, tap <strong>Set up the game files</strong> and pick the <code>KH-ReCast-game</code> folder. The app copies them into its own storage, so you can delete the zip and the folder afterwards.</li>
       </ol>
-      <p>Your saves stay in the app: uninstalling it deletes them, so export them first from the app's Saved games screen. The phone's compressed sound effects play through Android's own decoder; if your phone plays the music but not the sword and hit sounds, please tell us which phone it is in <a href="journal.html">Jiminy's Journal</a>. Some newer phones use 16&nbsp;KB memory pages; the app can't run on those yet.</p>
+      <p>Your saves stay in the app: uninstalling it deletes them, so export them first from the app's Saved games screen. The phone's compressed sound effects play through Android's own decoder; if your phone plays the music but not the sword and hit sounds, please tell us which phone it is in <a href="journal.html">Jiminy's Journal</a>. It runs on Android 7 or newer, including the newer phones that use 16&nbsp;KB memory pages. If you already have version 0.1.0, installing the new file over it keeps your saves.</p>
     </details>
   </div></section>
 </main>
