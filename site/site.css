@@ -221,6 +221,8 @@ nav img, .page-title img { display: block; image-rendering: pixelated; }
 @media (prefers-reduced-motion: no-preference) {
   a.get:hover .arrow, a.get:focus-visible .arrow { animation: bob .8s ease-in-out infinite; }   /* the arrow bobs down and up, like a download starting */
   @keyframes bob { 50% { transform: translateY(3px); } }
+  @keyframes bob-title { 50% { transform: translateY(1.5px); } }   /* the title is drawn 3 times bigger */
+  .page-title .get .arrow { animation: bob-title 1.2s ease-in-out infinite; }   /* the big title's arrow on the Download page bobs all the time, a little slower */
 }
 /* Find Wonderland: letters tumbling down the rabbit hole, in the Cheshire Cat's stripes; they straighten up on hover */
 .wl { font: 400 17px/1 "Alice", Georgia, "Times New Roman", serif; white-space: nowrap; }
