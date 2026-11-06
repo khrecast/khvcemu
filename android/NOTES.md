@@ -1570,7 +1570,7 @@ Pass/fail on the target phone (desktop in brackets):
 | Guest instructions/s in 3D (168 M per game second x the real-time factor) | >= 100 M | 65 to 100 M | < 65 M | 140 to 145 M |
 | Synth render of the nine tunes, first launch only | < 60 s | 60 to 180 s | > 180 s | 6.3 s |
 | Peak memory (PSS) in the 3D scene | < 300 MB | 300 to 500 MB | > 500 MB | 64 MB working set |
-| APK size (arm64 only; with x86_64 since 2026-11-03 the release is 45.3 MB) | < 60 MB | 60 to 100 MB | > 100 MB | not built |
+| APK size (arm64 only; with both ABIs in one APK the release was 45.3 MB; the 0.2.0 APKs are one ABI each, 28.6 MB arm64 and 30.8 MB x86_64) | < 60 MB | 60 to 100 MB | > 100 MB | not built |
 
 Marginal or fail means: stop and report, then in this order try a 15 fps cap (the game is time based),
 native string/heap helpers (only matters while loading), and a dynarmic backend behind the `Cpu` class.
@@ -1649,3 +1649,11 @@ A physical arm64 phone with Developer options and USB debugging on is required f
 3. ANSWERED 2026-10-09: approved, under C:\Android.
 4. OPEN. Distribution: sideloaded APK only. Developer verification (from 2027 globally) means either a verified
    developer account (identity, US$25) or users installing through Android's advanced flow or adb.
+
+## Release 0.2.0 built (2026-11-03; not uploaded, not installed on the owner's phone)
+
+- Version 0.2.0 (code 2). `-Precast.abi=arm64-v8a` or `-Precast.abi=x86_64` gives one APK per download (28.6 MB and 30.8 MB); without it both ABIs go in.
+  Both are signed with the same key as 0.1.0 (certificate SHA-256 686ba6d7...0eac), so 0.2.0 installs over 0.1.0 and keeps its data. 0 of 97 and 0 of 96 native libraries are below 16 KB alignment.
+- Both APKs were built the same day from the same wheels, so they carry the same numpy and Pillow; Chaquopy resolves package versions per ABI, so check that again if the two are ever built apart.
+- `android/tools/make_android_zip.py` packs each zip (APK, `KH-ReCast-game/`, README): `dist/KH-ReCast-Android.zip` (arm64, phones) and `dist/KH-ReCast-Android-x86_64.zip` (Chromebooks, emulators).
+- Run so far: the x86_64 release installed and opened to the first screen on the 16 KB emulator. Not yet run: the arm64 release on the S23 (it would update the owner's signed 0.1.0 in place, so it waits for their say-so), and a full game run from the release APKs (the release is not debuggable, so the debug build's `run-as` setup does not apply).

@@ -14,12 +14,15 @@ android {
         applicationId = "com.khrecast.recast"
         minSdk = 24                          // Android 7.0, Chaquopy's floor (API 26+ calls are guarded; see android/NOTES.md "Chunk: Android 7")
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"                // the first release; raise versionCode with every release you hand out (Android refuses a lower one)
+        versionCode = 2
+        versionName = "0.2.0"                // raise versionCode with every release you hand out (Android refuses a lower one)
         ndk {
             // 64-bit only: ARM phones, and x86_64 (Chromebooks, PC emulators). Unicorn is built for both by
             // android/tools/build_unicorn_docker.py and copied in by android/fetch_unicorn.ps1 (see android/NOTES.md)
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            // -Precast.abi=arm64-v8a (or x86_64) builds one APK for the two downloads (phones, Chromebooks and emulators)
+            val only = project.findProperty("recast.abi") as String?
+            require(only == null || only in listOf("arm64-v8a", "x86_64")) { "-Precast.abi must be arm64-v8a or x86_64, not $only" }
+            abiFilters += if (only != null) listOf(only) else listOf("arm64-v8a", "x86_64")
         }
         externalNativeBuild {
             cmake {
